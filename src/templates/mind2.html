@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MindMap Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/mindmap@0.0.8/index.js"></script>
+</head>
+<body>
+    <div id="mindmap-container" style="width: 100%; height: 500px;"></div>
+    <script>
+        const mindmap = new MindMap({
+            el: document.getElementById("mindmap-container"),
+            data: {
+                "root": {
+                    "text": "Central Topic",
+                    "children": [
+                        { "text": "Child 1" },
+                        { "text": "Child 2" }
+                    ]
+                }
+            },
+            editable: true,
+        });
+    </script>
+</body>
+</html>

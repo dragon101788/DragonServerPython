@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>龙图腾的私有云盘</title>
+   
+    <script>
+        if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768){
+            // 跳转到移动端页面
+            window.location.href = '/webdav/mobile.html' + window.location.search;
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow-y: hidden;
+        }
+
+        .top-status-bar {
+            padding: 5px;
+            height: 3vh;
+            background-color: #f0f0f0;
+        }
+        .bottom-status-bar {
+            height: 3vh;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+        }
+
+        .main-content {
+            height: 93vh;
+            flex: 1;
+            display: flex;
+        }
+
+        #sidebar-browers {
+            width: 350px;
+            height: 100%;
+            border-right: 1px solid #ddd;
+        }
+
+        .main-display-area {
+            flex: 1;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        /* 添加分隔条样式 */
+        .resizer {
+            width: 2px;
+            background: #ddd;
+            cursor: col-resize;
+            user-select: none;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部状态栏 -->
+    <div class="top-status-bar" id="top-status-bar">
+        <div id="top-info" style="float: left;">龙图腾WEBDAV   </div>
+        <!-- 添加登出按钮 -->
+        <button id="logout-btn" style="float: right;">登出</button>
+    </div>
+    <div class="main-content">
+        <sidebar-browers id="sidebar-browers"></sidebar-browers>
+        <!-- 添加分隔条 -->
+        <div class="resizer" id="resizer"></div>
+        <!-- 主要显示区域 -->
+        <webdav-adapter class="main-display-area">主要显示区域内容</webdav-adapter>
+    </div>
+    <!-- 底部状态栏 -->
+    <div class="bottom-status-bar">
+        <a href="/" >Designed by DragonTotem</a>
+    </div>
+    <script type="module">
+        import { AccountManager } from '/AccountManager.js';
+        import { WebdavApi } from '/webdav/WebdavApi.js'
+        import { get_profile } from '/DragonServerAPI.js'
+        import { WebdavAdapter } from '/webdav/WebdavAdapter.js'
+        import {  MessageDialog ,UrlModal } from '/BaseModal.js';
+        import '/TabContainerComponent.js'
+        import '/SystemManager/SystemManager.js'
+        import '/SystemManager/ServerConfig.js'
+        import '/webdav/SidebarBrowers.js';
+        import '/webdav/UserConfig.js'
+        import '/MasonryExplorer/MasonryView.js';
+        import '/MasonryExplorer/MasonryDirectoryItem.js';
+        import '/MasonryExplorer/MasonryGoBackItem.js';
+        import '/MasonryExplorer/MasonryImageItem.js';
+        import '/MasonryExplorer/MasonryVideoItem.js';
+        import '/TinyMCE/MasonryHtmlItem.js';   
+        import '/TinyMCE/WebHtmlViewer.js'
+        import '/mindmap/MasonryMindmapItem.js'
+        import '/mindmap/WebMindMap.js'
+        import '/drawio/MasonryDrawIOItem.js'
+        import '/drawio/WebDrawioViewer.js'
+        import '/media/WebVideoPlayer.js'
+        import '/MasonryExplorer/WebImagePlayer.js'
+        import '/MasonryExplorer/MasonryPackageItem.js'
+        
+
+
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let shared = urlParams.get('shared');
+        if (shared) {
+            try{
+                shared = atob(shared)
+                shared = decodeURIComponent(shared);
+                shared = JSON.parse(shared);
+                if(await AccountManager.verfiyToken(shared.token)==true)
+                {
+
+                    AccountManager.token = shared.token;
+                    
+                }
+                else
+                {
+                    throw new Error("token error");
+                }
+            }catch(e){
+                await new Promise((resolve) => {
+                    MessageDialog.open({message : '分享链接错误或已过期'}).addEventListener("confirm", () => {
+                        resolve();
+                        window.location.href = "/";
+                    });
+                })  
+            }     
+        }
+        
+
+        const session = await AccountManager.getUserSession();
+        const topStatusBar = document.querySelector('.top-status-bar');
+        const topInfo = document.getElementById('top-info');
+        const MainDisplay = document.querySelector('.main-display-area');
+        const sidebarBrowers = document.getElementById('sidebar-browers');
+        const bottomStatusBar = document.querySelector('.bottom-status-bar');
+        const profile = await get_profile(session.username);
+
+        if (shared){
+            const currentTime = Math.floor(Date.now() / 1000); 
+            const totalSeconds = Math.floor(session.exp - currentTime);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+
+            const lableSHhare = document.createElement('div');
+            lableSHhare.textContent = " " + session.username + "分享链接" + "剩余时间：" + (days > 0 ? days + "天 " : "") + hours + "小时";
+            lableSHhare.style.float = "left";
+            lableSHhare.style.marginLeft = "10px";
+            topStatusBar.appendChild(lableSHhare);
+        }
+        else{
+
+            const lableUser = document.createElement('div');
+            lableUser.textContent = " " + session.username ;   
+            lableUser.style.float = "left";
+            lableUser.style.marginLeft = "10px";
+            if (profile.role.includes("SuperAdmin")) {
+                lableUser.textContent += " 超级管理员";
+            }
+            else if (profile.role.includes("Admin")) {
+                lableUser.textContent += " 管理员";
+            }
+            topStatusBar.appendChild(lableUser);
+
+            const clientAppInstall = document.createElement('a');
+            clientAppInstall.textContent = " 客户端安装以及设置";
+            clientAppInstall.style.float = "right";
+            clientAppInstall.style.marginLeft = "10px";
+            clientAppInstall.style.color = '#87CEEB'; 
+            clientAppInstall.style.cursor = 'pointer'; 
+            clientAppInstall.addEventListener('click', async () => {
+                UrlModal.open({url : "/client_app_install.html"});
+            });
+            bottomStatusBar.appendChild(clientAppInstall);
+        }
+        // 获取登出按钮并添加点击事件监听器
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            if (shared) {
+                logoutBtn.style.display = "none"; 
+            }
+            logoutBtn.addEventListener('click', async () => {
+                await AccountManager.logout();
+                window.location.reload();
+            });
+        }
+
+        if (profile.role.includes("SuperAdmin") && !shared) {
+            console.log("超级管理员");
+
+            
+            //增加一个按钮，点击后显示系统设置页面 ,在logout-btn左边
+            const systemSettingsBtn = document.createElement('button');
+            systemSettingsBtn.textContent = '系统设置';
+            systemSettingsBtn.style.float = "right";
+            systemSettingsBtn.style.marginRight = "10px";
+            topStatusBar.appendChild(systemSettingsBtn);
+            systemSettingsBtn.addEventListener('click', async () => {
+                MainDisplay.innerHTML = /*html*/`
+                    <tab-container active-tab="用户配置">
+                        <user-config title="用户配置"></user-config>
+                        <system-manager title="系统设置"></system-manager>
+                        <server-config title="服务配置"></server-config>
+                    </tab-container>
+                `;
+                const systemManager = document.querySelector('system-manager'); 
+                const serverConfig = document.querySelector('server-config'); 
+                const UserConfig = document.querySelector('user-config');
+                systemManager.init();
+                serverConfig.init();
+                await UserConfig.init();
+            });
+        }
+
+       
+        if (sidebarBrowers) {
+            sidebarBrowers.webdavApi = new WebdavApi({
+                token : await AccountManager.getUserToken()
+            });
+            sidebarBrowers.loadDirectory('/');
+
+            const hideSidebarBtn = document.createElement('button');
+            hideSidebarBtn.textContent = '隐藏侧边栏';
+            hideSidebarBtn.style.float = "left";
+            hideSidebarBtn.style.marginLeft= "10px";
+            topStatusBar.appendChild(hideSidebarBtn);
+            hideSidebarBtn.addEventListener('click', () => {
+                sidebarBrowers.setHiden(!sidebarBrowers.isHidden());
+                hideSidebarBtn.textContent = sidebarBrowers.isHidden() ? '显示侧边栏' : '隐藏侧边栏';
+            });
+        }
+
+        // 拖动逻辑
+        const sidebar = document.getElementById('sidebar-browers');
+        const resizer = document.getElementById('resizer');
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.body.style.cursor = 'col-resize';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isResizing) {
+                const newWidth = e.clientX - sidebar.getBoundingClientRect().left;
+                sidebar.style.width = `${newWidth}px`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+            document.body.style.cursor = 'default';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebDAV Logs</title>
+</head>
+<body>
+    <h1>WebDAV Logs</h1>
+    <pre id="logs"></pre>
+    <script>
+        const ws = new WebSocket('ws://localhost:5000/ws');
+        const logsElement = document.getElementById('logs');
+
+        ws.onmessage = function(event) {
+            logsElement.textContent += event.data + '\n';
+            logsElement.scrollTop = logsElement.scrollHeight; // 自动滚动到底部
+        };
+
+        ws.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket connection closed');
+        };
+    </script>
+</body>
+</html>

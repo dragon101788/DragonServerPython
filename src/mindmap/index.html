@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1,maximum-scale=1,minimum-scale=1">
+    <link rel="icon" href="dist/logo.ico">
+    <title>thoughts思维导图</title>
+    <script>// 自定义静态资源的路径
+
+        const SIMPLE_MIND_MAP_DATA = 'SIMPLE_MIND_MAP_DATA'
+        const SIMPLE_MIND_MAP_CONFIG = 'SIMPLE_MIND_MAP_CONFIG'
+        const SIMPLE_MIND_MAP_LANG = 'SIMPLE_MIND_MAP_LANG'
+        const SIMPLE_MIND_MAP_LOCAL_CONFIG = 'SIMPLE_MIND_MAP_LOCAL_CONFIG'
+        window.externalPublicPath = './dist/'
+
+        localStorage.setItem('webUseTip', 1)
+        // 接管应用
+        window.takeOverApp = window.location.search.includes('src=');
+    </script>
+    <link href="dist/css/chunk-vendors.css?227f61428db154a5d9bc" rel="stylesheet">
+    <link href="dist/css/app.css?227f61428db154a5d9bc" rel="stylesheet">
+
+</head>
+
+<body>
+    <div id="app"></div>
+    <script type="module">
+        import { AccountManager } from '/AccountManager.js';
+        import { WebdavApi } from '/webdav/WebdavApi.js'
+
+        let webdavApi = undefined;
+
+        let MindMapData = {
+                root: {
+                    data: {
+                        text: '根节点11'
+                    },
+                    children: []
+                },
+                theme: {
+                    template: 'avocado',
+                    config: {}
+                },
+                layout: 'logicalStructure',
+                config: {},
+                view: null
+        }
+
+        const getMindMapDataFromUrl = async () => {
+            
+            Response =  await webdavApi.fetchFile(webdavApi.src);
+            if (Response.ok) {
+                try{
+                    return await Response.json();
+                }catch(error){
+                    return {
+                        root: {
+                            data: {
+                                text: 'root'
+                            },
+                            children: []
+                        },
+                        theme: {
+                            template: 'classic4',
+                            config: {}
+                        },
+                        layout: 'logicalStructure',
+                        config: {},
+                        view: null
+                    }
+                }
+                
+            } else {
+                return Promise.reject('fetch file failed');
+            }
+        }
+        const setTakeOverAppMethods = () => {
+            window.takeOverAppMethods = {}
+            // 获取思维导图数据的函数
+            window.takeOverAppMethods.getMindMapData = () => {
+                return MindMapData
+            }
+            // 保存思维导图数据的函数
+            window.takeOverAppMethods.saveMindMapData = async data => {
+                await webdavApi.pushFile(webdavApi.src, JSON.stringify(data));
+                MindMapData = data
+            }
+            // 获取思维导图配置
+            window.takeOverAppMethods.getMindMapConfig = () => {
+                let config = localStorage.getItem(SIMPLE_MIND_MAP_CONFIG)
+                if (config) {
+                    return JSON.parse(config)
+                }else{
+                    return {
+                        "mousewheelAction": 'zoom',
+                        "mousewheelZoomActionReverse": true
+                    }
+                }
+            }
+            // 保存思维导图配置
+            window.takeOverAppMethods.saveMindMapConfig = config => {
+                localStorage.setItem(SIMPLE_MIND_MAP_CONFIG, JSON.stringify(config))
+                console.log(config)
+            }
+            // 获取语言的函数
+            window.takeOverAppMethods.getLanguage = () => {
+                let lang = localStorage.getItem(SIMPLE_MIND_MAP_LANG)
+                if (lang) {
+                    return lang
+                }else{
+                    return 'zh'
+                }
+            }
+            // 保存语言的函数
+            window.takeOverAppMethods.saveLanguage = lang => {
+                localStorage.setItem(SIMPLE_MIND_MAP_LANG, lang)
+                console.log(lang)
+            }
+            // 获取本地配置的函数
+            window.takeOverAppMethods.getLocalConfig = () => {
+                let config = localStorage.getItem(SIMPLE_MIND_MAP_LOCAL_CONFIG)
+                if (config) {
+                    return JSON.parse(config)
+                }else{
+                    return {
+                        useLeftKeySelectionRightKeyDrag: true,
+                        enableAi: false
+                    }
+                }
+            }
+            // 保存本地配置的函数
+            window.takeOverAppMethods.saveLocalConfig = config => {
+                localStorage.setItem(SIMPLE_MIND_MAP_LOCAL_CONFIG, JSON.stringify(config))
+            }
+        }
+        window.onload = async () => {
+            if(window.takeOverApp === true){
+                const searchParams = new URLSearchParams(window.location.search);
+                const token = searchParams.get('token');
+                if ( token) {
+                    webdavApi = new WebdavApi({
+                        token: token
+                    });
+                    webdavApi.src = searchParams.get('src');
+                }
+                MindMapData = await getMindMapDataFromUrl();
+                
+                // 设置全局的方法
+                setTakeOverAppMethods()
+                // 思维导图实例创建完成事件
+                window.$bus.$on('app_inited', mindMap => {
+                    console.log(mindMap)
+                    //mindMap.setMode('readonly')
+                    //mindMap.setTheme();
+                    // let view = mindMap.view
+                    // view.setScale(0.8, 0, 0)
+                })
+                // 可以通过window.$bus.$on()来监听应用的一些事件
+                // 实例化页面
+                window.initApp()
+            }else{
+                return;
+            }
+
+        }
+
+    </script>
+  
+    <script src="dist/js/chunk-vendors.js?227f61428db154a5d9bc"></script>
+    <script src="dist/js/app.js?227f61428db154a5d9bc"></script>
+</body>
+
+</html>

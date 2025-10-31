@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live2D Example</title>
+    <script src="https://cdn.jsdelivr.net/npm/live2d-widget@3.0.4/lib/L2Dwidget.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        #live2d-widget {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Live2D Widget -->
+    <div id="live2d-widget">
+        <div id="live2d-widget-model"></div>
+    </div>
+
+    <script>
+        // 初始化Live2D Widget
+        L2Dwidget.init({
+            model: {
+                jsonPath: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-haruto/assets/haruto.model.json', // 模型路径
+            },
+            display: {
+                superSample: 2,
+                width: 200,
+                height: 400,
+                position: 'left',
+                hOffset: 0,
+                vOffset: -20,
+            },
+            mobile: {
+                show: true,
+                scale: 0.5,
+            },
+            react: {
+                opacityDefault: 0.7,
+                opacityOnHover: 0.2,
+            }
+        });
+    </script>
+</body>
+</html>

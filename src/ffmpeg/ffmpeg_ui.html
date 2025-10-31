@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg 转码服务器控制面板</title>
+    <script type="module" src="/ffmpeg/FFmpeg.js"></script>
+    <script type="module">
+        import { AccountManager } from '/AccountManager.js';
+        await AccountManager.getUserSession();
+    </script>
+</head>
+<body>
+    <ffmpeg-control></ffmpeg-control>
+</body>
+</html>

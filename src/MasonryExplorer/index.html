@@ -1,0 +1,44 @@
+<head>
+    <title>龙图腾的分享</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+    }
+</style>
+<script type="module">
+    import { MasonryView } from "/MasonryExplorer/MasonryView.js";
+    import { WebdavAdapter } from "/webdav/WebdavAdapter.js";
+    import { WebHtmlViewer } from "/TinyMCE/WebHtmlViewer.js";
+
+    import '/MasonryExplorer/MasonryDirectoryItem.js';
+    import '/MasonryExplorer/MasonryGoBackItem.js';
+    import '/MasonryExplorer/MasonryImageItem.js';
+    import '/MasonryExplorer/MasonryVideoItem.js';
+    import '/TinyMCE/MasonryHtmlItem.js';   
+    import '/TinyMCE/WebHtmlViewer.js'
+    import '/mindmap/MasonryMindmapItem.js'
+    import '/mindmap/WebMindMap.js'
+    import '/drawio/MasonryDrawIOItem.js'
+    import '/drawio/WebDrawioViewer.js'
+    import '/media/WebVideoPlayer.js'
+    import '/MasonryExplorer/WebImagePlayer.js'
+    import '/MasonryExplorer/MasonryPackageItem.js'
+
+
+    const param = new URLSearchParams(window.location.search);
+    const src = param.get('src');
+    const columnCount = param.get('columnCount');
+    
+    const mainWindow = new WebdavAdapter();
+    document.body.appendChild(mainWindow);
+    
+    MasonryView.offset = src;
+    const masonryView = new MasonryView();
+    masonryView.setAttribute('path', src);
+    masonryView.setAttribute('column-count', columnCount);
+    mainWindow.shadowRoot.replaceChildren(masonryView);
+</script>

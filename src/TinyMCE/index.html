@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyMCE编辑器 - 强大的表格和图像支持</title>
+    
+    <style>
+        /* 基础样式 - 保留必要的样式 */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        /* 编辑器样式 */
+        #editor {
+            height: 95vh;
+        }
+        
+        /* 编辑器工具栏美化 */
+        .tox .tox-toolbar__primary {
+            background: #f7fafc !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- 编辑器 -->
+    <textarea id="editor">
+        <h2>🎉 欢迎使用TinyMCE编辑器！</h2>
+        
+        <p>这是一个功能强大的富文本编辑器，特别擅长处理表格和图像。</p>
+        
+        <h3>📊 表格功能演示</h3>
+        <table style="border-collapse: collapse; width: 100%;" border="1">
+            <thead>
+                <tr style="background-color: #f2f3f4;">
+                    <th style="width: 25%; padding: 12px;">功能</th>
+                    <th style="width: 50%; padding: 12px;">描述</th>
+                    <th style="width: 25%; padding: 12px;">状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 12px;"><strong>表格编辑</strong></td>
+                    <td style="padding: 12px;">支持添加/删除行列，合并单元格，调整大小</td>
+                    <td style="padding: 12px; background-color: #d4edda; text-align: center;">✅ 支持</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px;"><strong>图片上传</strong></td>
+                    <td style="padding: 12px;">支持本地图片上传，自动转换为base64</td>
+                    <td style="padding: 12px; background-color: #d4edda; text-align: center;">✅ 支持</td>
+                </tr>
+                <tr>
+                    <td style="padding: 12px;"><strong>富文本格式</strong></td>
+                    <td style="padding: 12px;">完整的文本格式化功能，包括字体、颜色、样式等</td>
+                    <td style="padding: 12px; background-color: #d4edda; text-align: center;">✅ 支持</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h3>🚀 使用建议</h3>
+        <ul>
+            <li><strong>表格操作：</strong>右键点击表格可以看到完整的表格操作菜单</li>
+            <li><strong>图片处理：</strong>可以直接拖拽图片到编辑器，或使用上传按钮</li>
+            <li><strong>快捷键：</strong>支持常用的快捷键，如Ctrl+B加粗，Ctrl+I斜体等</li>
+            <li><strong>响应式：</strong>表格在移动设备上也能良好显示</li>
+        </ul>
+        
+        <blockquote>
+            <p>💡 <strong>提示：</strong>您可以通过工具栏或右键菜单访问所有高级功能。这个编辑器特别适合需要处理复杂表格和图像的场景。</p>
+        </blockquote>
+    </textarea>
+    
+    <!-- TinyMCE (在线CDN) -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.7.0/tinymce.min.js"></script> -->
+    <!-- TinyMCE (本地版本) -->
+    <script src="dist/tinymce/js/tinymce/tinymce.min.js"></script>
+    
+    <script type="module">
+        import { AccountManager } from '/AccountManager.js';
+        import { WebdavApi } from '/webdav/WebdavApi.js'
+        let webdavApi = undefined;
+
+        let editor;
+
+        if (window.location.search.includes('src=')) {
+            const searchParams = new URLSearchParams(window.location.search);
+            const token = searchParams.get('token');
+            if ( token) {
+                webdavApi = new WebdavApi({
+                    token: token
+                });
+                webdavApi.src = searchParams.get('src');
+                Response =  await webdavApi.fetchFile(webdavApi.src);
+
+                
+                if (Response.ok) {
+                    document.getElementById('editor').value = await Response.text();
+                } else {
+                    console.error('fetch file failed');
+                }
+            }
+            
+        }
+
+        // 初始化TinyMCE编辑器
+        tinymce.init({
+            selector: '#editor',
+            
+            // 本地版本配置
+            base_url: 'dist/tinymce/js/tinymce',
+            suffix: '.min',
+            promotion: false,  // 禁用升级按钮
+            statusbar: false,  // 隐藏状态栏
+            menubar: true,
+            toolbar_sticky: true,  // 启用工具栏自动换行
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'media', 'table', 'help', 'wordcount', 'emoticons',
+                'template', 'codesample', 'nonbreaking'
+            ],
+            toolbar: [
+                'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough |alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist',
+                'forecolor backcolor | link image media table emoticons | insertdatetime | searchreplace | visualblocks code fullscreen preview ',
+              
+            ],
+            table_toolbar: 'tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol',
+            table_appearance_options: true,
+            table_grid: true,
+            table_resize_bars: true,
+            table_header_type: 'sectionCells',
+            
+            image_upload_handler: function(blobInfo, success, failure) {
+                const reader = new FileReader();
+                reader.onload = function() {
+                    success(reader.result);
+                };
+                reader.readAsDataURL(blobInfo.blob());
+            },
+            setup: function(ed) {
+                editor = ed;
+                
+                // 添加Tab键缩进和Shift+Tab反缩进功能
+                ed.on('keydown', function(e) {
+                    // Tab键实现缩进
+                    if (e.keyCode === 9 && !e.shiftKey) {
+                        e.preventDefault();
+                        // 使用TinyMCE的命令来实现缩进
+                        ed.execCommand('Indent');
+                    }
+                    // Shift+Tab实现反缩进
+                    else if (e.keyCode === 9 && e.shiftKey) {
+                        e.preventDefault();
+                        // 使用TinyMCE的命令来实现反缩进
+                        ed.execCommand('Outdent');
+                    }
+                    else if (e.ctrlKey && e.key === 's') {
+                        e.preventDefault();
+                        saveWebpage();
+                    }
+                });
+                ed.on('change', function(e) {
+                    console.log('change自动保存内容:');
+                    saveWebpage();
+                });
+            }
+        });
+        
+        // 保存网页
+        function saveWebpage() {
+            if (!editor) return;
+            
+            const content = editor.getContent();
+            const title = document.title || '网页文档';
+            
+            // 创建完整的HTML文档结构
+            const html = /*html*/`<!DOCTYPE html>
+            <html lang="zh-CN">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${title}</title>
+                <style>
+                    body {
+                        background-color: #f5f5f5;
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+                    h1, h2, h3, h4, h5, h6 {
+                        color: #2d3748;
+                        margin-top: 2rem;
+                        margin-bottom: 1rem;
+                    }
+                    table {
+                        border-collapse: collapse;
+                        width: 100%;
+                        margin: 20px 0;
+                    }
+                    th, td {
+                        border: 1px solid #ddd;
+                        padding: 12px;
+                        text-align: left;
+                    }
+                    th {
+                        background-color: #f2f3f4;
+                    }
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                    }
+                    blockquote {
+                        border-left: 4px solid #ccc;
+                        padding-left: 20px;
+                        margin-left: 0;
+                        color: #666;
+                    }
+                    pre {
+                        background-color: #f5f5f5;
+                        padding: 15px;
+                        border-radius: 4px;
+                        overflow-x: auto;
+                        font-family: 'Courier New', Courier, monospace;
+                    }
+                </style>
+            </head>
+            <body>
+                ${content}
+            </body>
+            </html>`;
+            webdavApi.pushFile(webdavApi.src, html);
+        }
+        
+        
+        // 快捷键支持
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+S 保存网页
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveWebpage();
+            }
+        });
+        
+
+        // 页面加载完成
+        window.addEventListener('load', function() {
+            console.log('🎉 TinyMCE编辑器加载完成！');
+        });
+    </script>
+</body>
+</html>

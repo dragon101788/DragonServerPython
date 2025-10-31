@@ -1,0 +1,49 @@
+.copy-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    background-color: #3e4451;
+    color: #abb2bf;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.copy-button:hover {
+    background-color: #4b5363;
+}
+
+.copy-button.success {
+    background-color: #98c379;
+    color: #282c34;
+}
+
+
+.code-wrapper {
+    position: relative;
+    margin: 10px 0;
+}
+
+code.hljs {
+    background-color: #282c34;
+    color: #abb2bf;
+    padding: 16px;
+    border-radius: 8px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    tab-size: 4;
+    display: block;
+    overflow-x: auto;
+    white-space: pre;
+    word-wrap: normal;
+}
+
+
+
+.code-wrapper:hover .copy-button {
+    opacity: 1;
+}

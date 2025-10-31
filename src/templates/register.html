@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>注册 - 聊天室</title>
+    <style>
+        /*与 login.html 相同的样式*/
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #0084ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0073e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>注册</h2>
+        <input type="text" id="regUsername" placeholder="用户名">
+        <input type="password" id="regPassword" placeholder="密码">
+        <input type="text" id="regNickname" placeholder="昵称">
+        <button onclick="register()">注册</button>
+        <button onclick="window.location.href='login.html'">返回登录</button>
+    </div>
+
+    <script>
+        async function register() {
+            const username = document.getElementById('regUsername').value;
+            const password = document.getElementById('regPassword').value;
+            const nickname = document.getElementById('regNickname').value;
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password, nickname }),
+                });
+
+                if (response.ok) {
+                    alert('注册成功！');
+                    window.location.href = 'login.html';
+                } else {
+                    const data = await response.json();
+                    alert(data.detail || '注册失败');
+                }
+            } catch (error) {
+                alert('注册失败：' + error);
+            }
+        }
+    </script>
+</body>
+</html>

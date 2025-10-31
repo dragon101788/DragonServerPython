@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Python REPL Console</title>
+    <script src="/static/third_party/codemirror.min.js"></script>
+    <script src="/static/third_party/python.min.js"></script>
+    <link rel="stylesheet" href="/static/third_party/codemirror.min.css">
+    <link rel="stylesheet" href="/static/third_party/dracula.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #container {
+            width: 95%;
+            height: 95%;
+            background: #252526;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #login-form {
+            text-align: center;
+            margin: 100px auto;
+            max-width: 400px;
+            padding: 20px;
+            background: #252526;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #password {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #3c3c3c;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #1177bb;
+        }
+
+        #console {
+            display: none;
+            height: 100vh;
+            background: #252526;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4f4f4f;
+        }
+
+        .clear-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="login-form">
+            <h2>Python REPL Console</h2>
+            <input type="password" id="password" placeholder="Enter password">
+            <button onclick="login()">Login</button>
+        </div>
+        <div id="console">
+            <button class="clear-button" onclick="clearConsole()">Clear Console</button>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+        let editor;
+        let history = [];
+        let historyIndex = -1;
+        let multiLineBuffer = [];
+        let isMultiLine = false;
+        let ws = null;
+
+        function createEditor() {
+            editor = CodeMirror(document.getElementById("console"), {
+                mode: "python",
+                theme: "dracula",
+                lineNumbers: true,
+                autofocus: true,
+                matchBrackets: true,
+                indentUnit: 4,
+                tabSize: 4,
+                indentWithTabs: false,
+                lineWrapping: true,
+                value: ">>> ",
+                extraKeys: {
+                    "Enter": handleEnter,
+                    "Up": handleUp,
+                    "Down": handleDown,
+                    "Ctrl-L": clearConsole,
+                    "Home": handleHome,
+                    "End": handleEnd,
+                    "Tab": function(cm) {
+                        if (isMultiLine) {
+                            cm.replaceSelection("    ");
+                        }
+                    }
+                }
+            });
+
+            setTimeout(() => {
+                const doc = editor.getDoc();
+                doc.setCursor({line: 0, ch: 4});
+                editor.focus();
+            }, 100);
+
+            editor.on("beforeChange", function(cm, change) {
+                const doc = cm.getDoc();
+                const lastLine = doc.lastLine();
+                const lineContent = cm.getLine(lastLine);
+                const prompt = isMultiLine ? "... " : ">>> ";
+
+                if (change.from.line !== lastLine) {
+                    change.cancel();
+                    return;
+                }
+
+                if (lineContent.startsWith(prompt) && change.from.ch < prompt.length) {
+                    change.cancel();
+                    return;
+                }
+            });
+
+            editor.on("cursorActivity", function(cm) {
+                const doc = cm.getDoc();
+                const cursor = doc.getCursor();
+                const lastLine = doc.lastLine();
+                const lastLineContent = cm.getLine(lastLine);
+                const prompt = isMultiLine ? "... " : ">>> ";
+
+                if (cursor.line !== lastLine || (lastLineContent.startsWith(prompt) && cursor.ch < prompt.length)) {
+                    doc.setCursor({
+                        line: lastLine,
+                        ch: Math.max(prompt.length, cursor.ch)
+                    });
+                }
+            });
+
+            initWebSocket();
+        }
+
+        function handleHome(cm) {
+            const doc = cm.getDoc();
+            const lastLine = doc.lastLine();
+            const prompt = isMultiLine ? "... " : ">>> ";
+            doc.setCursor({line: lastLine, ch: prompt.length});
+        }
+
+        function handleEnd(cm) {
+            const doc = cm.getDoc();
+            const lastLine = doc.lastLine();
+            doc.setCursor({line: lastLine, ch: doc.getLine(lastLine).length});
+        }
+
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/${sessionId}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onmessage = function(event) {
+                const data = event.data;
+                if (data === '[EXECUTION_COMPLETE]') {
+                    appendPrompt();
+                } else {
+                    appendOutput(data);
+                }
+            };
+
+            ws.onclose = function() {
+                console.log('WebSocket connection closed');
+                setTimeout(initWebSocket, 1000); // 断线重连
+            };
+
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function clearConsole() {
+            editor.setValue(">>> ");
+            const doc = editor.getDoc();
+            doc.setCursor({line: 0, ch: 4});
+            isMultiLine = false;
+            multiLineBuffer = [];
+        }
+
+        function handleEnter(cm) {
+            const doc = cm.getDoc();
+            const lastLine = doc.getLine(doc.lastLine());
+            const prompt = isMultiLine ? "... " : ">>> ";
+            const code = lastLine.slice(prompt.length);
+
+            if (!isMultiLine && code.trim().endsWith(':')) {
+                isMultiLine = true;
+                multiLineBuffer.push(code);
+                doc.replaceRange("\n... ",
+                    {line: doc.lastLine(), ch: doc.getLine(doc.lastLine()).length},
+                    {line: doc.lastLine(), ch: doc.getLine(doc.lastLine()).length}
+                );
+                return true;
+            }
+
+            if (isMultiLine) {
+                if (code.trim() === '') {
+                    const fullCode = multiLineBuffer.join('\n');
+                    isMultiLine = false;
+                    multiLineBuffer = [];
+                    doc.replaceRange("\n",
+                        {line: doc.lastLine(), ch: doc.getLine(doc.lastLine()).length},
+                        {line: doc.lastLine(), ch: doc.getLine(doc.lastLine()).length}
+                    );
+                    executeCode(fullCode);
+                } else {
+                    multiLineBuffer.push(code);
+                    doc.replaceRange("\n... ",
+                        {line: doc.lastLine(), ch: doc.getLine(doc.lastLine()).length},
+                        {line: doc.lastLine(), ch: doc.getLine(doc.lastLine()).length}
+                    );
+                }
+                return true;
+            }
+
+            if (code.trim()) {
+                doc.replaceRange("\n",
+                    {line: doc.lastLine(), ch: doc.getLine(doc.lastLine()).length},
+                    {line: doc.lastLine(), ch: doc.getLine(doc.lastLine()).length}
+                );
+                executeCode(code);
+                history.push(code);
+                historyIndex = history.length;
+            }
+            return true;
+        }
+
+        function executeCode(code) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ code: code }));
+            } else {
+                appendOutput("Error: WebSocket connection not available\n");
+                appendPrompt();
+            }
+        }
+
+        function appendOutput(text) {
+            const doc = editor.getDoc();
+            const lastLine = doc.lastLine();
+
+            let formattedText = text;
+            if (!formattedText.endsWith('\n')) {
+                formattedText += '\n';
+            }
+
+            doc.replaceRange(formattedText,
+                {line: lastLine, ch: doc.getLine(lastLine).length},
+                {line: lastLine, ch: doc.getLine(lastLine).length}
+            );
+
+            editor.scrollIntoView({line: doc.lastLine(), ch: 0});
+        }
+
+        function appendPrompt() {
+            const doc = editor.getDoc();
+            const lastLine = doc.lastLine();
+            const prompt = isMultiLine ? "... " : ">>> ";
+
+            if (doc.getLine(lastLine).length > 0) {
+                doc.replaceRange("\n",
+                    {line: lastLine, ch: doc.getLine(lastLine).length},
+                    {line: lastLine, ch: doc.getLine(lastLine).length}
+                );
+            }
+
+            doc.replaceRange(prompt,
+                {line: doc.lastLine(), ch: 0},
+                {line: doc.lastLine(), ch: 0}
+            );
+
+            const newLastLine = doc.lastLine();
+            doc.setCursor({line: newLastLine, ch: prompt.length});
+            editor.scrollIntoView({line: newLastLine, ch: 0});
+        }
+
+        function handleUp(cm) {
+            if (!isMultiLine && history.length > 0 && historyIndex > 0) {
+                historyIndex--;
+                const doc = cm.getDoc();
+                const lastLine = doc.lastLine();
+                doc.replaceRange(history[historyIndex],
+                    {line: lastLine, ch: 4},
+                    {line: lastLine, ch: doc.getLine(lastLine).length});
+                doc.setCursor({line: lastLine, ch: doc.getLine(lastLine).length});
+            }
+        }
+
+        function handleDown(cm) {
+            if (!isMultiLine && history.length > 0 && historyIndex < history.length) {
+                historyIndex++;
+                const doc = cm.getDoc();
+                const lastLine = doc.lastLine();
+                doc.replaceRange(
+                    historyIndex === history.length ? "" : history[historyIndex],
+                    {line: lastLine, ch: 4},
+                    {line: lastLine, ch: doc.getLine(lastLine).length}
+                );
+                doc.setCursor({line: lastLine, ch: doc.getLine(lastLine).length});
+            }
+        }
+
+        async function login() {
+            const password = document.getElementById('password').value;
+            try {
+                const response = await fetch('/api/verify_password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: password })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    sessionId = data.session_id;
+                    document.getElementById('login-form').style.display = 'none';
+                    document.getElementById('console').style.display = 'block';
+                    createEditor();
+                } else {
+                    alert('Invalid password');
+                }
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+            }
+        }
+
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                login();
+            }
+        });
+    </script>
+</body>
+</html>

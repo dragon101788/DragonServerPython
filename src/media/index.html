@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频播放器</title>
+    <!--http://127.0.0.1:8800/media/index.html?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRyYWdvbiIsImV4cCI6MTg0Njk5NTY4OX0.DCMUQbEf79EMTAzJ_1ETJgHZieScLocxMn9Nm4rl7pQ&src=/D/test/a.mp4 -->
+    <style>
+        /* 基础样式 */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        /* 视频容器样式 */
+        #video-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 播放器样式 */
+        #video-player {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+        }
+        
+        /* 加载提示样式 */
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px 40px;
+            border-radius: 8px;
+            font-size: 18px;
+            z-index: 1000;
+        }
+        
+        /* 错误提示样式 */
+        #error {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 0, 0, 0.7);
+            padding: 20px 40px;
+            border-radius: 8px;
+            font-size: 18px;
+            z-index: 1000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载提示 -->
+    <div id="loading">正在加载视频...</div>
+    
+    <!-- 错误提示 -->
+    <div id="error">视频加载失败，请稍后重试</div>
+    
+    <!-- 视频容器 -->
+    <div id="video-container">
+        <video id="video-player" controls preload="auto" controlsList="nodownload" autoplay>
+            <p>请启用JavaScript以播放视频</p>
+        </video>
+    </div>
+    
+    <script type="module">
+        import { AccountManager } from '/AccountManager.js';
+
+        AccountManager.init();
+        
+        let player = undefined;
+        let videoSource = null;
+        
+        // 初始化函数
+        async function init() {
+            try {
+                // 检查URL参数
+                const searchParams = new URLSearchParams(window.location.search);
+                const src = searchParams.get('src');
+                
+                
+                
+                // 隐藏加载提示
+                document.getElementById('loading').style.display = 'none';
+                
+                // 初始化视频播放器
+                initVideoPlayer(await getVideoUrl(src));
+                
+            } catch (error) {
+                console.error('初始化失败:', error);
+                // 显示错误提示
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = `错误：${error.message}`;
+            }
+        }
+        
+        // 获取视频URL
+        async function getVideoUrl(path) {
+            // 创建一个带token的URL
+            // 这里我们使用WebDAV的直接访问方式，利用fetchFile方法获取视频内容
+            const encodedPath = encodeURIComponent(path);
+            // 直接返回带有token的URL，让video.js能够直接加载
+            return `/WEBDAV${encodedPath}`;
+        }
+        
+        // 初始化视频播放器
+        function initVideoPlayer(videoUrl) {
+            // 获取原生video元素
+            player = document.getElementById('video-player');
+            
+            // 设置视频源
+            player.src = videoUrl;
+            player.type = 'video/mp4';
+            
+            // 尝试自动播放（处理浏览器兼容性问题）
+            player.play().catch(error => {
+                console.warn('自动播放失败，可能是由于浏览器策略限制:', error);
+                // 自动播放失败不会阻止用户手动点击播放
+            });
+            
+            // 监听错误事件
+            player.addEventListener('error', function() {
+                console.error('视频播放错误:', player.error);
+                document.getElementById('error').style.display = 'block';
+                
+                // 处理不同类型的错误
+                let errorMessage = '未知错误';
+                switch (player.error.code) {
+                    case 1:
+                        errorMessage = '用户中止了视频加载';
+                        break;
+                    case 2:
+                        errorMessage = '网络错误';
+                        break;
+                    case 3:
+                        errorMessage = '解码错误';
+                        break;
+                    case 4:
+                        errorMessage = '视频格式不支持';
+                        break;
+                }
+                document.getElementById('error').textContent = `播放错误：${errorMessage}`;
+            });
+            
+            // 监听播放开始事件
+            player.addEventListener('play', function() {
+                console.log('视频开始播放');
+            });
+            
+            // 监听播放结束事件
+            player.addEventListener('ended', function() {
+                console.log('视频播放结束');
+            });
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            console.log('页面加载完成，开始初始化视频播放器');
+            init();
+        });
+        
+    </script>
+</body>
+</html>

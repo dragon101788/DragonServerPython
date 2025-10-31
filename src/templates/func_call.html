@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek Chat with Function Calling</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chat {
+            height: 300px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+        }
+        #input {
+            width: calc(100% - 90px);
+            padding: 10px;
+            margin-right: 10px;
+        }
+        #send {
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>DeepSeek Chat with Function Calling</h1>
+    <div id="chat"></div>
+    <input type="text" id="input" placeholder="Type your message...">
+    <button id="send">Send</button>
+
+    <script>
+        // DeepSeek API 配置
+        const DEEPSEEK_API_KEY = "YOUR_DEEPSEEK_API_KEY"; // 替换为你的 DeepSeek API Key
+        const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
+
+        // 聊天轮数计数器
+        let chatCount = 0;
+
+        // 定义 Function Calling 的 Schema
+        const tools = [
+            {
+                type: "function",
+                function: {
+                    name: "show_led",
+                    description: "Control the LED light to show green for correct answers or red for incorrect answers.",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            color: {
+                                type: "string",
+                                description: "The color of the LED light, either 'green' or 'red'.",
+                                enum: ["green", "red"]
+                            }
+                        },
+                        required: ["color"]
+                    }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "show_count",
+                    description: "Show the current number of chat turns.",
+                    parameters: {
+                        type: "object",
+                        properties: {} // 不需要参数
+                    }
+                }
+            }
+        ];
+
+        // 模拟调用本地函数
+        function show_led(color) {
+            const chat = document.getElementById("chat");
+            if (color === "green") {
+                chat.innerHTML += `<p><b>LED:</b> <span style="color: green;">GREEN (Correct!)</span></p>`;
+            } else if (color === "red") {
+                chat.innerHTML += `<p><b>LED:</b> <span style="color: red;">RED (Incorrect!)</span></p>`;
+            }
+            chat.scrollTop = chat.scrollHeight; // 滚动到底部
+        }
+
+        // 显示聊天轮数
+        function show_count() {
+            const chat = document.getElementById("chat");
+            chat.innerHTML += `<p><b>Chat Count:</b> ${chatCount}</p>`;
+            chat.scrollTop = chat.scrollHeight; // 滚动到底部
+        }
+
+        // 调用 DeepSeek API
+        async function callDeepSeekAPI(message) {
+            const requestBody = {
+                model: "deepseek-chat", // 替换为你的模型名称
+                messages: [{ role: "user", content: message }],
+                tools: tools // 使用 tools 参数
+            };
+            console.log("API Request:", JSON.stringify(requestBody, null, 2)); // 打印请求
+
+            const response = await fetch(DEEPSEEK_API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${DEEPSEEK_API_KEY}`
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            const data = await response.json();
+            console.log("API Response:", JSON.stringify(data, null, 2)); // 打印响应
+            return data;
+        }
+
+        // 处理 AI 的响应
+        function handleAIResponse(response) {
+            const chat = document.getElementById("chat");
+            if (response.choices[0].message.tool_calls) {
+                // 如果 AI 返回了 Tool Calls
+                const toolCall = response.choices[0].message.tool_calls[0];
+                if (toolCall.function.name === "show_led") {
+                    const arguments = JSON.parse(toolCall.function.arguments);
+                    show_led(arguments.color); // 调用 show_led 函数
+                } else if (toolCall.function.name === "show_count") {
+                    show_count(); // 调用 show_count 函数
+                }
+            } else {
+                // 如果 AI 返回了普通消息
+                const message = response.choices[0].message.content;
+                chat.innerHTML += `<p><b>AI:</b> ${message}</p>`;
+            }
+            chat.scrollTop = chat.scrollHeight; // 滚动到底部
+        }
+
+        // 发送消息
+        document.getElementById("send").addEventListener("click", async () => {
+            const input = document.getElementById("input");
+            const message = input.value.trim();
+            if (!message) return;
+
+            // 显示用户消息
+            const chat = document.getElementById("chat");
+            chat.innerHTML += `<p><b>You:</b> ${message}</p>`;
+            input.value = ""; // 清空输入框
+
+            // 调用 DeepSeek API
+            const response = await callDeepSeekAPI(message);
+            handleAIResponse(response);
+
+            // 更新聊天轮数
+            chatCount++;
+            show_count(); // 显示当前聊天轮数
+        });
+
+        // 按回车发送消息
+        document.getElementById("input").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                document.getElementById("send").click();
+            }
+        });
+    </script>
+</body>
+</html>

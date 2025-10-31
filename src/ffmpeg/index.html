@@ -1,0 +1,40 @@
+<style>
+    :host {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+<script type="module" src="/ffmpeg/FFmpeg.js"></script>
+
+<div id="currentFile"></div>
+<ffmpeg-control id="ffmpeg-control"></ffmpeg-control>
+
+<script type="module">
+    const ffmc = document.getElementById("ffmpeg-control");
+    ffmc.addEventListener("load", () => {
+        console.log("FFmpeg控件加载完成");
+    });
+    // 接收来自WebVideoPlayer.js的消息
+    window.addEventListener("message", (event) => {
+        if (event.data.action === "currentFile") {
+            const currentFile = document.getElementById("currentFile");
+
+            currentFile.innerHTML = `
+                <p>当前文件：${event.data.path}</p>
+                <p>如果需要转码，请点击转码按钮:
+                        
+                    <button id="transcodeBtn">转码</button>    
+                </p>
+            `;
+            // 监听转码按钮点击事件
+            document.getElementById("transcodeBtn").addEventListener("click", () => {
+                // 调用FFmpeg控件的转码方法
+                ffmc.addTask(event.data.path);
+            });    
+            // currentFile.textContent = event.data.path;
+            // ffmc.addTask(event.data.path);
+        }
+    });
+     
+</script>

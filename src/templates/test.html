@@ -1,0 +1,67 @@
+<div id="testModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="openTestModal()">&times;</span>
+        <h2>测试弹窗</h2>
+        <p>这是一个测试弹窗。</p>
+    </div>
+</div>
+<script type="module">
+    import { UrlModal, VideoModal ,ImageModal} from '/BaseModal.js';
+    const testModal = document.getElementById('testModal');
+    const btn = document.createElement('button');
+    btn.textContent = '打开测试弹窗';
+    btn.onclick = function() {
+        UrlModal.open({
+            url: '/webdav/index.html',
+            title: '测试弹窗'
+        });
+    };
+    document.body.appendChild(btn);
+
+    const btn2 = document.createElement('button');
+    btn2.textContent = '打开测试弹窗2';
+    btn2.onclick = function() {
+        UrlModal.open({
+            url: '/',
+            width: '30%',
+            height: '30%'
+        });
+    };
+    document.body.appendChild(btn2);
+
+    const videoBtn = document.createElement('button');
+    videoBtn.textContent = '播放测试视频';
+    videoBtn.style.margin = '10px';
+    videoBtn.style.padding = '10px 20px';
+    videoBtn.style.fontSize = '16px';
+    videoBtn.style.backgroundColor = '#2196F3';
+    videoBtn.style.color = 'white';
+    videoBtn.style.border = 'none';
+    videoBtn.style.borderRadius = '4px';
+    videoBtn.style.cursor = 'pointer';
+    videoBtn.onclick = function() {
+        VideoModal.open({
+            videoUrl: '/static/RK3399.mp4',
+        });
+    };
+    document.body.appendChild(videoBtn);
+
+    const imageBtn = document.createElement('button');
+    imageBtn.textContent = '播放测试图片';
+    imageBtn.style.margin = '10px';
+    imageBtn.style.padding = '10px 20px';
+    imageBtn.style.fontSize = '16px';
+    imageBtn.style.backgroundColor = '#2196F3';
+    imageBtn.style.color = 'white';
+    imageBtn.style.border = 'none';
+    imageBtn.style.borderRadius = '4px';
+    imageBtn.style.cursor = 'pointer';
+    imageBtn.onclick = function() {
+        ImageModal.open({
+            url: '/static/cat.gif',
+            width: '30%',
+            height: '30%'
+        });
+    };
+    document.body.appendChild(imageBtn);
+</script>

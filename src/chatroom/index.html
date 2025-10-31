@@ -1,0 +1,669 @@
+<!-- chatroom.html -->
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>聊天室</title>
+    <style>
+        :root {
+
+
+            --accent-color: #5865f2;
+            --accent-hover: #4752c4;
+            --danger-color: #da373c;
+            --success-color: #23a559;
+            --border-radius: 8px;
+
+
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            height: 100vh;
+        }
+
+        body.dark-theme {
+            --bg-primary: #1e1f22;
+            --bg-secondary: #2b2d31;
+            --bg-tertiary: #313338;
+            --text-primary: #f3f4f5;
+            --text-secondary: #949ba4;
+
+            --modal-bg: rgba(0, 0, 0, 0.5);
+            --content-bg: #2b2d31;
+            --title-color: #b6cfe8;
+            --input-bg: #1e1f22;
+            --input-color: #f9460b;
+
+
+            --cc-background: #313338;
+            --cc-background1: #313338;
+            --cc-background2: #2b2d31;
+
+            --item-hover-bg: rgba(140, 130, 244, 0.249);
+            /*滚动条样式*/
+            --scrollbar-thumb-bg: rgba(255, 255, 255, 0.1);
+            --scrollbar-thumb-hover-bg: rgba(255, 255, 255, 0.2);
+
+            --cc-message-text-color: #ffffff;
+            --cc-input-border: none;
+
+            --cc-tab-button-bg: #3a3b45;
+            --cc-tab-button-hover-bg: #4b4c58;
+            --cc-tab-button-active-bg: #5d5e6b;
+
+
+        }
+
+        /*添加亮色主题的样式*/
+        body.light-theme {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f2f3f5;
+            --bg-tertiary: #ebedef;
+            --text-primary: #2e3338;
+            --text-secondary: #747f8d;
+
+            --modal-bg: rgba(255, 255, 255, 0.8);
+            --content-bg: #ffffff;
+            --title-color: #2e3338;
+            --input-bg: #f2f3f5;
+            --input-color: #2e3338;
+
+
+            --cc-background: #ffffff;
+            --cc-background1: #d4d4d4;
+            --cc-background2: #fefeff;
+
+            --item-hover-bg: rgba(213, 186, 255, 0.804);
+            /*滚动条样式*/
+            --scrollbar-thumb-bg: rgba(152, 146, 146, 0.582);
+            --scrollbar-thumb-hover-bg: rgba(211, 211, 211, 0.767);
+
+            --cc-message-text-color: #ffffff;
+            --cc-input-border: 1px solid #e3e5e8;
+
+            --cc-tab-button-bg: rgb(50, 200, 193);
+            --cc-tab-button-hover-bg: rgb(100, 98, 193);
+            --cc-tab-button-active-bg: rgb(9, 98, 193);
+        }
+
+        .container {
+            height: 100vh;
+            display: flex;
+        }
+
+        .chat-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-secondary);
+        }
+
+        .chat-content {
+            display: flex;
+            height: calc(100% - 48px);
+        }
+
+        /* 联系人列表样式 */
+        contact-list {
+            width: 240px;
+            background: var(--bg-secondary);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* 聊天区域 */
+        #chatComponentsContainer {
+            flex: 1;
+            background: var(--bg-tertiary);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部工具栏 */
+        .toolbar {
+            height: 48px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        /* 按钮样式 */
+        button {
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            background: var(--accent-color);
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        button.danger {
+            background: var(--danger-color);
+        }
+
+        button.danger:hover {
+            background: #a12828;
+        }
+
+        /* 输入框样式 */
+        input {
+            background: var(--bg-primary);
+            border: none;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: 2px solid var(--accent-color);
+        }
+
+        /*主题切换按钮样式*/
+        .icon-toggle {
+            background: transparent !important;
+            padding: 8px !important;
+            color: var(--text-secondary) !important;
+        }
+
+        .icon-toggle:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            contact-list {
+                width: 100%;
+                height: 200px;
+            }
+
+            .chat-content {
+                flex-direction: column;
+            }
+        }
+
+        /* 状态标识 */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-online {
+            background: var(--success-color);
+        }
+
+        /* 消息输入框容器 */
+        .message-input-container {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message-input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            resize: none;
+        }
+
+        /* 用户卡片样式 */
+        .user-card {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .user-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .user-status {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /*在外部CSS中定制样式*/
+        contact-list {
+            --cl-background: #2b2d31;
+            --cl-item-text-color: white;
+            --cl-item-border: 1px solid rgba(255, 255, 255, 0.1);
+            --cl-item-hover-bg: rgba(255, 255, 255, 0.1);
+            --cl-item-active-bg: #5865f2;
+        }
+
+        add-contact {
+            --ac-content-bg: #2b2d31;
+            --ac-primary-button-bg: #5865f2;
+            --ac-modal-bg: rgba(0, 0, 0, 0.8);
+        }
+
+
+        .profile-button {
+            background: transparent !important;
+            padding: 4px !important;
+            margin-right: auto;
+            /*将头像按钮推到左边*/
+        }
+
+        .avatar-small {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /*确保toolbar的样式支持新布局*/
+        .toolbar {
+            height: 48px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 8px;
+        }
+
+
+
+        /*contact-list 亮色主题样式*/
+        body.light-theme contact-list {
+            --cl-background: var(--light-bg-secondary);
+            --cl-item-text-color: var(--light-text-primary);
+            --cl-item-border: 1px solid rgba(0, 0, 0, 0.1);
+            --cl-item-hover-bg: rgba(0, 0, 0, 0.05);
+        }
+
+        /*add-contact 亮色主题样式*/
+        body.light-theme add-contact {
+            --ac-content-bg: var(--light-bg-secondary);
+            --ac-modal-bg: rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+
+
+<body>
+    <div class="container">
+        <div id="chatContainer" class="chat-container">
+            <div class="toolbar">
+                <user-info-title id="userInfoTitle" class="profile-button" onclick="showProfile()"></user-info-title>
+                <button class="icon-toggle" id="toggleTheme" title="切换主题">
+                    <span class="theme-icon">🌙</span>
+                </button>
+                <button class="icon-toggle" onclick="goHome()" title="返回主页">
+                    <span class="icon icon-home">ℹ️</span>
+                </button>
+                <button id="showCreateGroupChat">
+                    <span class="icon icon-add"></span>
+                    新建群聊
+                </button>
+                <button id="showAddContact">
+                    <span class="icon icon-add"></span>
+                    添加联系人
+                </button>
+                <button id="handleLogout">
+                    <span class="icon icon-logout"></span>
+                    退出登录
+                </button>
+            </div>
+            <div class="chat-content">
+                <contact-list id="contactList"></contact-list>
+                <div id="chatComponentsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <add-contact id="addContact"></add-contact>
+    <user-profile id="userProfile"></user-profile>
+
+
+
+    <!-- Font Awesome 图标 -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> -->
+
+    <script type="module">
+        import { LoginDialog } from '/BaseModal.js';
+        import { AccountManager } from '/AccountManager.js';
+        import { IndexedDBCacheManager } from '/CacheManager.js';
+        import { UsernameModal } from '/webdav/UsualDialog.js'
+        import { WebdavApi } from '/webdav/WebdavApi.js'
+        import { get_profile, SocketServer, loadContacts } from '/DragonServerAPI.js'
+        import { SidebarUserlist } from '/webdav/SidebarUserlist.js'
+        import '/webdav/TabUserConfig.js'
+        import '/AvatarComponent.js'
+        import '/TabContainerComponent.js'
+        import '/webdav/FileExplorer.js'
+        import '/webdav/WebdavConfigComponent.js'
+        import '/chatroom/ProfileBox.js'
+        import '/chatroom/ChatComponent.js'
+        import '/chatroom/Contact.js'
+        import '/chatroom/UserProfile.js'
+        import '/chatroom/UserInfoTitle.js'
+        import '/chatroom/AddContact.js'
+        import '/chatroom/UserSetingBox.js'
+        import {CreateGroup } from '/chatroom/CreateGroupChat.js'
+        import '/chatroom/GroupMemberList.js'
+        let currentProfile = null;
+        let ActiveUsername = null;
+        let socketServer = null;
+        let CurrnetSession = null;
+        try {
+            
+
+            const session = await AccountManager.getUserSession()
+            currentProfile = await get_profile(session.username);
+
+            const loginSuccessEvent = new CustomEvent('login-success', {
+                detail: {
+                    username: 'exampleUsername',
+                    nickname: 'exampleNickname'
+                }
+            });
+            document.dispatchEvent(loginSuccessEvent);
+
+
+            document.getElementById('chatContainer').style.display = 'block';
+
+
+            // 初始化用户信息标题
+            const userInfoTitle = document.getElementById('userInfoTitle');
+
+            // 初始化用户配置组件
+            const userProfile = document.getElementById('userProfile');
+
+            
+            SetTheme(localStorage.getItem('theme'));
+            document.getElementById('toggleTheme').addEventListener('click', () => {
+                SetTheme("change");
+            })
+
+            document.getElementById('showAddContact').addEventListener('click', () => {
+                const addContact = document.getElementById('addContact');
+                addContact.show();
+            });
+
+            document.getElementById('handleLogout').addEventListener('click', () => {
+                accountManager.logout();
+                window.location.reload();
+            });
+
+            document.getElementById('showCreateGroupChat').addEventListener('click', () =>{
+                CreateGroup.openModal();
+            });
+
+            updateActiveComponent();
+
+            // 初始化联系人列表
+            const contactList = document.getElementById('contactList');
+            // 监听联系人选择事件
+            contactList.addEventListener('contactSelected', async (event) => {
+                showWebSession(event.detail.username, "聊天");
+            });
+            contactList.addEventListener('avatarClicked', async (event) => {
+                showWebSession(event.detail.username, "用户资料");
+            });
+
+            contactList.addEventListener('nicknameClicked', async (event) => {
+                showWebSession(event.detail.username, "聊天");
+            });
+
+            // 创建聊天管理器
+            socketServer = new SocketServer(session.username, await AccountManager.getUserToken());
+            socketServer.addCallbackListener('chat-session-message', (message) => {
+                const otherUsername = message.sender === session.username ? message.receiver : message.sender;
+                setHistoryMessageCache(session.username, otherUsername, message);
+
+                document.dispatchEvent(new CustomEvent('chat-receive-message', {
+                    detail: {
+                        message: message
+                    }
+                }
+                ));
+
+            });
+            socketServer.addCallbackListener('remove-cached', async (message) => {
+                console.log('remove-cached:', message.cached);
+                await cacheManager.removeCache(message.cached);
+            })
+            socketServer.addCallbackListener('flush', (message) => {
+                document.dispatchEvent(new CustomEvent('flush'));
+            })
+            socketServer.addCallbackListener('clear-all-cache', (message) => {
+                cacheManager.clearAllCache();
+            })
+            socketServer.addCallbackListener('flush-all', (data) => {
+                location.reload();
+            })
+            socketServer.addCallbackListener('logout', (data) => {
+                alert(`您已退出登录，原因：${data.reason}`);
+                accountManager.logout();
+            })
+
+            document.dispatchEvent(new CustomEvent('flush'));
+        }
+        catch (error) {
+            console.error('初始化应用失败:', error);
+            alert('初始化应用程序时出现错误，请刷新页面重试');
+
+        }
+        function goHome() {
+            window.location.href = '/';
+        }
+
+        function showCreateGroupChat() {
+            // const createGroupChat = document.getElementById('createGroupChat');
+            // createGroupChat.show(); 
+            CreateGroup.openModal();
+        }
+        
+        async function showWebSession(username, defactive = null) {
+            const container = document.getElementById('chatComponentsContainer');
+            const session = await AccountManager.getUserSession();
+            if (username == null) {
+                container.innerHTML = "";
+                return;
+            }
+            const profile = await get_profile(username);
+            if (!profile.WebSession) {
+                container.innerHTML = "加载失败";
+                return;
+            }
+            const type = profile.type ? profile.type : "user";
+            if (type == "user") {
+                ActiveSessionID = generateSessionId(session.username, username);
+            }
+            else if (type == "group") {
+                ActiveSessionID = profile.username;
+            }
+
+            response = await fetch(profile.WebSession);
+            if (response.ok) {
+
+                ActiveUsername = username;
+
+                container.innerHTML = await response.text();
+
+                container.setAttribute("username", username);
+
+
+
+                const activeTabElements = container.querySelector('tab-container[active-tab]');
+                if (defactive) {
+                    activeTabElements.setAttribute("active-tab", defactive);
+                }
+                document.dispatchEvent(new CustomEvent('flush'));
+            }
+            else {
+                container.innerHTML = "加载失败";
+            }
+        }
+
+
+        async function component_event(event) {
+            if (event.detail.type === 'clear-chat') {
+                clearHissory(session.username, event.detail.username);
+                SelectSession = document.getElementById(`chat-${event.detail.session_id}-component`);
+                if (SelectSession) {
+                    SelectSession.clearMessages();
+                }
+            }
+            else if (event.detail.type === 'del-contact') {
+                contactList.delContact(event.detail.username);
+                //CurrnetSession = document.getElementById(`profile-${event.detail.session_id}-component`);
+                CurrnetSession.style.display = 'none';
+                CurrnetSession.setAttribute('visible', 'false');
+                const container = document.getElementById('chatComponentsContainer');
+                container.removeChild(CurrnetSession);
+            }
+            else if (event.detail.type === 'enter-chat') {
+                await openComponent(
+                    `chat-${event.detail.contact.session_id}-component`,
+                    'chat-component',
+                    event.detail.contact
+                );
+            }
+            console.log('Custom event triggered:', event);
+        }
+
+        async function setSessionData(session_id, data) {
+            let SelectSession = document.getElementById(session_id);
+            if (SelectSession) {
+                SelectSession.data = data;
+                SelectSession.preload();
+            }
+        }
+        async function updateActiveComponent() {
+            const container = document.getElementById('chatComponentsContainer');
+            Array.from(container.children).forEach(el => {
+                if (el.style.display === 'block') {
+                    el.preload();
+                }
+            });
+        }
+
+
+
+        function SetTheme(Theme) {
+            if (Theme == "change") {
+                Theme = localStorage.getItem('theme');
+                if (Theme === 'dark') {
+                    Theme = 'light';
+                }
+                else if (Theme === 'light') {
+                    Theme = 'dark';
+                }
+            }
+            if (Theme === 'dark') {
+                document.body.classList.add('dark-theme');
+                document.body.classList.remove('light-theme');
+                document.querySelector('.theme-icon').textContent = '☀️';
+
+                // 保存主题设置到本地存储
+                localStorage.setItem('theme', "dark");
+            }
+            else {
+                document.body.classList.add('light-theme');
+                document.body.classList.remove('dark-theme');
+                document.querySelector('.theme-icon').textContent = '🌙';
+                localStorage.setItem('theme', "light");
+            }
+
+
+        }
+
+
+        // 在现有的script标签中添加
+        function showProfile() {
+            const userInfoTitle = document.getElementById('userInfoTitle');
+            if (await AccountManager.getUserToken()) {
+                currentConcat = null;
+                const container = document.getElementById('chatComponentsContainer');
+                container.innerHTML = userInfoTitle.SessionWeb;
+            }
+        }
+    </script>
+</body>
+
+</html>

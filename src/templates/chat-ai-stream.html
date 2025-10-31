@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI Chat - 胡鑫培专属</title>
+    <link href="/static/third_party/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/third_party/atom-one-dark.min.css" rel="stylesheet">
+    <link href="/static/third_party/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .chat-header {
+            background: #2d2d2d;
+            padding: 10px 20px;
+            border-bottom: 1px solid #404040;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header .container {
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-buttons button {
+            background: none;
+            border: none;
+            color: #e0e0e0;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-buttons button:hover {
+            color: #4CAF50;
+        }
+
+        .container {
+                max-width: 95% !important;
+                width: 95% !important;
+            padding: 0 20px;
+            margin: 0 auto;
+            }
+
+        .chat-messages {
+            padding: 20px 0;
+            flex-grow: 1;
+            }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s ease;
+            width: 100%;
+            }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 15px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .user-avatar {
+            background: #2b5582;
+            color: white;
+        }
+
+        .ai-avatar {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .message-content {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 10px;
+            flex-grow: 1;
+            width: calc(100% - 35px);
+            min-width: 0;
+        }
+
+        .user-message .message-content {
+            background: #2b5582;
+        }
+
+        .ai-message .message-content {
+            background: #2d2d2d;
+        }
+
+        pre {
+            background: #1a1a1a !important;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            position: relative;
+            overflow-x: auto;
+            width: 100%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        code {
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: #404040;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            padding: 5px 10px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        pre:hover .copy-btn {
+            opacity: 1;
+        }
+
+        .input-area {
+            background: #2d2d2d;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            width: 100%;
+        }
+
+        .input-group {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        #userInput {
+            background: #1a1a1a;
+            border: none;
+            color: #fff;
+            resize: none;
+            min-height: 50px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        #userInput:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
+        .send-btn {
+            background: #2b5582;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 20px;
+            color: white;
+            align-self: flex-end;
+            margin-left: 10px;
+        }
+
+        .upload-btn {
+            background: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 20px;
+            color: white;
+            align-self: flex-end;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        .send-btn:hover {
+            background: #366baa;
+        }
+
+        .upload-btn:hover {
+            background: #45a049;
+        }
+
+        .send-tip {
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #404040;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                max-width: 95% !important;
+                width: 95% !important;
+                padding: 0 10px;
+            }
+
+            .avatar {
+                width: 32px;
+                height: 32px;
+                margin-right: 10px;
+            }
+
+            .message-content {
+                width: calc(100% - 42px);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/static/chat-ai.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="container">
+                <h4 class="m-0"><i class="fas fa-robot me-2"></i>AI Assistant</h4>
+                <div class="header-buttons">
+                    <button onclick="newChat()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button onclick="showAuthorInfo()">
+                        <i class="fas fa-user"></i>
+                    </button>
+            </div>
+        </div>
+    </div>
+
+        <div class="container">
+            <div id="chatMessages" class="chat-messages"></div>
+
+            <div class="input-area">
+                <div class="input-group">
+                    <textarea id="userInput" class="form-control" placeholder="输入消息..."></textarea>
+                    <label for="fileInput" class="upload-btn">
+                        <i class="fas fa-upload"></i>
+                        <input type="file" id="fileInput" style="display: none;" onchange="handleFileUpload(event)">
+                    </label>
+                    <button class="send-btn" onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="send-tip">按 Ctrl + Enter 发送</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/chat-ai.js"></script>
+    <script>
+        const chatAI = new ChatAI();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await chatAI.initializePromise;
+            
+            if(chatAI.context.length === 0){
+                const firstMessage = await chatAI.getFristMessageByNet();
+                if (firstMessage) {
+                    chatAI.addContext({ role: "assistant", content: firstMessage });
+                }
+            }
+            const chatMessages = document.getElementById('chat-container');
+            chatAI.context.forEach(msg => {
+                addMessage(msg.role, chatAI.formatMessageContent(msg.content));
+            });
+        });
+
+        function newChat() {
+            document.getElementById('chatMessages').innerHTML = '';
+            chatAI.resetContext();
+            location.reload();
+            }
+
+        function showAuthorInfo() {
+            window.location.href = '/';
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            addMessage('user', message);
+            userInput.value = '';
+            adjustTextareaHeight(userInput);
+
+            const aiMessageId = addMessage('ai', '思考中...');
+
+            try {
+                await chatAI.send(message, (response) => {
+                    updateMessage(aiMessageId, response);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                updateMessage(aiMessageId, '抱歉，发生错误，请重试。');
+            }
+
+            document.querySelector('.input-area').scrollIntoView({ behavior: 'smooth' });
+        }
+        function addMessage(role, content) {
+            const messageId = Date.now();
+            const messageDiv = document.createElement('div');
+            messageDiv.id = `message-${messageId}`;
+            messageDiv.className = `message ${role}-message`;
+
+            const avatar = role === 'user' ? 'H' : 'AI';
+            const avatarClass = role === 'user' ? 'user-avatar' : 'ai-avatar';
+
+            messageDiv.innerHTML = `
+                <div class="avatar ${avatarClass}">${avatar}</div>
+                <div class="message-content">
+                    ${chatAI.formatMessage(content)}
+                </div>
+            `;
+
+            document.getElementById('chatMessages').appendChild(messageDiv);
+            messageDiv.scrollIntoView({ behavior: 'smooth' });
+            return messageId;
+        }
+
+        function updateMessage(messageId, content) {
+            const messageDiv = document.getElementById(`message-${messageId}`);
+            if (messageDiv) {
+                messageDiv.querySelector('.message-content').innerHTML = chatAI.formatMessage(content);
+            }
+        }
+
+        function copyCode(btn) {
+            const code = btn.parentElement.textContent.replace('Copy', '').trim();
+            navigator.clipboard.writeText(code);
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="far fa-copy"></i> Copy';
+            }, 2000);
+        }
+
+        function adjustTextareaHeight(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 300) + 'px';
+        }
+
+        document.getElementById('userInput').addEventListener('input', function() {
+            adjustTextareaHeight(this);
+        });
+
+        document.getElementById('userInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    chatAI.attachment_text(file.name, content);
+                    addMessage('user', `上传文件:《${file.name}》`);
+                };
+                reader.readAsText(file);
+            }
+        }
+    </script>
+</body>
+</html>

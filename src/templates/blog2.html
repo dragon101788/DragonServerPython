@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>胡鑫培的个人空间</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            position: relative;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .background-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .background-image {
+            position: absolute;
+            width: 120%;
+            height: 150%;
+            object-fit: cover;
+            transform: translateX(-5%) translateY(-1%);
+            filter: brightness(0.8);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                rgba(0,0,0,0.8) 0%,
+                rgba(0,0,0,0.2) 30%,
+                rgba(0,0,0,0.2) 70%,
+                rgba(0,0,0,0.8) 100%
+            );
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .left-section, .right-section {
+            width: 30%;
+            padding: 20px;
+        }
+
+        .header {
+            margin-bottom: 60px;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+        }
+
+        .name {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .title {
+            font-size: 1.2em;
+            color: #a8a8a8;
+            margin-bottom: 30px;
+        }
+
+        .social-links {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .social-link {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 2px solid white;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .social-link:hover {
+            background: white;
+            color: black;
+        }
+
+        .skills {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            opacity: 0;
+            animation: fadeIn 1s ease 0.5s forwards;
+        }
+
+        .skill-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+
+        .skill-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .skill-title {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                padding: 20px;
+            }
+
+            .left-section, .right-section {
+                width: 100%;
+            }
+
+            .overlay {
+                background: linear-gradient(180deg,
+                    rgba(0,0,0,0.8) 0%,
+                    rgba(0,0,0,0.2) 30%,
+                    rgba(0,0,0,0.2) 70%,
+                    rgba(0,0,0,0.8) 100%
+                );
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="background-wrapper">
+            <img src="/static/IMG_1612.JPG" alt="Background" class="background-image">
+            <div class="overlay"></div>
+        </div>
+
+        <div class="content">
+            <section class="left-section">
+                <header class="header">
+                    <h1 class="name">胡鑫培</h1>
+                    <p class="title">程序员 / 硬件工程师</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link">GitHub</a>
+                        <a href="#" class="social-link">LinkedIn</a>
+                        <a href="#" class="social-link">Blog</a>
+                    </div>
+                </header>
+            </section>
+
+            <section class="right-section">
+                <div class="skills">
+                    <div class="skill-card">
+                        <h3 class="skill-title">软件开发</h3>
+                        <p>精通多种编程语言和框架，专注嵌入式，于高性能、可扩展的系统开发。</p>
+                    </div>
+                    <div class="skill-card">
+                        <h3 class="skill-title">硬件工程</h3>
+                        <p>丰富的硬件设计经验，擅长高速电路设计与系统集成。</p>
+                    </div>
+                    <div class="skill-card">
+                        <h3 class="skill-title">人工智能</h3>
+                        <p>机器视觉架构与LLM大语言架构的升入理解与应用</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.skill-card');
+
+            cards.forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+
+                    const angleX = (y - centerY) / 20;
+                    const angleY = (centerX - x) / 20;
+
+                    card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) translateY(-5px)`;
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

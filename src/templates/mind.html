@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GoJS Mind Map Example</title>
+    <!-- 引入 GoJS 的 JS 文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/2.2.16/go.js"></script>
+    <style>
+        #mindmap {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <!-- 创建一个容器用于显示思维导图 -->
+    <div id="mindmap"></div>
+
+    <script>
+        // 初始化 GoJS
+        const $ = go.GraphObject.make;
+
+        const myDiagram = $(go.Diagram, "mindmap", {
+            initialContentAlignment: go.Spot.Center, // 初始居中
+            "undoManager.isEnabled": true, // 启用撤销管理
+        });
+
+        // 定义节点模板
+        myDiagram.nodeTemplate = $(
+            go.Node,
+            "Auto",
+            $(go.Shape, "Rectangle", { fill: "lightblue", stroke: null }), // 节点背景
+            $(go.TextBlock, { margin: 8 }, new go.Binding("text", "text")) // 节点文本
+        );
+
+        // 定义连线模板
+        myDiagram.linkTemplate = $(
+            go.Link,
+            { routing: go.Link.Orthogonal, corner: 5 }, // 连线样式
+            $(go.Shape, { strokeWidth: 2, stroke: "#555" }) // 连线颜色
+        );
+
+        // 定义思维导图数据
+        const mindData = {
+            "class": "go.TreeModel",
+            "nodeDataArray": [
+                { "key": 1, "text": "Central Topic" },
+                { "key": 2, "text": "Child 1", "parent": 1 },
+                { "key": 3, "text": "Child 2", "parent": 1 },
+                { "key": 4, "text": "Child 3", "parent": 1 },
+            ],
+        };
+
+        // 加载数据
+        myDiagram.model = go.Model.fromJson(mindData);
+    </script>
+</body>
+</html>

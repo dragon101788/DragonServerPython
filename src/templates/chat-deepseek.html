@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chat-box {
+            width: 400px;
+            height: 300px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        #user-input {
+            width: 300px;
+            padding: 5px;
+        }
+        #send-btn {
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>DeepSeek Chat</h1>
+    <div id="chat-box"></div>
+    <input type="text" id="user-input" placeholder="Type your message here...">
+    <button id="send-btn">Send</button>
+
+    <script>
+        const apiKey = 'YOUR_DEEPSEEK_API_KEY'; // 替换为你的 DeepSeek API Key
+        const apiUrl = 'https://api.deepseek.com/v1/chat/completions'; // 替换为实际的 DeepSeek API 地址
+
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // 添加消息到聊天框
+        function addMessageToChatBox(role, message) {
+            const messageElement = document.createElement('div');
+            messageElement.innerHTML = `<strong>${role}:</strong> ${message}`;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight; // 滚动到底部
+        }
+
+        async function sendMessage() {
+        const userMessage = userInput.value.trim();
+        if (!userMessage) return;
+
+        // 添加用户消息到聊天框
+        addMessageToChatBox('You', userMessage);
+            userInput.value = ''; // 清空输入框
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            {
+                                role: 'user', // 角色是用户
+                                content: userMessage // 用户输入的内容
+                            }
+                        ],
+                        model: "deepseek-chat",
+                        max_tokens: 150 // 根据需要调整
+                    })
+                });
+
+                console.log('Response status:', response.status); // 打印状态码
+                const responseText = await response.text(); // 获取原始响应文本
+                console.log('Response text:', responseText); // 打印响应文本
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const data = JSON.parse(responseText); // 将响应文本解析为 JSON
+                console.log('Response data:', data); // 打印解析后的数据
+
+                // 假设返回的数据结构中有 choices[0].message.content
+                const botMessage = data.choices[0].message.content.trim();
+                addMessageToChatBox('DeepSeek', botMessage);
+            } catch (error) {
+                console.error('Error:', error);
+                addMessageToChatBox('System', 'Failed to get response from DeepSeek.');
+            }
+        }
+
+        // 初始化页面
+        // 绑定发送按钮点击事件
+        sendBtn.addEventListener('click', sendMessage);
+
+        // 绑定回车键发送消息
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

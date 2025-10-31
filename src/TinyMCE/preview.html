@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tinymce Preview</title>
+</head>
+<body>
+    <div id="preview"></div>
+</body>
+<script type="module">
+    import { WebdavApi } from '/webdav/WebdavApi.js'
+    
+    async function loadPreview() {
+        const preview = document.getElementById('preview');
+        if (window.location.search.includes('src=')) {
+            const searchParams = new URLSearchParams(window.location.search);
+            const token = searchParams.get('token');
+            if (token) {
+                try {
+                    const webdavApi = new WebdavApi({
+                        token: token
+                    });
+                    webdavApi.src = searchParams.get('src');
+                    const response = await webdavApi.fetchFile(webdavApi.src);
+
+                    if (response.ok) {
+                        const content = await response.text();
+                        preview.innerHTML = content;
+                    } else {
+                        console.error('fetch file failed');
+                        preview.innerHTML = '文件加载失败';
+                    }
+                } catch (error) {
+                    console.error('Error loading preview:', error);
+                    preview.innerHTML = '加载预览时出错';
+                }
+            }
+        }
+    }
+    
+    // 调用异步函数加载预览
+    loadPreview();
+</script>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw.io 嵌入参考</title>
+    <style>
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    
+
+    <script type="module">
+        import { AccountManager } from '/AccountManager.js';
+        import { WebdavApi } from '/webdav/WebdavApi.js'
+        let webdavApi = null;
+        document.body.innerHTML = /*html*/`
+            <style>
+                #editor {
+                    width: 100%;
+                    height: 100%;
+                    border: 0;
+                }
+            </style>
+            <iframe id="editor" src="https://embed.diagrams.net/?embed=1&proto=json&ui=atlas&spin=1&modified=unsavedChanges"></iframe>
+        `;
+        const iframe = document.getElementById('editor');
+        let editorReady = false;
+
+        const searchParams = new URLSearchParams(window.location.search);
+        const token = searchParams.get('token');
+        if ( token) {
+            webdavApi = new WebdavApi({ //用户访问
+                token: token
+            });
+        }else{
+            webdavApi = new WebdavApi(); //匿名访问
+        }
+        
+        const src = searchParams.get('src');
+        if ( src) {
+            webdavApi.src = src;
+        }else{
+            webdavApi.src = undefined; //默认文件
+        }
+
+        // 监听 iframe 的消息
+        window.addEventListener('message', function(evt) {
+            // 只处理来自 diagrams.net 的消息
+            if (evt.origin !== 'https://embed.diagrams.net' && evt.origin !== 'https://embed.diagrams.net') {
+                return;
+            }
+
+            const msg = JSON.parse(evt.data);
+
+            // 编辑器就绪时，加载后端文件
+            if (msg.event === 'init') {
+                editorReady = true;
+                loadDiagram();
+            }
+
+            // 保存事件：请求导出 XML
+            else if (msg.event === 'save') {
+                iframe.contentWindow.postMessage(JSON.stringify({
+                    action: 'export',
+                    format: 'xml',
+                    xml: msg.xml, // 可选，当前 XML
+                    spinKey: 'saving'
+                }), '*');
+                saveDiagram(msg.xml);
+            }
+
+            // 导出完成：保存到后端
+            else if (msg.event === 'export' && msg.format === 'xml') {
+                saveDiagram(msg.data);
+            }
+
+            // 退出事件：可选处理
+            else if (msg.event === 'exit') {
+                console.log('编辑器已退出');
+            }
+        });
+
+        // 从后端加载图表（使用 fetch）
+        async function loadDiagram() {
+            if (!editorReady) return;
+
+            try {
+                let xml = null;
+                if (webdavApi.src == undefined) {
+                    const response = await fetch('./default.drawio'); // 替换为你的后端加载端点，返回 XML 字符串
+                    xml = await response.text();
+                }else{
+                    const Response =  await webdavApi.fetchFile(webdavApi.src);
+                    xml = await Response.text();
+                }
+                
+                // 发送 XML 到编辑器
+                iframe.contentWindow.postMessage(JSON.stringify({
+                    action: 'load',
+                    xml: xml
+                }), '*');
+            } catch (error) {
+                console.error('加载图表失败:', error);
+                // 可选：加载空图表
+                iframe.contentWindow.postMessage(JSON.stringify({
+                    action: 'load',
+                    xml: '<mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0"><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel>'
+                }), '*');
+            }
+        }
+
+        // 保存图表到后端（使用 fetch POST）
+        async function saveDiagram(xml) {
+            try {
+
+                if (webdavApi.src == undefined) {
+                    console.error('未指定文件路径，无法保存');
+                    return;
+                }
+                const response = await webdavApi.pushFile(webdavApi.src, xml);
+
+                if (response) {
+                    console.log('图表已保存');
+                } else {
+                    console.error('保存失败:', response.statusText);
+                }
+            } catch (error) {
+                console.error('保存图表失败:', error);
+            }
+        }
+
+        // 页面加载完成后自动加载（可选）
+        window.addEventListener('load', function() {
+            // iframe 已设置 src，会自动触发 init
+        });
+    </script>
+</body>
+</html>

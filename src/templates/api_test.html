@@ -1,0 +1,112 @@
+<!-- templates/api_test.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .endpoint {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .response {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .error {
+            background-color: #ffe6e6;
+            color: #d8000c;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .status {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Test Page</h1>
+
+    <div class="endpoint">
+        <h3>/api/chat_config</h3>
+        <button onclick="testEndpoint('/api/chat_config', 'chatConfigResponse', 'chatConfigStatus')">Test</button>
+        <div id="chatConfigStatus" class="status"></div>
+        <div id="chatConfigResponse" class="response"></div>
+    </div>
+
+    <div class="endpoint">
+        <h3>/api/system_prompt</h3>
+        <button onclick="testEndpoint('/api/system_prompt', 'systemPromptResponse', 'systemPromptStatus')">Test</button>
+        <div id="systemPromptStatus" class="status"></div>
+        <div id="systemPromptResponse" class="response"></div>
+    </div>
+
+    <div class="endpoint">
+        <h3>/api/custom_prompt</h3>
+        <button onclick="testEndpoint('/api/custom_prompt', 'customPromptResponse', 'customPromptStatus')">Test</button>
+        <div id="customPromptStatus" class="status"></div>
+        <div id="customPromptResponse" class="response"></div>
+    </div>
+
+    <script>
+        async function testEndpoint(url, responseId, statusId) {
+            const responseElement = document.getElementById(responseId);
+            const statusElement = document.getElementById(statusId);
+
+            // Reset display
+            responseElement.className = 'response';
+            statusElement.textContent = 'Testing...';
+            responseElement.style.display = 'none';
+
+            try {
+                const response = await fetch(url);
+                const contentType = response.headers.get('content-type');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Response is not JSON');
+                }
+
+                const text = await response.text(); // Get response as text first
+
+                try {
+                    const data = JSON.parse(text); // Try to parse JSON
+                    responseElement.textContent = JSON.stringify(data, null, 2);
+                    statusElement.textContent = `Status: ${response.status} OK`;
+                    responseElement.style.display = 'block';
+                } catch (e) {
+                    throw new Error(`Invalid JSON: ${text}`);
+                }
+            } catch (error) {
+                responseElement.textContent = `Error: ${error.message}`;
+                statusElement.textContent = 'Failed';
+                responseElement.className = 'response error';
+                responseElement.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

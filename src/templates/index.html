@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>胡鑫培的个人空间</title>
+    <script type="module" src="PhotoView.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            position: relative;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .background-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        #background-photo-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    rgba(0, 0, 0, 0.8) 0%,
+                    rgba(0, 0, 0, 0.2) 30%,
+                    rgba(0, 0, 0, 0.2) 70%,
+                    rgba(0, 0, 0, 0.8) 100%);
+            z-index: 0;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .left-section,
+        .right-section {
+            width: 30%;
+            padding: 20px;
+        }
+
+        .header {
+            margin-bottom: 60px;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+        }
+
+        .name {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .title {
+            font-size: 1.2em;
+            color: #a8a8a8;
+            margin-bottom: 30px;
+        }
+
+        .title-small {
+            font-size: 1em;
+            color: #a8a8a8;
+            margin-bottom: 20px;
+        }
+
+        /* 响应式设计 - 针对竖屏设备 */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .container {
+                min-height: 100vh;
+                overflow: auto;
+            }
+            
+            .content {
+                flex-direction: column;
+                padding: 20px;
+                min-height: auto;
+                margin-top: 70vh; /* 从屏幕下半部分开始 */
+            }
+            
+            .left-section,
+            .right-section {
+                width: 100%;
+                padding: 10px;
+            }
+            
+            .header {
+                margin-bottom: 40px;
+            }
+            
+            .name {
+                font-size: 2em;
+                text-align: center;
+            }
+            
+            .title,
+            .title-small {
+                text-align: center;
+            }
+            
+            
+            .skill-card {
+                margin-bottom: 15px;
+            }
+            
+            .bottom-links {
+                position: relative;
+                justify-content: space-around;
+                gap: 5px;
+                padding: 8px 5px;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            
+            .bottom-links::-webkit-scrollbar {
+                display: none;
+            }
+            
+            .bottom-link {
+                font-size: 0.75em;
+                padding: 4px 8px;
+                white-space: nowrap;
+                flex-shrink: 0;
+                min-width: fit-content;
+            }
+        }
+
+        .skills {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            opacity: 0;
+            animation: fadeIn 1s ease 0.5s forwards;
+        }
+
+        .skill-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+
+        .skill-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .skill-title {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .bottom-links {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+            z-index: 2;
+        }
+
+        .bottom-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            background: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+        }
+
+        .bottom-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-3px);
+        }
+
+        /* 弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            width: 90%;
+            height: 90%;
+            margin: 2% auto;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .close-button {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            z-index: 1001;
+            background: rgba(0, 0, 0, 0.5);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+        }
+
+        .modal iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                padding: 20px;
+            }
+
+            .left-section,
+            .right-section {
+                width: 100%;
+            }
+
+            .overlay {
+                background: linear-gradient(180deg,
+                        rgba(0, 0, 0, 0.8) 0%,
+                        rgba(0, 0, 0, 0.2) 30%,
+                        rgba(0, 0, 0, 0.2) 70%,
+                        rgba(0, 0, 0, 0.8) 100%);
+            }
+
+            .bottom-links {
+                justify-content: space-around;
+                padding: 8px 5px;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+
+            .bottom-links::-webkit-scrollbar {
+                display: none;
+            }
+
+            .bottom-link {
+                font-size: 0.75em;
+                padding: 4px 8px;
+                white-space: nowrap;
+                flex-shrink: 0;
+                min-width: fit-content;
+            }
+
+            .modal-content {
+                width: 95%;
+                height: 95%;
+                margin: 2.5% auto;
+            }
+        }
+
+        /* 添加视频模态框样式 */
+        .modal-content.video-content {
+            width: 80%;
+            height: 80%;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .video-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .video-container video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* 添加视频控制按钮样式 */
+        .video-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .video-container:hover .video-controls {
+            opacity: 1;
+        }
+
+        .video-control-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 5px 10px;
+            transition: all 0.3s;
+        }
+
+        .video-control-btn:hover {
+            transform: scale(1.1);
+        }
+
+       /* 新的social-links样式 */
+       .social-links {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 30px;
+            position: relative;
+        }
+
+        .menu-item {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .social-link {
+            color: white;
+            text-decoration: none;
+            padding: 12px 25px;
+            border: 2px solid white;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            text-align: center;
+            display: block;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        /* 当有任何dropdown被hover时，其他菜单项变暗 */
+        .social-links:has(.dropdown:hover) .menu-item:not(:hover) {
+            opacity: 0.3;
+            transform: scale(0.95);
+        }
+
+        .dropdown-content {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 10px;
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .dropdown:hover .dropdown-content {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .dropdown-item {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 2px solid white;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        /* 悬停效果 */
+        .social-link:hover,
+        .dropdown-item:hover {
+            background: white;
+            color: black;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 一级菜单展开时的面板效果 */
+        .dropdown.active .social-link {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px 15px 0 0;
+        }
+
+        .dropdown.active .dropdown-content {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 0 0 15px 15px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        /* 高速核心板设计 - 向下弹出 */
+        .dropdown.down .dropdown-content {
+            top: 100%;
+            bottom: auto;
+        }
+
+        /* 大语言对话 - 向上弹出 */
+        .dropdown.up .dropdown-content {
+            top: auto;
+            bottom: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="background-wrapper">
+            <image id="background-image" src="/static/background.jpg" alt="Background Image" style="object-fit: cover; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); min-width: 100%; min-height: 100%;"/>
+        </div>
+
+        <div class="content">
+            <section class="left-section">
+                <header class="header">
+                    <h1 class="name">胡鑫培</h1>
+                    <p class="title">你好！我是胡鑫培，一名充满激情的全栈开发工程师。我专注于AI开发和嵌入式工程，同时也是一名健身爱好者。 </p>
+                    <p class="title-small">个人关键词:嵌入式工程师 / AI工程师 / 硬件工程师</p>
+                    <div class="social-links">
+                        <div class="menu-item">
+                            <a href="https://github.com/dragon101788" class="social-link" target="_blank">GitHub</a>
+                        </div>
+                    
+                        <div class="menu-item">
+                            <a href="https://blog.csdn.net/dragon101788" class="social-link" target="_blank">CSDN Blog</a>
+                        </div>
+                    
+                        <div class="menu-item dropdown down">
+                            <a class="social-link">高速核心板设计</a>
+                            <div class="dropdown-content">
+                                <a class="dropdown-item" onclick="VideoModal.open({videoUrl: '/static/RK3399.mp4'})">RK3588核心板设计</a>
+                                <a class="dropdown-item" onclick="VideoModal.open({videoUrl: '/static/RK3588.mp4'})">RK3399核心板设计</a>
+                            </div>
+                        </div>
+                    
+                        <div class="menu-item  dropdown up">
+                            <a class="social-link">视觉神经网络</a>
+                            <div class="dropdown-content">
+                                <a class="dropdown-item" onclick="VideoModal.open({videoUrl: '/static/SJSJ.mp4'})">目标识别训练</a>
+                                <a class="dropdown-item" onclick="ImageModal.open({url: '/static/cat.gif'})">清晰化超分处理</a>
+                            </div>
+                        </div>
+                    
+                        <div class="menu-item dropdown up">
+                            <a class="social-link">大语言对话</a>
+                            <div class="dropdown-content">
+                                <a class="dropdown-item" onclick="UrlModal.open({url: '/chat-ai-stream.html', title: '流式布局对话'})">流式布局对话</a>
+                                <a class="dropdown-item" onclick="UrlModal.open({url: '/chat-ai-fixed.html', title: '固定布局对话'})">固定布局对话</a>
+                                <a class="dropdown-item" onclick="UrlModal.open({url: '/guitang5.html', title: '侦探推理游戏'})">侦探推理游戏</a>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            </section>
+
+            <section class="right-section">
+                <div class="skills">
+                    <div class="skill-card">
+                        <h3 class="skill-title">软件开发</h3>
+                        <p>精通多种编程语言和框架，专注嵌入式，于高性能、可扩展的系统开发。</p>
+                    </div>
+                    <div class="skill-card">
+                        <h3 class="skill-title">硬件工程</h3>
+                        <p>丰富的硬件设计经验，擅长高速电路设计与系统集成。</p>
+                    </div>
+                    <div class="skill-card">
+                        <h3 class="skill-title">人工智能</h3>
+                        <p>机器视觉与LLM大语言架构的升入理解与应用</p>
+                    </div>
+                    <div class="skill-card">
+                        <h3 class="skill-title">热爱健身</h3>
+                        <p>自律，在空闲时间，我喜欢健身来保持身心健康</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="bottom-links">
+            <a href="#" class="bottom-link">首页</a>
+            <a class="bottom-link" onclick="UrlModal.open({url: '/static/CV.html', title: '关于我'})">关于我</a>
+            <a class="bottom-link" href="https://blog.csdn.net/dragon101788" target="_blank">技术博客</a>
+            <a class="bottom-link" href="/webdav/index.html" >私有云盘</a>
+            <a class="bottom-link" onclick="UrlModal.open({url: '/contact.html', width: '400px', height: '600px'})">联系方式</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { UrlModal, VideoModal ,ImageModal} from '/BaseModal.js';
+        window.UrlModal = UrlModal;
+        window.VideoModal = VideoModal;
+        window.ImageModal = ImageModal;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const cards = document.querySelectorAll('.skill-card');
+
+            cards.forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+
+                    const angleX = (y - centerY) / 20;
+                    const angleY = (centerX - x) / 20;
+
+                    card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) translateY(-5px)`;
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                });
+            });
+        });
+
+
+
+        document.addEventListener('DOMContentLoaded', async (event) => {
+            
+            const background = document.getElementsByClassName('background-wrapper')[0];
+            if (background) {
+                const mobilePathExists = await fetch("/api/check_path/PhotoAlbum_mobile")
+                .then(response => response.json())
+                .then(data => data.exists);
+                if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && 
+                    window.innerWidth < 768 &&
+                    mobilePathExists      
+                ) {
+                    background.innerHTML = /*html*/`
+                        <photo-view 
+                            id="background-photo-view"
+                            duration="5000" path="/PhotoAlbum_mobile"
+                            display-mode="cover">
+                        </photo-view>
+                        <div class="overlay"></div>
+                    `;
+                }else{
+                    background.innerHTML = /*html*/`
+                        <photo-view 
+                            id="background-photo-view"
+                            duration="5000" path="/PhotoAlbum"
+                            display-mode="cover">
+                        </photo-view>
+                        <div class="overlay"></div>
+                    `;
+                }
+            }
+        })
+
+
+    </script>
+</body>
+
+</html>

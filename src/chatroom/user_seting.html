@@ -1,0 +1,73 @@
+<tab-container active-tab="用户设置" >
+    <user-setting-box  title="用户设置"></user-setting-box>
+    <div  title="密码设置">
+        <style>
+            #passwordForm {
+                max-width: 400px;
+                margin: 20px auto;
+                padding: 20px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                background-color: #f9f9f9;
+            }
+            .form-group {
+                margin: 15px;
+            }
+            .form-group label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: bold;
+            }
+            .form-group input {
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+                box-sizing: border-box;
+            }
+            button[type="submit"] {
+                margin: 15px auto;
+                padding: 10px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;
+                display: block;
+                min-width: 100px;
+            }
+            button[type="submit"]:hover {
+                background-color: #45a049;
+            }
+        </style>
+        <div class="form-group">
+            <label for="newPassword">新密码：</label>
+            <input type="password" id="newPassword" name="newPassword" required>
+        </div>
+        <div class="form-group">
+            <label for="confirmPassword">确认新密码：</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required>
+        </div>
+        <button type="submit" onclick="changePassword(newPassword.value)">提交</button>
+    </div>
+    <file-explorer  title="我的文件" >
+        <script>
+            console.log("加载我的文件页面");
+            const fileExplorer = document.querySelector('file-explorer');
+            fileExplorer.webdavApi = new WebdavApi({
+                    token : await AccountManager.getUserToken()
+                });
+            fileExplorer.style.display = 'block';
+            fileExplorer.loadDirectory('/');
+        </script>
+    </file-explorer>
+    
+    <script>
+        console.log("加载用户设置页面");
+        const tabContainer = document.querySelector('tab-container');
+        tabContainer.addEventListener('tab-change', function (event) {
+            console.log('切换到了标签页:', event.detail.title);
+        })
+    </script>
+
+</tab-container>
