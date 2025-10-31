@@ -10,13 +10,19 @@ if (document.querySelector('link[href="/lib/font-awesome/6.4.0/css/all.min.css"]
     document.head.appendChild(styleLink);
 }
 
-class SidebarBrowers extends HTMLElement {
+export class SidebarBrowers extends HTMLElement {
     constructor() {
         super();
         this.sortOption = 'modified'; // 默认按名称排序
         this.currentPath = '/';
         this.attachShadow({ mode: 'open' });
-
+        
+    }
+    static {
+        SidebarBrowers.ExternalContextMenus = {};
+    }
+    static registerExternalContextMenu(name, callback) {
+        SidebarBrowers.ExternalContextMenus[name] = callback;
     }
 
     // 监控属性变化
@@ -196,7 +202,9 @@ class SidebarBrowers extends HTMLElement {
             })
             
          };
-         
+        
+         // 合并外部上下文菜单项到当前菜单列表
+         Object.assign(contextMenuList, SidebarBrowers.ExternalContextMenus);
         ContextMenu.open(x, y, contextMenuList);
     }
     
