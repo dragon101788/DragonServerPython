@@ -5,7 +5,8 @@ import '/TabContainerComponent.js'
 import '/SystemManager/SystemManager.js'
 import '/SystemManager/ServerConfig.js'
 import '/SystemManager/UserConfig.js'
-import '/webdav/SidebarBrowers.js'
+import '/SystemManager/ExtraStaticConfig.js'
+
 
 document.body.innerHTML = /*html*/`
     <style>
@@ -39,6 +40,7 @@ document.body.innerHTML = /*html*/`
             <user-config title="用户配置"></user-config>
             <system-manager title="系统设置"></system-manager>
             <server-config title="服务配置"></server-config>
+            <extra-static-config title="额外静态配置"></extra-static-config>
         </tab-container>
     </div>
 `

@@ -6,6 +6,7 @@ import { InputDialog ,MessageDialog ,BaseModal ,TextAreaDialog ,CopyToClipboardD
 import { ChangePasswordModal    } from '/SystemManager/UsualDialog.js';
 import '/AvatarComponent.js'
 import '/SystemManager/WebdavConfigComponent.js'
+import '/webdav/SidebarBrowers.js'
 
 // 设置权限对话框
 class RoleSettingDialog extends BaseModal {

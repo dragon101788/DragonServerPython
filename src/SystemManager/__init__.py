@@ -325,3 +325,28 @@ async def stop_server(request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to stop server: {str(e)}")
 
+@router.get("/api/get_extra_static")
+async def get_extra_static(request: Request):
+    await account.verfiy_by_request(request);
+    role = account.get_profile(request.username).get("role")
+    if "SuperAdmin" not in role:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    try:
+        ret = server_config.get("extra_static", [])
+        return JSONResponse(content=ret)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch extra static: {str(e)}")
+
+@router.post("/api/set_extra_static")
+async def set_extra_static(request: Request):
+    await account.verfiy_by_request(request);
+    role = account.get_profile(request.username).get("role")
+    if "SuperAdmin" not in role:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    try:
+        data = await request.json();
+        ret = data
+        server_config["extra_static"] = ret
+        return JSONResponse(content=ret)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to set extra static: {str(e)}")

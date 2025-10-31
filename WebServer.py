@@ -116,8 +116,7 @@ def scan_dir(path: str,dst : str,source : str):
             })
     except Exception as e:
         pass
-    finally:
-        return file_list
+    return file_list
 #返回遍历目录下的所有文件
 @app.get("/api/list_files/{path:path}")
 async def list_files(path: str = ""):
@@ -127,7 +126,9 @@ async def list_files(path: str = ""):
     
     file_list.extend(scan_dir(path,Resource.path.src,"src"))
     file_list.extend(scan_dir(path,Resource.path.executable,"exec"))
-
+    for extra_static in server_config["extra_static"]:
+        file_list.extend(scan_dir(path,extra_static,"extraStatic"))
+    
     return JSONResponse(file_list)
 
 
@@ -135,6 +136,9 @@ async def list_files(path: str = ""):
 @app.get("/api/check_path/{path:path}")
 async def check_path(path: str = ""):
     try:
+        for extra_static in server_config["extra_static"]:
+            if os.path.exists(os.path.join(extra_static, path)):
+                return JSONResponse({"exists": True})
         if os.path.exists(os.path.join(Resource.path.templates, path)):
             return JSONResponse({"exists": True})
         elif os.path.exists(os.path.join(Resource.path.executable, path)):
@@ -153,6 +157,9 @@ async def AccessFiles(request: Request, path: str = ""):
         if not path:
             path = "index.html"
             
+        for extra_static in server_config["extra_static"]:
+            if os.path.exists(os.path.join(extra_static, path)):
+                return responseFile(os.path.join(extra_static, path))
         if os.path.exists(os.path.join(Resource.path.executable, path)):
             return responseFile(os.path.join(Resource.path.executable, path))
         elif os.path.exists(os.path.join(Resource.path.src, path)):
