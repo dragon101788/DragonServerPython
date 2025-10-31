@@ -65,7 +65,6 @@ class ExtraStaticConfig extends HTMLElement {
                     background: #f9f9f9;
                     border: 1px solid #ddd;
                     border-radius: 4px;
-                    cursor: move;
                     transition: background-color 0.2s;
                 }
                 .config-item:hover {
@@ -135,8 +134,8 @@ class ExtraStaticConfig extends HTMLElement {
     }
     renderConfigItem(path, index) {
         return /*html*/`
-            <div class="config-item" draggable="true" data-index="${index}">
-                <span class="drag-handle">☰</span>
+            <div class="config-item" data-index="${index}">
+                <span class="drag-handle" draggable="true">☰</span>
                 <input type="text" class="config-path" placeholder="请输入静态文件路径" value="${path}">
                 <button class="remove-btn">删除</button>
             </div>
@@ -161,16 +160,22 @@ class ExtraStaticConfig extends HTMLElement {
         let draggedItem = null;
         
         configItems.forEach(item => {
-            // 拖动开始
-            item.addEventListener('dragstart', (e) => {
+            const dragHandle = item.querySelector('.drag-handle');
+            
+            // 拖动开始 - 只在drag-handle上监听
+            dragHandle.addEventListener('dragstart', (e) => {
                 draggedItem = item;
                 setTimeout(() => item.classList.add('dragging'), 0);
+                // 设置拖动数据
+                e.dataTransfer.setData('text/plain', item.dataset.index);
             });
             
             // 拖动结束
-            item.addEventListener('dragend', () => {
-                draggedItem.classList.remove('dragging');
-                draggedItem = null;
+            dragHandle.addEventListener('dragend', () => {
+                if (draggedItem) {
+                    draggedItem.classList.remove('dragging');
+                    draggedItem = null;
+                }
             });
             
             // 拖动经过

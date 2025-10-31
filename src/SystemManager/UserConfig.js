@@ -318,7 +318,6 @@ class UserConfig extends HTMLElement {
             }
         `;
 
-        const webdavConfigHtml = `<webdav-config username="${username}"></webdav-config>`;
         const html = /*html*/`
             
             <div id="user-list-sidebar">
@@ -354,7 +353,7 @@ class UserConfig extends HTMLElement {
                         </div>
                     </div>
                 </div>
-                ${webdavConfigHtml}
+                <webdav-config username="${username}"></webdav-config>
             </div>
             
             <sidebar-browers id="sidebar-browers"></sidebar-browers>
@@ -403,14 +402,9 @@ class UserConfig extends HTMLElement {
         
         const webdavConfig = this.shadowRoot.querySelector('webdav-config');
         if (webdavConfig) {
-            webdavConfig.addEventListener('config-saved', (event) => {
-                const username = event.detail.username;
-                getUserToken(username).then(async token => {
-                        if (browers) {
-                            browers.webdavApi = new WebdavApi({ token });
-                            await browers.loadDirectory('/');
-                        }
-                    })
+            webdavConfig.addEventListener('config-saved', async (event) => {
+                await this.render();
+                await this.setupEvents();
             });
         }
 

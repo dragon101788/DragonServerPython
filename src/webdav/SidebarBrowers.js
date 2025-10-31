@@ -77,6 +77,8 @@ export class SidebarBrowers extends HTMLElement {
         this.render();
         this.setupEventListeners();
     }
+    disconnectedCallback() {
+    }
 
     openContextMenu(path, x, y) {
         const item = this.items[path];
@@ -210,7 +212,7 @@ export class SidebarBrowers extends HTMLElement {
     
     
     setupEventListeners() {
-        document.addEventListener('WebdavChdir', (event) => {
+        this.shadowRoot.addEventListener('WebdavChdir', (event) => {
             const {item, path, options} = event.detail;
             if (item.type === 'directory' && path !== this.currentPath && item.path !== this.currentPath) {
                 this.currentPath = path;
