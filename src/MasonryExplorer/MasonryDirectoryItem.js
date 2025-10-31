@@ -21,16 +21,14 @@ export class MasonryDirectoryItem extends MasonryBaseModal {
         try {
             const img = await this.father.getThumbnail(this.item.path);
             ViewHTML.innerHTML = `
-                <div style="padding: 2px; background: linear-gradient(135deg, #4CAF50, #2196F3, #9C27B0); margin-bottom: 5px; display: inline-block;">
-                    <img class="item-image" src="${img}" alt="${this.item.name}">
-                </div>
+                <img class="item-image" src="${img}" alt="${this.item.name}">
                 <div class="item-name-float">${this.item.name}</div>
             `;
             ViewHTML.classList.add('image-item');
-    
-            ViewHTML.itemHeight = this.father.getBaseWidth() ;
+
+            ViewHTML.itemHeight = this.father.getBaseWidth();
             ViewHTML.style.height = `${ViewHTML.itemHeight}px`;
-        }catch(error){
+        } catch (error) {
             ViewHTML.innerHTML = `
                 <div class="item-icon" style="display: flex; justify-content: center; align-items: center; height: 70%;">
                     <svg width="64" height="64" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
