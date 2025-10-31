@@ -152,6 +152,7 @@ class SidebarBrowers extends HTMLElement {
         const contextMenuList = {};
         
         const path = this.currentPath;
+        const item = this.items[path];
         
         // 添加属性查看功能
         contextMenuList['属性'] = () => {
