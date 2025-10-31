@@ -115,6 +115,7 @@ export class MasonryView extends HTMLElement {
                         this.shadowRoot.host.style.setProperty('--column-count', columnCountInput.value);
                         // 重新渲染以应用新的布局
                         await this.render();
+                        await this.flush();
                     };
 
                     // 初始设置 - 先检查是否有属性设置，如果没有则使用默认值
