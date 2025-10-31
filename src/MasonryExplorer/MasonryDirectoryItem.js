@@ -17,8 +17,10 @@ export class MasonryDirectoryItem extends MasonryBaseModal {
         ViewHTML.dataset.path = this.item.path;
         ViewHTML.dataset.type = 'directory';
         ViewHTML.innerHTML = `
-            <img class="item-image" src="${this.father.getThumbnailUrl(this.item.path)}" alt="${this.item.name}">
-            <div class="item-name">${this.item.name}</div>
+            <div style="border: 1px solid #4CAF50;; padding: 2px; background: linear-gradient(135deg, #4CAF50, #2196F3, #9C27B0); margin-bottom: 5px; display: inline-block;">
+                <img class="item-image" src="${this.father.getThumbnailUrl(this.item.path)}" alt="${this.item.name}">
+            </div>
+            <div class="item-name-float">${this.item.name}</div>
         `;
         ViewHTML.classList.add('image-item');
         await new Promise((resolve) => {
