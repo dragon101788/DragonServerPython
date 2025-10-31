@@ -306,7 +306,7 @@ export class MasonryView extends HTMLElement {
                     background-color: #f8f9fa;
                 }
                 
-                .item-name {
+                .item-name-float {
                     position: absolute;
                     bottom: 0;
                     left: 0;
@@ -325,11 +325,29 @@ export class MasonryView extends HTMLElement {
                     transition: opacity 0.2s;
                 }
 
-                .masonry-item:hover .item-name {
+                .masonry-item:hover .item-name-float {
                     opacity: 1;
                 }
                 
-               
+                .item-name {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    text-align: center;
+                    word-break: break-word;
+                    padding: 4px 6px;
+                    box-sizing: border-box;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    background-color: rgba(0,0,0,0.6);
+                    color: white;
+                    font-size: 12px;
+                    opacity: 1;
+                    transition: opacity 0.2s;
+                }
+                
 
                 .empty-state {
                     grid-column: 1 / -1;

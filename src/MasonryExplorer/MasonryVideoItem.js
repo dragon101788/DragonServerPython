@@ -43,7 +43,7 @@ export class MasonryVideoItem extends MasonryBaseModal {
                     <path d="M8 5v14l11-7z" fill="white"/>
                 </svg>
             </div>
-            <div class="item-name">${this.item.name}</div>
+            <div class="item-name-float">${this.item.name}</div>
         `;
         ViewHTML.classList.add('video-item');
         await new Promise((resolve) => {
