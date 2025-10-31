@@ -98,7 +98,11 @@ export class WebdavAdapter  extends HTMLElement {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
-
+    openWebView(url){
+        this.shadowRoot.innerHTML = `
+            <iframe id="html-frame" src="${url}" style="width: 100%; height: 100%; border: none; "></iframe>
+        `;
+    }
     connectedCallback() {
         this.shadowRoot.innerHTML = `
             <div class="main-display-area">主要显示区域内容</div>

@@ -116,6 +116,8 @@ class TabContainerComponent extends HTMLElement {
                 flex-direction: column;
                 //box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 overflow: hidden;
+                margin: 0;
+                padding: 0;
             }
 
             .tab-buttons {
@@ -147,12 +149,16 @@ class TabContainerComponent extends HTMLElement {
                 flex: 1; /* 让内容区域占满剩余空间 */
                 position: relative;
                 overflow-y: auto; /* 确保内容溢出时显示垂直滚动条 */
+                margin: 0;
+                padding: 0;
             }
 
             .wrapper {
                 height: 100%; /* 设置 slot 高度 */
                 width: 100%;
                 overflow-y: auto;
+                margin: 0;
+                padding: 0;
             }
             ::slotted([slot^="tab"]) {
                 height: 100%;

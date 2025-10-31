@@ -83,11 +83,8 @@
         import { get_profile } from '/DragonServerAPI.js'
         import { WebdavAdapter } from '/webdav/WebdavAdapter.js'
         import {  MessageDialog ,UrlModal } from '/BaseModal.js';
-        import '/TabContainerComponent.js'
-        import '/SystemManager/SystemManager.js'
-        import '/SystemManager/ServerConfig.js'
+        
         import '/webdav/SidebarBrowers.js';
-        import '/webdav/UserConfig.js'
         import '/MasonryExplorer/MasonryView.js';
         import '/MasonryExplorer/MasonryDirectoryItem.js';
         import '/MasonryExplorer/MasonryGoBackItem.js';
@@ -201,19 +198,7 @@
             systemSettingsBtn.style.marginRight = "10px";
             topStatusBar.appendChild(systemSettingsBtn);
             systemSettingsBtn.addEventListener('click', async () => {
-                MainDisplay.innerHTML = /*html*/`
-                    <tab-container active-tab="用户配置">
-                        <user-config title="用户配置"></user-config>
-                        <system-manager title="系统设置"></system-manager>
-                        <server-config title="服务配置"></server-config>
-                    </tab-container>
-                `;
-                const systemManager = document.querySelector('system-manager'); 
-                const serverConfig = document.querySelector('server-config'); 
-                const UserConfig = document.querySelector('user-config');
-                systemManager.init();
-                serverConfig.init();
-                await UserConfig.init();
+                MainDisplay.openWebView("/SystemManager/index.html");
             });
         }
 

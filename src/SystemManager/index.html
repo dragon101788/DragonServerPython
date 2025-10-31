@@ -1,0 +1,31 @@
+
+<script type="module">
+import '/TabContainerComponent.js'
+
+import '/SystemManager/SystemManager.js'
+import '/SystemManager/ServerConfig.js'
+import '/SystemManager/UserConfig.js'
+
+document.body.innerHTML = /*html*/`
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <tab-container active-tab="用户配置">
+        <user-config title="用户配置"></user-config>
+        <system-manager title="系统设置"></system-manager>
+        <server-config title="服务配置"></server-config>
+    </tab-container>
+`
+
+const systemManager = document.querySelector('system-manager'); 
+const serverConfig = document.querySelector('server-config'); 
+const UserConfig = document.querySelector('user-config');
+systemManager.init();
+serverConfig.init();
+await UserConfig.init();
+</script>
