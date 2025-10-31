@@ -148,7 +148,7 @@ class SidebarBrowers extends HTMLElement {
     }
 
 
-    breadcrumbContextMenu( x, y) {
+    DirectoryContextMenu( x, y) {
         const contextMenuList = {};
         
         const path = this.currentPath;
@@ -233,7 +233,7 @@ class SidebarBrowers extends HTMLElement {
 
         this.shadowRoot.querySelector('.breadcrumb').addEventListener('contextmenu', (event) => {
             event.preventDefault(); // 阻止默认右键菜单
-            this.breadcrumbContextMenu( event.clientX, event.clientY);
+            this.DirectoryContextMenu( event.clientX, event.clientY);
         });
 
 
@@ -584,7 +584,7 @@ class SidebarBrowers extends HTMLElement {
         const menuBtn = this.shadowRoot.getElementById('menu-btn');
         if (menuBtn) {
             menuBtn.addEventListener('click', async (event) => {
-                this.breadcrumbContextMenu(event.clientX, event.clientY);
+                this.DirectoryContextMenu(event.clientX, event.clientY);
             });
         }
 
