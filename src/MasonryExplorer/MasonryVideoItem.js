@@ -13,7 +13,7 @@ export class MasonryVideoItem extends MasonryBaseModal {
         ViewHTML.className = `masonry-item`;
         ViewHTML.dataset.path = this.item.path;
         ViewHTML.dataset.type = this.item.type;
-        
+        const img = await this.father.getThumbnail(this.item.path);
         ViewHTML.innerHTML = /*html*/`
             <style>
                  /* 视频指示器样式 */
@@ -36,7 +36,7 @@ export class MasonryVideoItem extends MasonryBaseModal {
                     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
                 }
             </style>
-            <img class="item-image" src="${this.father.getThumbnailUrl(this.item.path)}" alt="${this.item.name}">
+            <img class="item-image" src="${img}" alt="${this.item.name}">
             <div class="video-indicator">
                 <svg viewBox="0 0 24 24" width="40" height="40">
                     <circle cx="12" cy="12" r="11" fill="rgba(0, 0, 0, 0.6)"/>
@@ -46,15 +46,8 @@ export class MasonryVideoItem extends MasonryBaseModal {
             <div class="item-name-float">${this.item.name}</div>
         `;
         ViewHTML.classList.add('video-item');
-        await new Promise((resolve) => {
-            ViewHTML.querySelectorAll('.item-image').forEach((img) => {
-                img.onload = () => {
-                    ViewHTML.itemHeight = this.father.getBaseWidth() * ( img.height / img.width );
-                    ViewHTML.style.height = `${ViewHTML.itemHeight}px`;
-                    resolve();
-                };
-            });
-        });
+        ViewHTML.itemHeight = this.father.getBaseWidth() * ( img.height / img.width );
+        ViewHTML.style.height = `${ViewHTML.itemHeight}px`;
         return ViewHTML;
     }
     doClose(){        

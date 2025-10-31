@@ -15,21 +15,14 @@ export class MasonryImageItem extends MasonryBaseModal {
         ViewHTML.dataset.path = this.item.path;
         ViewHTML.dataset.type = this.item.type;
 
-        
+        const img = await this.father.getThumbnail(this.item.path);
         ViewHTML.innerHTML = `
-            <img class="item-image" src="${await this.father.getThumbnail(this.item.path)}" alt="${this.item.name}">
+            <img class="item-image" src="${img}" alt="${this.item.name}">
             <div class="item-name-float">${this.item.name}</div>
         `;
         ViewHTML.classList.add('image-item');
-        await new Promise((resolve) => {
-           ViewHTML.querySelectorAll('.item-image').forEach((img) => {
-                img.onload = () => {
-                    ViewHTML.itemHeight = this.father.getBaseWidth() * ( img.height / img.width );
-                    ViewHTML.style.height = `${ViewHTML.itemHeight}px`;
-                    resolve();
-                };
-           });
-        });
+        ViewHTML.itemHeight = this.father.getBaseWidth() * ( img.height / img.width );
+        ViewHTML.style.height = `${ViewHTML.itemHeight}px`;
         return ViewHTML;
     }
     setupEventListeners(){
