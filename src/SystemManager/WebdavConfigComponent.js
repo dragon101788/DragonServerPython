@@ -9,13 +9,6 @@ class WebdavConfigComponent extends HTMLElement {
         // 声明要监控的 username 属性
         return ['username'];
     }
-    static isMobile(){
-        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768) {
-            return true;
-        } else {
-            return false;
-        }
-    }
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
@@ -81,41 +74,19 @@ class WebdavConfigComponent extends HTMLElement {
 
     // 提取生成虚拟路径条目的函数
     createVirtualPathItem(name, item, index) {
-        if(WebdavConfigComponent.isMobile()){
-            return /*html*/`
-                <div class="virtual-path-item mobile">
-                    <div class="inline-group">
-                        <label>名称:</label> 
-                        <input type="text" value="${name}">
-                    </div>
-                    
-                    <div class="inline-group">
-                        <label>路径:</label> 
-                        <input type="text" value="${item.path}"">
-                    </div>
-                    <div class="inline-group">
-                        <label>只读:</label>
-                        <input type="checkbox" ${item.readonly ? 'checked' : ''}>
-                        <button class="button-right-align" id="limit" data-index="${index}" >限制</button>
-                        <button class="button-right-align" id="delete" data-index="${index}" style="background-color:red;" >删除条目</button>
-                    </div>
-                </div>
-            `
-        }else{
-            return /*html*/`
-                <div class="virtual-path-item">
-                    <label>名称:</label>
-                    <input type="text" value="${name}">
-                    <label>路径:</label>
-                    <input type="text" value="${item.path}">
-                    <label>只读:</label>
-                    <input type="checkbox" ${item.readonly ? 'checked' : ''}>
-                    <!-- 新增按钮 "限制" -->
-                    <button class="button-right-align" id="limit" data-index="${index}" >限制</button>
-                    <button class="button-right-align" id="delete" data-index="${index}"  style="background-color:red;">删除条目</button>
-                </div>
-            `;
-        }
+        return /*html*/`
+            <div class="virtual-path-item">
+                <label>名称:</label>
+                <input type="text" value="${name}">
+                <label>路径:</label>
+                <input type="text" value="${item.path}">
+                <label>只读:</label>
+                <input type="checkbox" ${item.readonly ? 'checked' : ''}>
+                <!-- 新增按钮 "限制" -->
+                <button class="button-right-align" id="limit" data-index="${index}" >限制</button>
+                <button class="button-right-align" id="delete" data-index="${index}"  style="background-color:red;">删除条目</button>
+            </div>
+        `;
         
     }
 
@@ -273,89 +244,48 @@ class WebdavConfigComponent extends HTMLElement {
         }
         console.log(disk_quota,disk_quota_unit)
 
-        if(WebdavConfigComponent.isMobile()){
-            const html = /*html*/`
-                <style>${style}</style>
-                <div class="mobile-container">
-                    <!-- 用户路径配置 -->
-                    <h3>用户路径配置:</h3>
-                    <div class="inline-group">
-                            <input type="text" id="user-path-input" value="${this.config.path}" >                       
-                            <label>只读</label>
-                            <input type="checkbox" id="user-readonly-checkbox" ${this.config.readonly ? 'checked' : ''} >
-                    </div>
-
-                    <!-- 磁盘配额配置 -->
-                    <h3>磁盘配额:</h3>
-                    <div class="inline-group">
-                        <input type="text" id="disk-quota-input" value="${disk_quota || ''}" >
-                        <label>单位:</label>
-                        <select id="disk-quota-unit-select">
+        const html = /*html*/`
+        <style>${style}</style>
+        <div class="inline-group">
+            <!-- 用户路径配置 -->
+            <div class="from-group" style="width : 70%;">
+                <h3>用户路径配置:</h3>
+                <div class="inline-group">
+                        <input type="text" id="user-path-input" value="${this.config.path}" >                       
+                        <label>只读</label>
+                        <input type="checkbox" id="user-readonly-checkbox" ${this.config.readonly ? 'checked' : ''} >
+                </div>
+            </div>
+            <!-- 新增分割线 -->
+            <hr>
+            <!-- 磁盘配额配置 -->
+            <div class="from-group" style="width : 30%;">
+                <h3>磁盘配额:</h3>
+                <div class="inline-group">
+                    <input type="text" id="disk-quota-input" value="${disk_quota || ''}" >
+                
+                    <label>单位:</label>
+                    <select id="disk-quota-unit-select">
                             <option value="MB" ${disk_quota_unit === 'MB' ? 'selected' : ''}>MB</option>
                             <option value="GB" ${disk_quota_unit === 'GB' ? 'selected' : ''}>GB</option>
-                        </select>
-                    </div>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="virtual-paths">
+            <div class="inline-group">
+                <h3>虚拟路径配置</h3>
+                <button class="add-virtual-path button-right-align" >添加条目</button>
+            </div>
+            ${virtualPathItems}
+        </div>
+        <!-- 新增容器包裹保存按钮，实现右对齐 -->
+        <div class="save-button-container">
+            <button id="save-config-button">保存设置</button> 
+        </div>
+    `;
 
-                    <!-- 虚拟路径配置 -->
-                    <div class="virtual-paths">
-                        <div class="mobile-form-row">
-                            <h3>虚拟路径配置</h3>
-                            <button class="add-virtual-path" >添加条目</button>
-                        </div>
-                        ${virtualPathItems}
-                    </div>
-
-                    <!-- 保存按钮 -->
-                    <div class="save-button-container">
-                        <button id="save-config-button">保存设置</button> 
-                    </div>
-                </div>
-            `;
-            this.shadowRoot.innerHTML = html;
-        }else{
-                const html = /*html*/`
-                <style>${style}</style>
-                <div class="inline-group">
-                    <!-- 用户路径配置 -->
-                    <div class="from-group" style="width : 70%;">
-                        <h3>用户路径配置:</h3>
-                        <div class="inline-group">
-                                <input type="text" id="user-path-input" value="${this.config.path}" >                       
-                                <label>只读</label>
-                                <input type="checkbox" id="user-readonly-checkbox" ${this.config.readonly ? 'checked' : ''} >
-                        </div>
-                    </div>
-                    <!-- 新增分割线 -->
-                    <hr>
-                    <!-- 磁盘配额配置 -->
-                    <div class="from-group" style="width : 30%;">
-                        <h3>磁盘配额:</h3>
-                        <div class="inline-group">
-                            <input type="text" id="disk-quota-input" value="${disk_quota || ''}" >
-                        
-                            <label>单位:</label>
-                            <select id="disk-quota-unit-select">
-                                    <option value="MB" ${disk_quota_unit === 'MB' ? 'selected' : ''}>MB</option>
-                                    <option value="GB" ${disk_quota_unit === 'GB' ? 'selected' : ''}>GB</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="virtual-paths">
-                    <div class="inline-group">
-                        <h3>虚拟路径配置</h3>
-                        <button class="add-virtual-path button-right-align" >添加条目</button>
-                    </div>
-                    ${virtualPathItems}
-                </div>
-                <!-- 新增容器包裹保存按钮，实现右对齐 -->
-                <div class="save-button-container">
-                    <button id="save-config-button">保存设置</button> 
-                </div>
-            `;
-
-            this.shadowRoot.innerHTML = html;
-        }
+    this.shadowRoot.innerHTML = html;
         
     }
     async limitConfig(index){

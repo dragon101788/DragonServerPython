@@ -25,10 +25,7 @@ document.body.innerHTML = /*html*/`
             display: flex;
             flex-direction: row;
         }
-        #sidebar-browers {
-            width: 350px;
-            height: 100%;
-        }
+        
         #tab-container {
             flex: 1;
             display: flex;
@@ -38,7 +35,6 @@ document.body.innerHTML = /*html*/`
         }
     </style>
     <div id="container">
-        <sidebar-browers id="sidebar-browers"></sidebar-browers>
         <tab-container active-tab="用户配置">
             <user-config title="用户配置"></user-config>
             <system-manager title="系统设置"></system-manager>
@@ -52,5 +48,4 @@ const serverConfig = document.querySelector('server-config');
 const UserConfig = document.querySelector('user-config');
 systemManager.init();
 serverConfig.init();
-await UserConfig.init();
 </script>

@@ -3,9 +3,9 @@ import {  get_profile  ,deleteUser ,saveProfile ,getUserToken ,uploadAvatar,new_
 import { get_dav_users ,create_user_dav_config } from "/webdav/ServerAPI.js";
 import { WebdavApi } from '/webdav/WebdavApi.js'
 import { InputDialog ,MessageDialog ,BaseModal ,TextAreaDialog ,CopyToClipboardDialog} from '/BaseModal.js';
-import { ChangePasswordModal    } from '/webdav/UsualDialog.js';
+import { ChangePasswordModal    } from '/SystemManager/UsualDialog.js';
 import '/AvatarComponent.js'
-import '/webdav/WebdavConfigComponent.js'
+import '/SystemManager/WebdavConfigComponent.js'
 
 // 设置权限对话框
 class RoleSettingDialog extends BaseModal {
@@ -75,9 +75,6 @@ class RoleSettingDialog extends BaseModal {
 customElements.define('role-setting-dialog', RoleSettingDialog);
 
 class UserConfig extends HTMLElement {
-    static get observedAttributes() {
-        return ['username'];
-    }
 
     constructor() {
         super();
@@ -85,34 +82,16 @@ class UserConfig extends HTMLElement {
         this.currentUser = null;
     }
 
-    connectedCallback() {
-        this.username = this.getAttribute('username');
-        if (this.username) {
-            this.render();
-            this.setupEvents();
-        }
-    }
-    async init()
-    {
-        const session = await AccountManager.getUserSession();
-        this.username = session.username;
-        this.setAttribute('username', session.username);
+    async connectedCallback() {
+        this.setAttribute('username', await AccountManager.getUsername());
         await this.render();
-        this.setupEvents();
+        await this.setupEvents();
     }
-
-    async attributeChangedCallback(name, oldValue, newValue) {
-        if (name === 'username' && oldValue !== newValue) {
-            this.username = newValue;
-            await this.render();
-            this.setupEvents();
-        }
-    }
-
     async updateContent() {
         if (!this.shadowRoot) return;
+        const username = this.getAttribute('username');
 
-        let profile = await get_profile(this.username);
+        let profile = await get_profile(username);
         this.shadowRoot.querySelector('#nickname-input').value = profile.nickname;
     }
 
@@ -120,7 +99,8 @@ class UserConfig extends HTMLElement {
         const file = event.target.files[0];
         if (file) {
             try {
-                await uploadAvatar(file, this.username);
+                const username = this.getAttribute('username');
+                await uploadAvatar(file, username);
                 document.dispatchEvent(new CustomEvent('flush'));
             } catch (error) {
                 console.error('上传头像失败:', error);
@@ -130,11 +110,9 @@ class UserConfig extends HTMLElement {
 
     async render() {
         if (!this.shadowRoot) return;
-        if (!this.username) return;
+        const username = this.getAttribute('username');
         const session = await AccountManager.getUserSession();
-        let profile = await get_profile(session.username);
-        const isAdmin = profile.role.includes("Admin");
-        this.profile = await get_profile(this.username);
+        const profile = await get_profile(username);
         const users = await get_dav_users();
 
         const style = /*css*/`
@@ -146,7 +124,7 @@ class UserConfig extends HTMLElement {
                 height: 100%;
                 flex: 1;
                 /* 修改 flex-direction 为 row-reverse 使侧边栏在右侧 */
-                flex-direction: row-reverse; 
+                flex-direction: row; 
             }  
 
             #user-list-sidebar {
@@ -333,10 +311,15 @@ class UserConfig extends HTMLElement {
                 gap: 10px;
                 justify-content: center;
             }
+            #sidebar-browers {
+                width: 350px;
+                height: 100%;
+            }
         `;
 
-        const webdavConfigHtml = profile.role.includes("Admin") ? `<webdav-config username="${this.username}"></webdav-config>` : '';
+        const webdavConfigHtml = `<webdav-config username="${username}"></webdav-config>`;
         const html = /*html*/`
+            
             <div id="user-list-sidebar">
                 <!--添加用户按钮--> 
                 <div class="user-list" >
@@ -344,18 +327,19 @@ class UserConfig extends HTMLElement {
                         <button id="add-user-button" style="width: 100%; background-color: #4CAF50;">添加用户</button>
                     </div>
                     <ul id="user-list-items">
-                        ${users.map(user => `<li ${user === this.username ? 'class="selected"' : ''}>${user}</li>`).join('')}
+                        ${users.map(user => `<li ${user === username ? 'class="selected"' : ''}>${user}</li>`).join('')}
                     </ul>
                 </div>
             </div>
             
             <div class="setting-container">
+                
                 <div class="profile-header">
                     <div class="avatar-container" id="avatarContainer">
-                        <div class="text">${this.username}</div>
-                        <avatar-component id="avatar" class="avatar" username="${this.username}"></avatar-component>
+                        <div class="text">${username}</div>
+                        <avatar-component id="avatar" class="avatar" username="${username}"></avatar-component>
                         <input type="file" id="avatar-input" hidden accept="image/*">
-                        <div class="text-bold" id="nikename">${this.profile.nickname}</div>
+                        <div class="text-bold" id="nikename">${profile.nickname}</div>
                     </div>
                     <div class="input-container">
                         <div class="form-group">
@@ -371,12 +355,14 @@ class UserConfig extends HTMLElement {
                 </div>
                 ${webdavConfigHtml}
             </div>
+            
+            <sidebar-browers id="sidebar-browers"></sidebar-browers>
         `;
 
         this.shadowRoot.innerHTML = `<style>${style}</style>${html}`;
         const switchRoleButton = this.shadowRoot.querySelector('#seting-role');
         switchRoleButton.textContent = '权限';
-        const rgb_color = this.getRgbColorByRole(this.profile.role);
+        const rgb_color = this.getRgbColorByRole(profile.role);
         switchRoleButton.style.backgroundColor = rgb_color;
 
         const deleteUserButton = this.shadowRoot.querySelector('#delete-user-button');
@@ -387,9 +373,9 @@ class UserConfig extends HTMLElement {
         }
     }
 
-    setupEvents() {
+    async setupEvents() {
 
-        const browers = document.getElementById('sidebar-browers');
+        const browers = this.shadowRoot.querySelector('#sidebar-browers');
         const avatarInput = this.shadowRoot.querySelector('#avatar-input');
         const avatarContainer = this.shadowRoot.querySelector('#avatar');
         avatarContainer.addEventListener('click', () => {
@@ -398,22 +384,30 @@ class UserConfig extends HTMLElement {
         const nickname = this.shadowRoot.querySelector('#nikename');
         nickname.addEventListener('click', () => {
             InputDialog.open({title:"修改昵称",message:"请输入新的昵称" ,defaultValue : this.profile.nickname}).addEventListener('confirm', async (event) => {
-                this.profile.nickname = event.detail.value; 
-                await saveProfile(this.profile, this.username);
+                const username = this.getAttribute('username');
+                const profile = await get_profile(username);
+                profile.nickname = event.detail.value; 
+                await saveProfile(profile, username);
                 nickname.textContent = event.detail.value;
             })
         });
         avatarInput.addEventListener('change', this.handleAvatarChange.bind(this));
 
+        if (browers) {
+            const username = this.getAttribute('username');
+            const token = await getUserToken(username);  
+            browers.webdavApi = new WebdavApi({ token });
+            await browers.loadDirectory('/');
+        }
         
         const webdavConfig = this.shadowRoot.querySelector('webdav-config');
         if (webdavConfig) {
             webdavConfig.addEventListener('config-saved', (event) => {
                 const username = event.detail.username;
-                getUserToken(username).then(token => {
+                getUserToken(username).then(async token => {
                         if (browers) {
                             browers.webdavApi = new WebdavApi({ token });
-                            browers.loadDirectory('/');
+                            await browers.loadDirectory('/');
                         }
                     })
             });
@@ -422,20 +416,21 @@ class UserConfig extends HTMLElement {
         const changePasswordButton = this.shadowRoot.querySelector('#change-password-button');
         changePasswordButton.addEventListener('click', () => {
             const passwordModalComponent = ChangePasswordModal.open();
-            passwordModalComponent.setAttribute('username', this.username);
+            const username = this.getAttribute('username');
+            passwordModalComponent.setAttribute('username', username);
             passwordModalComponent.show();
         });
 
-        document.addEventListener('flush', () => {
-            this.render();
-            this.setupEvents()
+        document.addEventListener('flush', async () => {
+            await this.render();
+            await this.setupEvents()
         });
 
         const editDescriptionButton = this.shadowRoot.querySelector('#edit-description-button');
         editDescriptionButton.addEventListener('click', async () => {
-            TextAreaDialog.open({title:"编辑描述",defaultValue : this.profile.description}).addEventListener('confirm', async (event) => {
-                const username = this.getAttribute('username');
-                let profile = await get_profile(username);  
+            const username = this.getAttribute('username');
+            const profile = await get_profile(username);
+            TextAreaDialog.open({title:"编辑描述",defaultValue : profile.description}).addEventListener('confirm', async (event) => {
                 profile.description = event.detail.value;
                 await saveProfile(profile, username); 
                 MessageDialog.open({message:"修改成功"});
@@ -447,7 +442,8 @@ class UserConfig extends HTMLElement {
             try {
                 InputDialog.open({title:"获取令牌",message:"请输入令牌时效(天)"}).addEventListener('confirm', async (event) => {
                     const time = event.detail.value;
-                    let token = await getUserToken(this.username, parseInt(time)*24*60);
+                    const username = this.getAttribute('username');
+                    let token = await getUserToken(username, parseInt(time)*24*60);
 
                     
                     CopyToClipboardDialog.open({
@@ -466,11 +462,12 @@ class UserConfig extends HTMLElement {
 
         const switchRoleButton = this.shadowRoot.querySelector('#seting-role');
         switchRoleButton.addEventListener('click', async () => {
-            let profile = await get_profile(this.username);
+            const username = this.getAttribute('username');
+            let profile = await get_profile(username);
             RoleSettingDialog.open({title:"设置权限",checkedRoles:JSON.stringify(profile.role)}).addEventListener('confirm', async (event) => {
                 const selectedRoles = event.detail.selectedRoles;
                 profile.role = selectedRoles;
-                await saveProfile(profile, this.username);
+                await saveProfile(profile, username);
                 const rgb_color = this.getRgbColorByRole(profile.role);
                 switchRoleButton.style.backgroundColor = rgb_color;
                 RoleSettingDialog.close();
@@ -481,7 +478,8 @@ class UserConfig extends HTMLElement {
         deleteUserButton.addEventListener('click', async () => {
             InputDialog.open({title:"删除用户",message:"注意:此操作不可逆.你确定要删除用户么?\n 请输入[确认删除]\n将会删除用户"}).addEventListener('confirm', async (event) => {
                 if (event.detail.value === '确认删除') {
-                    await deleteUser(this.username);
+                    const username = this.getAttribute('username');
+                    await deleteUser(username); 
                     const session = await AccountManager.getUserSession();
                     this.setAttribute('username', session.username);
                     await this.render();
@@ -490,22 +488,15 @@ class UserConfig extends HTMLElement {
         });
 
         const userListItems = this.shadowRoot.querySelector('#user-list-items');
-        userListItems.addEventListener('click', (event) => {
+        userListItems.addEventListener('click', async (event) => {
             if (event.target.tagName === 'LI') {
                 const allLis = userListItems.querySelectorAll('li');
                 allLis.forEach(li => li.classList.remove('selected'));
                 event.target.classList.add('selected');
                 const selectedUser = event.target.textContent;
                 this.setAttribute('username', selectedUser);
-
-                if (browers) {
-                    getUserToken(selectedUser).then(token => {
-                        if (browers) {
-                            browers.webdavApi = new WebdavApi({ token });
-                            browers.loadDirectory('/');
-                        }
-                    })
-                }
+                await this.render();
+                await this.setupEvents();
             }
         });
 
@@ -537,10 +528,11 @@ class UserConfig extends HTMLElement {
     }
 
     async ReloadUserList() {
+        const username = this.getAttribute('username');
         const users = await get_dav_users();
         const userListItems = this.shadowRoot.querySelector('#user-list-items');
         userListItems.innerHTML = users.map(user => 
-            `<li ${user === this.username ? 'class="selected"' : ''}>${user}</li>`
+            `<li ${user === username ? 'class="selected"' : ''}>${user}</li>`
         ).join('');
     }
 
