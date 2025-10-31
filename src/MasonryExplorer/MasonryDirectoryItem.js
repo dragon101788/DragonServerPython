@@ -1,5 +1,6 @@
 import { MasonryBaseModal } from '/MasonryExplorer/MasonryBaseModal.js';
 import { MasonryView } from '/MasonryExplorer/MasonryView.js';
+import { cacheManager } from '/CacheManager.js';
 
 export class MasonryDirectoryItem extends MasonryBaseModal {
     constructor() {
@@ -17,7 +18,7 @@ export class MasonryDirectoryItem extends MasonryBaseModal {
         ViewHTML.dataset.path = this.item.path;
         ViewHTML.dataset.type = 'directory';
         ViewHTML.innerHTML = `
-            <div style="border: 1px solid #4CAF50;; padding: 2px; background: linear-gradient(135deg, #4CAF50, #2196F3, #9C27B0); margin-bottom: 5px; display: inline-block;">
+            <div style="padding: 2px; background: linear-gradient(135deg, #4CAF50, #2196F3, #9C27B0); margin-bottom: 5px; display: inline-block;">
                 <img class="item-image" src="${this.father.getThumbnailUrl(this.item.path)}" alt="${this.item.name}">
             </div>
             <div class="item-name-float">${this.item.name}</div>
