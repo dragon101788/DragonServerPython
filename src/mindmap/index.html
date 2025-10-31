@@ -135,35 +135,30 @@
                 localStorage.setItem(SIMPLE_MIND_MAP_LOCAL_CONFIG, JSON.stringify(config))
             }
         }
-        window.onload = async () => {
-            if(window.takeOverApp === true){
-                const searchParams = new URLSearchParams(window.location.search);
-                const token = searchParams.get('token');
-                if ( token) {
-                    webdavApi = new WebdavApi({
-                        token: token
-                    });
-                    webdavApi.src = searchParams.get('src');
-                }
-                MindMapData = await getMindMapDataFromUrl();
-                
-                // 设置全局的方法
-                setTakeOverAppMethods()
-                // 思维导图实例创建完成事件
-                window.$bus.$on('app_inited', mindMap => {
-                    console.log(mindMap)
-                    //mindMap.setMode('readonly')
-                    //mindMap.setTheme();
-                    // let view = mindMap.view
-                    // view.setScale(0.8, 0, 0)
-                })
-                // 可以通过window.$bus.$on()来监听应用的一些事件
-                // 实例化页面
-                window.initApp()
-            }else{
-                return;
+        if(window.takeOverApp === true){
+            const searchParams = new URLSearchParams(window.location.search);
+            const token = searchParams.get('token');
+            if ( token) {
+                webdavApi = new WebdavApi({
+                    token: token
+                });
+                webdavApi.src = searchParams.get('src');
             }
-
+            MindMapData = await getMindMapDataFromUrl();
+            
+            // 设置全局的方法
+            setTakeOverAppMethods()
+            // 思维导图实例创建完成事件
+            window.$bus.$on('app_inited', mindMap => {
+                console.log(mindMap)
+                //mindMap.setMode('readonly')
+                //mindMap.setTheme();
+                // let view = mindMap.view
+                // view.setScale(0.8, 0, 0)
+            })
+            // 可以通过window.$bus.$on()来监听应用的一些事件
+            // 实例化页面
+            window.initApp()
         }
 
     </script>
