@@ -1,3 +1,25 @@
+/*
+使用示例:
+menuItems = {}
+menuItems['-----------------'] = null;
+menuItems['>其他'] = {
+    '分享链接' : () => {
+        console.log('分享链接');
+    },
+    '删除' : () => {
+        console.log('删除');
+    },
+    '重命名' : () => {
+        console.log('重命名');
+    },
+});
+menuItems['转码'] = () => {
+    console.log('转码');
+    MainDisplay.openWebSite("/ffmpeg/index.html");
+});
+ContextMenu.open(100, 100, menuItems);
+*/
+
 export class ContextMenu {
     // 存储所有已打开的菜单
     static openedMenus = [];

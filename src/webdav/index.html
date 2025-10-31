@@ -238,18 +238,6 @@
             document.body.style.cursor = 'default';
         });
 
-        SidebarBrowers.registerExternalContextMenu('-----------------');
-        SidebarBrowers.registerExternalContextMenu('>其他', {
-            '分享链接' : () => {
-                console.log('分享链接');
-            },
-            '删除' : () => {
-                console.log('删除');
-            },
-            '重命名' : () => {
-                console.log('重命名');
-            },
-        });
         SidebarBrowers.registerExternalContextMenu('转码', () => {
             console.log('转码');
             MainDisplay.openWebSite("/ffmpeg/index.html");
