@@ -24,11 +24,21 @@ export class ContextMenu {
                 .context-menu-item:hover {
                     background: #f0f0f0;
                 }
+                .context-menu-separator {
+                    height: 1px;
+                    background-color: #ddd;
+                    margin: 4px 0;
+                    pointer-events: none;
+                }
             </style>
             <div class="context-menu">
-                ${Object.entries(menuItems).map(([label]) => `
-                    <div class="context-menu-item" data-label="${label}">${label}</div>
-                `).join('')}
+                ${Object.entries(menuItems).map(([label]) => {
+                    // 检查首字母是否为'-'，如果是则显示为分隔符
+                    if (label && label.charAt(0) === '-') {
+                        return `<div class="context-menu-separator"></div>`;
+                    }
+                    return `<div class="context-menu-item" data-label="${label}">${label}</div>`;
+                }).join('')}
             </div>
         `;
 
@@ -69,10 +79,13 @@ export class ContextMenu {
 
         contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
             const label = item.dataset.label;
-            item.addEventListener('click', () => {
-                menuItems[label]();
-                ContextMenu.close();
-            });
+            // 不为分隔符项添加点击事件
+            if (label && label.charAt(0) !== '-') {
+                item.addEventListener('click', () => {
+                    menuItems[label]();
+                    ContextMenu.close();
+                });
+            }
         });
 
         
