@@ -183,6 +183,20 @@ class SidebarBrowers extends HTMLElement {
             
          };
 
+         contextMenuList['新建文件夹'] = async () => { 
+            InputDialog.open({
+                title: "新文件夹名称",
+                message: `请输入新文件夹名称`,
+                defaultValue: ""
+            }).addEventListener('confirm', async (e) => {
+                const name = e.detail.value;
+                await this.webdavApi.mkdir(path + `/${name}`);
+                await this.loadDirectory(path);
+
+            })
+            
+         };
+         
         ContextMenu.open(x, y, contextMenuList);
     }
     
