@@ -28,7 +28,7 @@ export class MasonryDirectoryItem extends MasonryBaseModal {
             `;
             ViewHTML.classList.add('image-item');
     
-            ViewHTML.itemHeight = img.height * 0.8;
+            ViewHTML.itemHeight = this.father.getBaseWidth() ;
             ViewHTML.style.height = `${ViewHTML.itemHeight}px`;
         }catch(error){
             ViewHTML.innerHTML = `
