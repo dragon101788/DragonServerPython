@@ -17,7 +17,7 @@ export class MasonryImageItem extends MasonryBaseModal {
 
         
         ViewHTML.innerHTML = `
-            <img class="item-image" src="${this.father.getThumbnailUrl(this.item.path)}" alt="${this.item.name}">
+            <img class="item-image" src="${await this.father.getThumbnail(this.item.path)}" alt="${this.item.name}">
             <div class="item-name-float">${this.item.name}</div>
         `;
         ViewHTML.classList.add('image-item');

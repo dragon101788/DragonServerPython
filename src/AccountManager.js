@@ -318,7 +318,18 @@ export class AccountManager {
         }
         return this.payload;
     }
-    
+    static async getUsername() {
+        if (!this.token || !this.payload||!this.ws_connection) {
+            await this.init();
+        }
+        return this.payload.username;
+    }
+    static async getExpirationTime() {
+        if (!this.token || !this.payload||!this.ws_connection) {
+            await this.init();
+        }
+        return this.payload.exp;
+    }
     // 获取用户资料（带缓存）
     static async get_profile() {
         if (!this.token || !this.payload||!this.ws_connection) {
@@ -326,8 +337,6 @@ export class AccountManager {
         }
         const username = this.payload.username;
 
-        // 用户资料缓存路径
-        const profileCachePath = `${username}/profile`;
 
         try {
             // 构建API URL

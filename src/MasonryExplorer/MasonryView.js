@@ -2,6 +2,7 @@ import { WebdavAdapter } from '/webdav/WebdavAdapter.js';
 import { AccountManager } from '/AccountManager.js';
 import { WebdavApi } from '/webdav/WebdavApi.js';
 import { CopyToClipboardDialog } from '/BaseModal.js';
+import { cacheManager } from '/CacheManager.js';
 
 
 
@@ -147,6 +148,30 @@ export class MasonryView extends HTMLElement {
     getBaseWidth(){
         const container = this.shadowRoot.getElementById('masonry-container');
         return container.clientWidth / this.columnCount;
+    }
+
+    async getThumbnail(path){
+        const thumbnailUrl = this.getThumbnailUrl(path);
+        const cacheKey = `thumbnail/${path}`;
+        let cachedImageData = await cacheManager.getCache(cacheKey);
+        if (cachedImageData) {
+            return cachedImageData;
+        }
+
+        const img = new Image();
+        img.src = thumbnailUrl;
+        await new Promise((resolve, reject) => {
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        cachedImageData = canvas.toDataURL('image/jpeg');
+        await cacheManager.setCache(cacheKey, cachedImageData,24*60*60*1000);
+        return cachedImageData;
     }
     getThumbnailUrl(path){
         

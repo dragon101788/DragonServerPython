@@ -134,22 +134,21 @@
         }
         
 
-        const session = await AccountManager.getUserSession();
         const topStatusBar = document.querySelector('.top-status-bar');
         const topInfo = document.getElementById('top-info');
         const MainDisplay = document.querySelector('.main-display-area');
         const sidebarBrowers = document.getElementById('sidebar-browers');
         const bottomStatusBar = document.querySelector('.bottom-status-bar');
-        const profile = await get_profile(session.username);
+        const profile = await AccountManager.get_profile();
 
         if (shared){
             const currentTime = Math.floor(Date.now() / 1000); 
-            const totalSeconds = Math.floor(session.exp - currentTime);
+            const totalSeconds = Math.floor(await AccountManager.getExpirationTime() - currentTime);
             const days = Math.floor(totalSeconds / 86400);
             const hours = Math.floor((totalSeconds % 86400) / 3600);
 
             const lableSHhare = document.createElement('div');
-            lableSHhare.textContent = " " + session.username + "分享链接" + "剩余时间：" + (days > 0 ? days + "天 " : "") + hours + "小时";
+            lableSHhare.textContent = " " + await AccountManager.getUsername() + "分享链接" + "剩余时间：" + (days > 0 ? days + "天 " : "") + hours + "小时";
             lableSHhare.style.float = "left";
             lableSHhare.style.marginLeft = "10px";
             topStatusBar.appendChild(lableSHhare);
@@ -157,7 +156,7 @@
         else{
 
             const lableUser = document.createElement('div');
-            lableUser.textContent = " " + session.username ;   
+            lableUser.textContent = " " + await AccountManager.getUsername() ;   
             lableUser.style.float = "left";
             lableUser.style.marginLeft = "10px";
             if (profile.role.includes("SuperAdmin")) {
