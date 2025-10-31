@@ -14,6 +14,14 @@ export class WebdavAdapter  extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({mode: 'open'});
+        // 初始化事件监听器引用
+        this.eventListeners = {
+            WebdavOpen: null,
+            WebdavClose: null,
+            WebdavError: null,
+            WebdavChdir: null,
+            WebdavProperty: null
+        };
     }
 
     fileDetails(item) {
@@ -119,7 +127,11 @@ export class WebdavAdapter  extends HTMLElement {
             <div class="main-display-area">主要显示区域内容</div>
         `;
 
-        document.addEventListener('WebdavOpen', (event) => {
+        // 移除可能存在的监听器
+        this._removeAllEventListeners();
+        
+        // 注册WebdavOpen事件监听器
+        this.eventListeners.WebdavOpen = (event) => {
             const {item, path, options} = event.detail;
             for (const matcher of WebdavAdapter.matchers){
                 const adp = matcher(item);
@@ -128,18 +140,27 @@ export class WebdavAdapter  extends HTMLElement {
                     this.shadowRoot.replaceChildren(adp);
                 }
             }
-        });
-        document.addEventListener('WebdavClose', (event) => {
+        };
+        document.addEventListener('WebdavOpen', this.eventListeners.WebdavOpen);
+        
+        // 注册WebdavClose事件监听器
+        this.eventListeners.WebdavClose = (event) => {
             this.shadowRoot.innerHTML = `
                 <div class="main-display-area">主要显示区域内容</div>
             `;
-        });
-        document.addEventListener('WebdavError', (event) => {
+        };
+        document.addEventListener('WebdavClose', this.eventListeners.WebdavClose);
+        
+        // 注册WebdavError事件监听器
+        this.eventListeners.WebdavError = (event) => {
             this.shadowRoot.innerHTML = `
                 <div class="main-display-area">打开失败</div>
             `;
-        });
-        document.addEventListener('WebdavChdir', (event) => {
+        };
+        document.addEventListener('WebdavError', this.eventListeners.WebdavError);
+        
+        // 注册WebdavChdir事件监听器
+        this.eventListeners.WebdavChdir = (event) => {
             const {item, path, options} = event.detail;
             for (const matcher of WebdavAdapter.matchers){
                 const adp = matcher(item);
@@ -147,13 +168,33 @@ export class WebdavAdapter  extends HTMLElement {
                     this.shadowRoot.replaceChildren(adp);
                 }
             }
-        });
-        document.addEventListener('WebdavProperty', (event) => {
+        };
+        document.addEventListener('WebdavChdir', this.eventListeners.WebdavChdir);
+        
+        // 注册WebdavProperty事件监听器
+        this.eventListeners.WebdavProperty = (event) => {
             const {path, item} = event.detail;
             this.fileDetails(item);
-        });
+        };
+        document.addEventListener('WebdavProperty', this.eventListeners.WebdavProperty);
+    }
+    
+    // 组件断开连接时清理事件监听器
+    disconnectedCallback() {
+        this._removeAllEventListeners();
+    }
+    // 移除所有事件监听器的辅助方法
+    _removeAllEventListeners() {
+        for (const [eventName, listener] of Object.entries(this.eventListeners)) {
+            if (listener) {
+                document.removeEventListener(eventName, listener);
+                this.eventListeners[eventName] = null;
+            }
+        }
     }
 
 }
+    
+
 customElements.define('webdav-adapter', WebdavAdapter);
 
