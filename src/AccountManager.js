@@ -21,10 +21,10 @@ export class AccountManager {
         });
         if (response.ok) {
             const data = await response.json();
-            return true;
+            return data.access_token;
         } else {
             const data = await response.json();
-            return false;
+            return undefined;
         }
     }
 
@@ -80,14 +80,15 @@ export class AccountManager {
 
 
     static async showLoginDialog() {
-        await new Promise((resolve) => {
+        return await new Promise((resolve) => {
             LoginDialog.open({ LoginGuest: 'guest' }).addEventListener('login', async (event) => {
                 const { username, password } = event.detail;
                 //拿到抛出事件的对象
                 const dialog = event.target;
-                if (await this.login(username, password) === true) {
+                const token = await this.login(username, password);
+                if (token !== undefined) {
                     LoginDialog.close();
-                    resolve();
+                    resolve(token);
                 } else {
                     MessageDialog.open({ message: '登录失败，请检查用户名和密码' });
                 }
@@ -158,15 +159,24 @@ export class AccountManager {
 
         return undefined;
     }
+    static async tryGetTokenWithLogin(){
+        let token = await this.tryGetToken();
+        if(token !== undefined){
+            return token;
+        }
+        token = await this.showLoginDialog();
+        if(token !== undefined){
+            return token;
+        }
+    }
     static async init() {
         
         while(true){
-            const token = await this.tryGetToken();
+            const token = await this.tryGetTokenWithLogin();
             if(token !== undefined){
                 this.token = token;
                 break;
             }
-            await this.showLoginDialog();
         }
         localStorage.setItem('token', this.token);
         this.set_cookie('token', this.token);
