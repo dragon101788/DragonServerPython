@@ -5,21 +5,46 @@ import '/TabContainerComponent.js'
 import '/SystemManager/SystemManager.js'
 import '/SystemManager/ServerConfig.js'
 import '/SystemManager/UserConfig.js'
+import '/webdav/SidebarBrowers.js'
 
 document.body.innerHTML = /*html*/`
     <style>
+        :host {
+            width: 100%;
+            height: 100%;
+        }
         body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
         }
+        #container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: row;
+        }
+        #sidebar-browers {
+            width: 350px;
+            height: 100%;
+        }
+        #tab-container {
+            flex: 1;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
     </style>
-    <tab-container active-tab="用户配置">
-        <user-config title="用户配置"></user-config>
-        <system-manager title="系统设置"></system-manager>
-        <server-config title="服务配置"></server-config>
-    </tab-container>
+    <div id="container">
+        <sidebar-browers id="sidebar-browers"></sidebar-browers>
+        <tab-container active-tab="用户配置">
+            <user-config title="用户配置"></user-config>
+            <system-manager title="系统设置"></system-manager>
+            <server-config title="服务配置"></server-config>
+        </tab-container>
+    </div>
 `
 
 const systemManager = document.querySelector('system-manager'); 

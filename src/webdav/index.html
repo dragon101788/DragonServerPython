@@ -84,6 +84,8 @@
         import { WebdavAdapter } from '/webdav/WebdavAdapter.js'
         import {  MessageDialog ,UrlModal } from '/BaseModal.js';
         
+        import '/SystemManager/Adapter.js';
+
         import '/webdav/SidebarBrowers.js';
         import '/MasonryExplorer/MasonryView.js';
         import '/MasonryExplorer/MasonryDirectoryItem.js';
@@ -193,12 +195,13 @@
             
             //增加一个按钮，点击后显示系统设置页面 ,在logout-btn左边
             const systemSettingsBtn = document.createElement('button');
+            systemSettingsBtn.id = 'system-settings-btn';
             systemSettingsBtn.textContent = '系统设置';
             systemSettingsBtn.style.float = "right";
             systemSettingsBtn.style.marginRight = "10px";
             topStatusBar.appendChild(systemSettingsBtn);
             systemSettingsBtn.addEventListener('click', async () => {
-                MainDisplay.openWebView("/SystemManager/index.html");
+                MainDisplay.openHTMLString(`<system-manager></system-manager>`);
             });
         }
 
@@ -210,6 +213,7 @@
             sidebarBrowers.loadDirectory('/');
 
             const hideSidebarBtn = document.createElement('button');
+            hideSidebarBtn.id = 'hide-sidebar-btn';
             hideSidebarBtn.textContent = '隐藏侧边栏';
             hideSidebarBtn.style.float = "left";
             hideSidebarBtn.style.marginLeft= "10px";

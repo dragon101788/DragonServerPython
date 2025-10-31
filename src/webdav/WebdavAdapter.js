@@ -98,10 +98,21 @@ export class WebdavAdapter  extends HTMLElement {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
-    openWebView(url){
+    openWebSite(url){
         this.shadowRoot.innerHTML = `
             <iframe id="html-frame" src="${url}" style="width: 100%; height: 100%; border: none; "></iframe>
         `;
+    }
+    openHTMLElement(element){
+        this.gobackElement = this.shadowRoot.innerHTML;
+        this.shadowRoot.replaceChildren(element);
+    }
+    openHTMLString(htmlString){
+        this.gobackElement = this.shadowRoot.innerHTML;
+        this.shadowRoot.innerHTML = htmlString;
+    }
+    goback(){
+        this.shadowRoot.innerHTML = this.gobackElement;
     }
     connectedCallback() {
         this.shadowRoot.innerHTML = `
@@ -113,6 +124,7 @@ export class WebdavAdapter  extends HTMLElement {
             for (const matcher of WebdavAdapter.matchers){
                 const adp = matcher(item);
                 if (adp){
+                    this.gobackElement = this.shadowRoot.innerHTML;
                     this.shadowRoot.replaceChildren(adp);
                 }
             }
