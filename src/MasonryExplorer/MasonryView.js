@@ -212,6 +212,8 @@ export class MasonryView extends HTMLElement {
         let size = Math.ceil(baseWidth / 256) * 256
         if (size === 0) {
             size = 256;
+        }else if (size > 768) {
+            size = 768;
         }
         console.log(`path:${path},baseWidth:${this.baseWidth},size:${size}`);
         return MasonryView.getFileUrl(path) + "?thumb=" + size;
