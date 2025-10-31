@@ -16,7 +16,7 @@ export class SidebarBrowers extends HTMLElement {
         this.sortOption = 'modified'; // 默认按名称排序
         this.currentPath = '/';
         this.attachShadow({ mode: 'open' });
-        
+        this.chdirEventListener = null;
     }
     static {
         SidebarBrowers.ExternalContextMenus = {};
@@ -78,6 +78,11 @@ export class SidebarBrowers extends HTMLElement {
         this.setupEventListeners();
     }
     disconnectedCallback() {
+        // 移除事件监听器，防止重复注册
+        if (this.chdirEventListener) {
+            document.removeEventListener('WebdavChdir', this.chdirEventListener);
+            this.chdirEventListener = null;
+        }
     }
 
     openContextMenu(path, x, y) {
@@ -212,13 +217,22 @@ export class SidebarBrowers extends HTMLElement {
     
     
     setupEventListeners() {
-        this.shadowRoot.addEventListener('WebdavChdir', (event) => {
+        // 先移除可能存在的监听器，确保只存在一个
+        if (this.chdirEventListener) {
+            document.removeEventListener('WebdavChdir', this.chdirEventListener);
+        }
+        
+        // 创建新的事件监听器并保存引用
+        this.chdirEventListener = (event) => {
             const {item, path, options} = event.detail;
             if (item.type === 'directory' && path !== this.currentPath && item.path !== this.currentPath) {
                 this.currentPath = path;
                 this.loadDirectory(path);
             }
-        });
+        };
+        
+        // 在document上监听事件，确保与WebdavAdapter兼容
+        document.addEventListener('WebdavChdir', this.chdirEventListener);
         this.shadowRoot.getElementById('directory-list').addEventListener('click', async (event) => {
             const itemElement = event.target.closest('.directory-item, .file-item');
             if (itemElement) {
@@ -644,7 +658,7 @@ export class SidebarBrowers extends HTMLElement {
 
             this.flush();
 
-            // 触发目录加载完成事件
+            // 触发目录加载完成事件到document，确保WebdavAdapter可以接收
             document.dispatchEvent(new CustomEvent('WebdavChdir', { detail: { path ,item:this.items[path] } }));
         } catch (error) {
             console.error('Load directory error:', error);
