@@ -12,7 +12,7 @@
     "clean": true,
     "clean_spec": true,
     "version_suffix": true,
-    "python_path": "D:/IMPORTANT/python/DragonServer/conda311/python.exe",
+    "python_path": "python",
     "resources": [
         [
             "src",

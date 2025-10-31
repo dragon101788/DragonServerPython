@@ -645,10 +645,6 @@ class PackageToolUI(QMainWindow):
             return
         print(f"使用主文件: {self.tool.main_file}")
 
-        self.tool.python_path = self.python_path_edit.text()
-        if not os.path.exists(self.tool.python_path):
-            QMessageBox.critical(self, "错误", f"找不到 Python 解释器: {self.tool.python_path}")
-            return
         
         for index in range(self.resource_tree.topLevelItemCount()):
             item = self.resource_tree.topLevelItem(index)

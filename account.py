@@ -564,8 +564,15 @@ active_connections = {}
 recv_messages_pool = {} 
 recv_all_messages_pool = [];
 
-main_loop = asyncio.get_event_loop() if asyncio.get_event_loop_policy().get_event_loop().is_running() else asyncio.new_event_loop()
-if not main_loop.is_running():
+# 安全获取或创建事件循环
+try:
+    main_loop = asyncio.get_event_loop()
+    if not main_loop.is_running():
+        threading.Thread(target=main_loop.run_forever, daemon=True).start()
+except RuntimeError:
+    # 在没有当前事件循环的线程中创建新的事件循环
+    main_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(main_loop)
     threading.Thread(target=main_loop.run_forever, daemon=True).start()
 
 def send_to_all_clients_raw(msg):
