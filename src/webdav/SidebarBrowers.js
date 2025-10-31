@@ -16,7 +16,6 @@ class SidebarBrowers extends HTMLElement {
         this.sortOption = 'modified'; // 默认按名称排序
         this.currentPath = '/';
         this.attachShadow({ mode: 'open' });
-        this.inMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
 
     }
 
@@ -80,7 +79,7 @@ class SidebarBrowers extends HTMLElement {
 
         const contextMenuList = {};
         if (!item.readonly) {
-            if (item.limits.includes('delete')  && this.inMobile == false) {
+            if (item.limits.includes('delete')  ) {
                 contextMenuList['重命名'] = () => { this.renameFile(item) };
                 contextMenuList['删除'] = () => { this.deleteFile(item.path) };
             }
@@ -548,14 +547,13 @@ class SidebarBrowers extends HTMLElement {
         html += `<button class="btn btn-primary" id="refresh-btn"><i class="fas fa-sync-alt"></i></button>`;
 
         const item = this.getPathItem(this.currentPath);
-        if (item.readonly !== true && this.inMobile === false) {
+        if (item.readonly !== true ) {
             html += `<button class="btn btn-primary" id="upload-btn"><i class="fas fa-upload"></i></button>`;
-            html += `<button class="btn btn-primary" id="mkdir"><i class="fas fa-folder-plus"></i></button>`;
         }
 
-        if (this.inMobile === true) {
-            html += `<button class="btn btn-primary" id="back"><i class="fas fa-arrow-left"></i></button>`;
-        }
+        
+        html += `<button class="btn btn-primary" id="menu-btn"><i class="fas fa-ellipsis-v"></i></button>`;
+
         bottomBar.innerHTML = html;
 
         // 添加底部按钮事件监听
@@ -582,30 +580,10 @@ class SidebarBrowers extends HTMLElement {
                 await this.uploadFile(this.currentPath);
             });
         }
-        const mkdirBtn = this.shadowRoot.getElementById('mkdir');
-        if (mkdirBtn) {
-            mkdirBtn.addEventListener('click', async () => {
-                await InputDialog.open({
-                    title: "新建文件夹",
-                    message: `请输入文件夹名称`,
-                    defaultValue: ""
-                }).addEventListener('confirm', async (e) => {
-                    const name = e.detail.value;
-                    await this.mkdir(this.currentPath + name);
-                    await this.loadDirectory(this.currentPath);
-                });
-            });
-        }
-
-        const backBtn = this.shadowRoot.getElementById('back');
-        if (backBtn) {
-            backBtn.addEventListener('click', async () => {
-                if (this.currentPath !== '/') {
-                    const path = this.currentPath;
-                    const lastSlashIndex = path.substring(0, path.length - 1).lastIndexOf('/');
-                    const parentDir = path.substring(0, lastSlashIndex + 1);
-                    await this.loadDirectory(parentDir);
-                }
+        const menuBtn = this.shadowRoot.getElementById('menu-btn');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', async (event) => {
+                this.breadcrumbContextMenu(event.clientX, event.clientY);
             });
         }
 
