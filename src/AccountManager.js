@@ -338,41 +338,29 @@ export class AccountManager {
         document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
     }
     static async getUserToken() {
-        if (!this.token ||!this.payload ||!this.ws_connection) {
-            await this.init();
-        }
+         await this.verifyValidity();
         return this.token;
     }
     static async getToken() {
-        if (!this.token ||!this.payload ||!this.ws_connection) {
-            await this.init();
-        }
+         await this.verifyValidity();
         return this.token;
     }
     
     static async getUserSession() {
-        if (!this.token || !this.payload||!this.ws_connection) {
-            await this.init();
-        }
+        await this.verifyValidity();
         return this.payload;
     }
     static async getUsername() {
-        if (!this.token || !this.payload||!this.ws_connection) {
-            await this.init();
-        }
+         await this.verifyValidity();
         return this.payload.username;
     }
     static async getExpirationTime() {
-        if (!this.token || !this.payload||!this.ws_connection) {
-            await this.init();
-        }
+         await this.verifyValidity();
         return this.payload.exp;
     }
     // 获取用户资料（带缓存）
     static async get_profile() {
-        if (!this.token || !this.payload||!this.ws_connection) {
-            await this.init();
-        }
+        await this.verifyValidity();
         const username = this.payload.username;
 
 
@@ -395,6 +383,17 @@ export class AccountManager {
         } catch (error) {
             console.error('获取用户资料失败：', error);
             throw error;
+        }
+    }
+
+    static async verifyValidity() {
+        if (this.forbidden.includes(this.verfiy_meth)) {
+            this.token = undefined;
+            this.payload = undefined;
+            this.ws_connection = undefined;
+        }
+        if (!this.token || !this.payload||!this.ws_connection) {
+            await this.init();
         }
     }
 }
