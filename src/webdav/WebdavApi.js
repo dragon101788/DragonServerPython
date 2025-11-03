@@ -42,6 +42,24 @@ export class WebdavApi {
         }
         return await WebdavApi.static_self.deleteFile(path);
     }
+    static async uploadFile(path, data) {
+        if(WebdavApi.static_self === undefined){
+            await WebdavApi.init();
+        }
+        return await WebdavApi.static_self.uploadFile(path, data);
+    }
+    static async fetchFile(path) {
+        if(WebdavApi.static_self === undefined){
+            await WebdavApi.init();
+        }
+        return await WebdavApi.static_self.fetchFile(path);
+    }
+    static async pushFile(path, data) {
+        if(WebdavApi.static_self === undefined){
+            await WebdavApi.init();
+        }
+        return await WebdavApi.static_self.pushFile(path, data);
+    }
 
     constructor(args) {
         if (!args) {
