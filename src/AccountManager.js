@@ -7,6 +7,14 @@ export class AccountManager {
     static ws_connection = undefined; // 用于缓存 WebSocket 连接
     static ws_recv_callback = {}; // 用于缓存 WebSocket 接收消息的回调函数
     static ws_recv_callback_all = []; // 用于缓存 WebSocket 发送消息的回调函数
+    static forbidden = []; // 用于缓存 WebSocket 发送消息的回调函数
+
+    //析构函数,释放资源
+    static destructor(){
+        
+        this.clear_cookie('token');
+    }
+    
     // 账户相关方法
     static async login(username, password) {
         const response = await fetch('/api/verify', {
@@ -126,62 +134,93 @@ export class AccountManager {
             throw error;
         }
     }
-    static async tryGetToken(){
+    static async VerifyByUrlParams(){
         const urlParams = new URLSearchParams(window.location.search);
         if(urlParams.has('token')){
             const token = urlParams.get('token');
-            if(await this.verfiyToken(token)===true){
+            if(await AccountManager.verfiyToken(token)===true){
+                AccountManager.verfiy_meth = 'urlParam';
+                //localStorage.setItem('token', this.token);
+                AccountManager.set_cookie('token', token);
+                AccountManager.payload = AccountManager.parseJwt(token);
+                AccountManager.token = token;
+                console.log(`urlParam token 验证成功，username: ${AccountManager.payload.username}`);
                 return token;
             }else{
                 MessageDialog.open({ message: 'urlParam token 失效' });
             }
         }
-
-        if(localStorage.getItem('token') !== null){
-            const token = localStorage.getItem('token');
-            if(await this.verfiyToken(token)===true){
-                return token;
-            }else{
-                MessageDialog.open({ message: 'localStorage token 失效' });
-            }
-        }
-
-
-        if(this.get_cookie('token') !== undefined){
-            const token = this.get_cookie('token');
-            if(await this.verfiyToken(token) === true){
+        return undefined;
+    }
+    static async VerifyByCookie(){
+        const token = AccountManager.get_cookie('token');
+        if(token !== undefined){
+            if(await AccountManager.verfiyToken(token)===true){
+                AccountManager.verfiy_meth = 'cookie';
+                AccountManager.token = token;
+                AccountManager.payload = AccountManager.parseJwt(token);
+                console.log(`cookie token 验证成功，username: ${AccountManager.payload.username}`);
                 return token;
             }else{
                 MessageDialog.open({ message: 'cookie token 失效' });
             }
         }
-
-
         return undefined;
     }
-    static async tryGetTokenWithLogin(){
-        let token = await this.tryGetToken();
+    static async VerifyByLocalStorage(){
+        if(localStorage.getItem('token') !== null){
+            const token = localStorage.getItem('token');
+            if(await AccountManager.verfiyToken(token)===true){
+                AccountManager.verfiy_meth = 'localStorage';
+                AccountManager.token = token;
+                AccountManager.set_cookie('token', token);
+                AccountManager.payload = AccountManager.parseJwt(token);
+                console.log(`localStorage token 验证成功，username: ${AccountManager.payload.username}`);
+                return token;
+            }else{
+                MessageDialog.open({ message: 'localStorage token 失效' });
+            }
+        }
+        return undefined;
+    }
+    static async VerfiyByUserPassword(){
+        const token = await AccountManager.showLoginDialog();
         if(token !== undefined){
+            AccountManager.verfiy_meth = 'userPassword';
+            localStorage.setItem('token', token);
+            AccountManager.set_cookie('token', token);
+
+            AccountManager.token = token;
+            AccountManager.payload = AccountManager.parseJwt(token);
+            console.log(`userPassword token 验证成功，username: ${AccountManager.payload.username}`);
             return token;
         }
-        token = await this.showLoginDialog();
-        if(token !== undefined){
-            return token;
-        }
+        return undefined;
     }
     static async init() {
         
-        while(true){
-            const token = await this.tryGetTokenWithLogin();
-            if(token !== undefined){
-                this.token = token;
-                break;
+        const maths = {
+            "urlParam": AccountManager.VerifyByUrlParams,
+            "cookie": AccountManager.VerifyByCookie,
+            "localStorage": AccountManager.VerifyByLocalStorage,
+            "userPassword": AccountManager.VerfiyByUserPassword,
+        }
+        while(!AccountManager.token){
+            for (const [key, value] of Object.entries(maths)){
+                if(AccountManager.forbidden.includes(key)){
+                    continue;
+                }
+                const token = await value();
+                if(token !== undefined){
+                    break;
+                }
             }
         }
-        localStorage.setItem('token', this.token);
-        this.set_cookie('token', this.token);
-        this.payload = this.parseJwt(this.token);
 
+        await this.connectWebsocket();
+        return this.token;
+    }
+    static async connectWebsocket(){
         if (!this.ws_connection){
             this.ws_connection = new WebSocket(`/api/account_websocket`);
             this.ws_connection.onmessage = async (event) => {
@@ -225,7 +264,6 @@ export class AccountManager {
                 await new Promise(resolve => setTimeout(resolve, 100)); // 等待 100 毫秒
             }
         }
-        return this.token;
     }
     static register_ws_recv_callback(tag, callback) {
         if (tag === "*"){
@@ -358,15 +396,5 @@ export class AccountManager {
             console.error('获取用户资料失败：', error);
             throw error;
         }
-    }
-}
-
-// 在模块导入时自动初始化
-if (typeof window !== 'undefined') {
-    // 确保在浏览器环境中运行
-    if (AccountManager.token === undefined) {
-        await AccountManager.init().catch(error => {
-            console.error('AccountManager initialization failed:', error);
-        });
     }
 }

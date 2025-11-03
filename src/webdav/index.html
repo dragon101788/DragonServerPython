@@ -96,7 +96,7 @@
         import '/MasonryExplorer/MasonryPackageItem.js'
         import '/SystemManager/Adapter.js';
 
-
+        AccountManager.forbidden = ["urlParam","cookie"];
 
         const urlParams = new URLSearchParams(window.location.search);
         let shared = urlParams.get('shared');
