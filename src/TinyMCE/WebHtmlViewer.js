@@ -94,6 +94,7 @@ export class WebHtmlViewer extends HTMLElement {
                 
                 <button id="Download-btn">下载</button>
                 <button id="edit-btn">编辑</button>
+                <button id="edit-src-btn">源码</button>
                 <button id="preview-btn" style="display: none;">预览</button>
                 <button id="share-btn">分享</button>
 
@@ -117,6 +118,7 @@ export class WebHtmlViewer extends HTMLElement {
                 previewButton.style.display = 'block';
                 // 确保编辑按钮可见
                 editButton.style.display = 'none';
+                editSrcButton.style.display = 'none';
                 // 编辑HTML内容
                 this.editHtmlContent();
             });
@@ -126,12 +128,26 @@ export class WebHtmlViewer extends HTMLElement {
                 console.log("预览按钮点击");
                 // 隐藏编辑按钮
                 editButton.style.display = 'block';
+                editSrcButton.style.display = 'block';
                 // 确保预览按钮可见
                 previewButton.style.display = 'none';
 
                 await this.loadHtmlContent();
             });
-
+            const editSrcButton = document.getElementById('edit-src-btn');
+            editSrcButton.addEventListener('click', async () => {
+                const browers = document.getElementById('sidebar-browers');
+                console.log("编辑源码按钮点击");
+                // 隐藏预览按钮
+                previewButton.style.display = 'block';
+                
+                // 确保编辑按钮可见
+                editButton.style.display = 'none';
+                editSrcButton.style.display = 'none';
+                // 编辑HTML内容
+                this.editSrcContent();
+            });
+            
             const shareButton = document.getElementById('share-btn');
             shareButton.addEventListener('click', async     () => {
                 const protocol = window.location.protocol;
@@ -165,7 +181,27 @@ export class WebHtmlViewer extends HTMLElement {
             this.loadHtmlContent();
         }
     }
+    async editSrcContent(){
+        const src = this.getAttribute('src');
 
+        // 显示加载状态
+        this.loadingContainer.style.display = 'flex';
+
+
+        const browers = document.getElementById('sidebar-browers');
+        
+        const token = await AccountManager.getToken();
+        //传递search参数
+        const searchParams = new URLSearchParams({
+            src: src,
+            token: token,
+        });
+        this.url = "/MonacoEdit/index.html?" + searchParams.toString();
+
+        
+        // 通过URL加载完整网页
+        this.iframe.src = this.url;
+    }
     async editHtmlContent() {
         const src = this.getAttribute('src');
 
