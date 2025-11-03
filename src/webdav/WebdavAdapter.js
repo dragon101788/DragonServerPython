@@ -138,6 +138,7 @@ export class WebdavAdapter  extends HTMLElement {
                 if (adp){
                     this.gobackElement = this.shadowRoot.innerHTML;
                     this.shadowRoot.replaceChildren(adp);
+                    break;
                 }
             }
         };

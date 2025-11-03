@@ -77,7 +77,7 @@
                 monaco.editor.setModelLanguage(editor.getModel(), 'css');
             } else if (fileExtension === 'js') {
                 monaco.editor.setModelLanguage(editor.getModel(), 'javascript');
-            }
+            } 
 
             const Response = await WebdavApi.fetchFile(src);
             if (Response.ok) {
