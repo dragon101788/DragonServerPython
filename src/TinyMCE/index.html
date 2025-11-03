@@ -79,7 +79,6 @@
     <script type="module">
         import { AccountManager } from '/AccountManager.js';
         import { WebdavApi } from '/webdav/WebdavApi.js'
-        let webdavApi = undefined;
 
         let editor;
 
@@ -87,11 +86,8 @@
             const searchParams = new URLSearchParams(window.location.search);
             const token = searchParams.get('token');
             if ( token) {
-                webdavApi = new WebdavApi({
-                    token: token
-                });
-                webdavApi.src = searchParams.get('src');
-                Response =  await webdavApi.fetchFile(webdavApi.src);
+                WebdavApi.src = searchParams.get('src');
+                Response =  await WebdavApi.fetchFile(WebdavApi.src);
 
                 
                 if (Response.ok) {
@@ -232,7 +228,7 @@
                 ${content}
             </body>
             </html>`;
-            webdavApi.pushFile(webdavApi.src, html);
+            WebdavApi.pushFile(WebdavApi.src, html);
         }
         
         

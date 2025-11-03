@@ -30,7 +30,6 @@
         import { AccountManager } from '/AccountManager.js';
         import { WebdavApi } from '/webdav/WebdavApi.js'
 
-        let webdavApi = undefined;
 
         let MindMapData = {
                 root: {
@@ -50,7 +49,7 @@
 
         const getMindMapDataFromUrl = async () => {
             
-            Response =  await webdavApi.fetchFile(webdavApi.src);
+            Response =  await WebdavApi.fetchFile(WebdavApi.src);
             if (Response.ok) {
                 try{
                     return await Response.json();
@@ -84,7 +83,7 @@
             }
             // 保存思维导图数据的函数
             window.takeOverAppMethods.saveMindMapData = async data => {
-                await webdavApi.pushFile(webdavApi.src, JSON.stringify(data));
+                await WebdavApi.pushFile(WebdavApi.src, JSON.stringify(data));
                 MindMapData = data
             }
             // 获取思维导图配置
@@ -139,10 +138,7 @@
             const searchParams = new URLSearchParams(window.location.search);
             const token = searchParams.get('token');
             if ( token) {
-                webdavApi = new WebdavApi({
-                    token: token
-                });
-                webdavApi.src = searchParams.get('src');
+                WebdavApi.src = searchParams.get('src');
             }
             MindMapData = await getMindMapDataFromUrl();
             
