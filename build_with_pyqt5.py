@@ -90,7 +90,8 @@ class PackageTool:
             print("\n打包成功!")
             path = os.path.normpath(os.path.join(self.current_dir, "dist"))
             print(f"打包成功! 输出目录: {path}")
-            process(f'explorer {path}').run()
+            # 使用引号包裹路径，确保路径中包含空格时也能正确打开
+            process(f'explorer "{path}"').run()
         else:
             print("打包失败!")
 
@@ -98,9 +99,11 @@ class PackageTool:
         if self.process_thread:
             self.process_thread.stop()
             self.process_thread = None
-    def build_exe(self):
+    def build_exe(self ,callback = None):
         """执行PyInstaller打包命令"""
         
+        if callback == None:
+            callback = self.build_exe_callback
 
         self.generate_pack_info()
 
@@ -125,7 +128,7 @@ class PackageTool:
         
 
         print("\n开始打包...")
-        self.process_thread = thread_process(command,prefix="[PyInstaller] ",callback=self.build_exe_callback);
+        self.process_thread = thread_process(command,prefix="[PyInstaller] ",callback=callback);
         self.process_thread.start()
         
 
@@ -659,8 +662,9 @@ class PackageToolUI(QMainWindow):
         if self.version_suffix_check.isChecked():
             self.tool.output_name += f"{version}"
 
-            
-        self.tool.build_exe();
+
+          
+        self.tool.build_exe(self.build_exe_callback);
            
         #设置按钮 为 停止打包
         self.start_package_button.setText("停止打包")
@@ -673,6 +677,19 @@ class PackageToolUI(QMainWindow):
         self.start_package_button.clicked.disconnect(self.stop_package)
         self.start_package_button.clicked.connect(self.start_package)
         
+    def build_exe_callback(self,ret):
+        if ret == 0:
+            print("\n打包成功!")
+            path = os.path.normpath(os.path.join(self.tool.current_dir, "dist"))
+            print(f"打包成功! 输出目录: {path}")
+            process(f'explorer "{path}"',show_widnow=True).run()
+            
+        else:
+            print("打包失败!")
+
+        self.start_package_button.setText("开始打包")
+        self.start_package_button.clicked.disconnect(self.stop_package)
+        self.start_package_button.clicked.connect(self.start_package)
 
 
 
