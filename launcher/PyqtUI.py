@@ -10,6 +10,7 @@ import winreg
 import time
 import ctypes
 from typing import Dict, Any, Optional
+from PyQt5.QtCore import QSystemSemaphore, QSharedMemory
 
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QPushButton,
@@ -41,6 +42,22 @@ class LauncherApp(QMainWindow):
     
     def __init__(self):
         """初始化启动器应用"""
+        # 检查是否已有实例在运行
+        self.semaphore = QSystemSemaphore("DragonServerLauncherSemaphore", 1)
+        self.semaphore.acquire()
+        
+        self.shared_memory = QSharedMemory("DragonServerLauncherSharedMemory")
+        
+        # 尝试创建共享内存，如果失败表示已有实例在运行
+        if self.shared_memory.attach():  # 如果能附加到共享内存，说明已有实例
+            self.semaphore.release()
+            QMessageBox.information(None, "提示", "DragonServer启动器已经在运行中！")
+            sys.exit(0)
+        
+        # 创建共享内存，标记程序正在运行
+        self.shared_memory.create(1)
+        self.semaphore.release()
+        
         super().__init__()
         
         # 初始化组件
@@ -77,6 +94,9 @@ class LauncherApp(QMainWindow):
         
         # 启动开机自启程序
         self.start_all_startup_programs()
+        
+        # 默认启动到托盘，隐藏主窗口
+        self.hide()
     
     def init_ui(self):
         """初始化用户界面"""
@@ -760,12 +780,22 @@ class LauncherApp(QMainWindow):
         """退出应用程序"""
         self.log_message("正在关闭启动器...")
         
+        # 停止所有运行的程序
+        for program in self.programs:
+            if self.process_manager.is_program_running(program):
+                self.process_manager.stop_program(program, self.stop_callback)
+        
         # 停止FastAPI服务
         if self.server:
             self.server.stop()
         
         # 保存配置
         self.save_config()
+        
+        # 释放共享内存，允许其他实例运行
+        self.semaphore.acquire()
+        self.shared_memory.detach()
+        self.semaphore.release()
         
         # 退出应用
         QApplication.quit()
