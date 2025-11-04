@@ -24,7 +24,17 @@ from PyQt5.QtGui import QIcon, QFont
 from Process import ProcessManager
 from Server import LauncherServer
 
-CONFIG_PATH=".launcher.json"
+def get_executable_path():
+    if getattr(sys, 'frozen', False):
+        # 如果是打包后的可执行文件
+        executable_path = os.path.dirname(sys.executable)
+    else:
+        # 如果是普通的 Python 脚本
+        executable_path = os.path.dirname(os.path.abspath(__file__))
+    
+    return executable_path
+    
+CONFIG_PATH=os.path.join(get_executable_path(), ".launcher.json")
 
 class LauncherApp(QMainWindow):
     """启动器主应用类"""
