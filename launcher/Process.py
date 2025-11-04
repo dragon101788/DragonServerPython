@@ -109,7 +109,7 @@ class ProcessManager:
             self._log(f"启动程序 '{program['name']}' 失败: {str(e)}")
             return False
     
-    def stop_program(self, program: Dict[str, Any]) -> bool:
+    def stop_program(self, program: Dict[str, Any] , callback) -> bool:
         """停止指定的程序
         
         Args:
@@ -118,14 +118,10 @@ class ProcessManager:
         Returns:
             bool: 停止是否成功
         """
-        program_name = program['name']
         
         # 通过进程名终止
-        result = self._terminate_process_by_name(program)
-        
-        if result:
-            self._log(f"已停止程序: {program_name}")
-        return result
+        self._terminate_process_by_name(program)
+        callback()
     
     def _terminate_process_by_name(self, program: Dict[str, Any]) -> bool:
         """通过进程名终止程序
@@ -138,7 +134,6 @@ class ProcessManager:
         """
         executable_name = os.path.basename(program['path'])
         program_name = program['name']
-        terminated = False
         
         try:
             for proc in psutil.process_iter(['name', 'exe']):
@@ -153,13 +148,11 @@ class ProcessManager:
                         except psutil.TimeoutExpired:
                             proc.kill()
                             self._log(f"强制终止进程: {proc_info['name']}")
-                        terminated = True
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
         except Exception as e:
             self._log(f"终止程序 '{program_name}' 时出错: {str(e)}")
         
-        return terminated
     
     def start_all_programs(self, programs: list) -> int:
         """启动所有程序
