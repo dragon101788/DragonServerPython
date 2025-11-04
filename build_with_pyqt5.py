@@ -247,7 +247,50 @@ class PackageToolUI(QMainWindow):
         except Exception as e:
             print(f"加载配置失败: {str(e)}")
             self.config = {}
-
+    def save_config_dialog(self):
+        """打开对话框让用户选择保存配置文件的路径"""
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "保存配置文件", ".pyinstaller.json", "JSON文件 (*.json);;所有文件 (*.*)"
+        )
+        if file_path:
+            try:
+                self.save_config(file_path)
+                QMessageBox.information(self, "成功", f"配置已保存到: {file_path}")
+                print(f"配置已保存到: {file_path}")
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"保存配置文件失败: {str(e)}")
+                print(f"保存配置失败: {str(e)}")
+    
+    def load_config_dialog(self):
+        """打开对话框让用户选择要加载的配置文件"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "加载配置文件", ".pyinstaller.json", "JSON文件 (*.json);;所有文件 (*.*)"
+        )
+        if file_path:
+            """从指定文件加载配置并更新UI"""
+            print(f"加载配置文件: {file_path}")
+            self.load_config(file_path)
+            self.update_config_to_ui()
+    
+    def update_config_to_ui(self):
+        self.source_path_edit.setText(self.config.get("source_path", ""))
+        self.main_file_combobox.setCurrentText(self.config.get("main_file", ""))
+        self.output_name_edit.setText(self.config.get("output_name", ""))
+        self.icon_edit.setText(self.config.get("icon_path", ""))
+        self.onefile_check.setChecked(self.config.get("onefile", False))
+        self.windowed_radio.setChecked(self.config.get("windowed", False))
+        self.uac_admin_check.setChecked(self.config.get("uac_admin", False))
+        self.debug_check.setChecked(self.config.get("debug", False))
+        self.strip_check.setChecked(self.config.get("strip", False))
+        self.noupx_check.setChecked(self.config.get("noupx", False))
+        self.clean_check.setChecked(self.config.get("clean", False))
+        self.clean_spec_check.setChecked(self.config.get("clean_spec", False))
+        self.version_suffix_check.setChecked(self.config.get("version_suffix", False))
+        self.python_path_edit.setText(self.config.get("python_path", ""))
+        self.resource_tree.clear()
+        for src, dst in self.config.get("resources", []):
+            item = QTreeWidgetItem([src, dst])
+            self.resource_tree.addTopLevelItem(item)
     def create_resource_panel(self, parent):
         # 创建左侧资源面板
         resource_frame = QWidget()
@@ -268,15 +311,31 @@ class PackageToolUI(QMainWindow):
 
         # 按钮框架
         btn_frame = QWidget()
-        btn_layout = QHBoxLayout()
+        btn_layout = QVBoxLayout()  # 修改为垂直布局
         btn_frame.setLayout(btn_layout)
 
-        btn_layout.addWidget(QPushButton("添加文件", clicked=self.add_resource_file))
-        btn_layout.addWidget(QPushButton("添加文件夹", clicked=self.add_resource_folder))
-        btn_layout.addWidget(QPushButton("删除", clicked=self.remove_resource))
-        btn_layout.addWidget(QPushButton("刷新", clicked=self.refresh_resources))
+        # 第一行按钮
+        btn_row1 = QWidget()
+        btn_row1_layout = QHBoxLayout()
+        btn_row1_layout.setContentsMargins(0, 0, 0, 0)  # 设置边距为0
+        btn_row1.setLayout(btn_row1_layout)
+        btn_row1_layout.addWidget(QPushButton("添加文件", clicked=self.add_resource_file))
+        btn_row1_layout.addWidget(QPushButton("添加文件夹", clicked=self.add_resource_folder))
+        btn_row1_layout.addWidget(QPushButton("删除", clicked=self.remove_resource))
+        btn_row1_layout.addWidget(QPushButton("刷新", clicked=self.refresh_resources))
+        
+        # 第二行按钮
+        btn_row2 = QWidget()
+        btn_row2_layout = QHBoxLayout()
+        btn_row2_layout.setContentsMargins(0, 0, 0, 0)  # 设置边距为0
+        btn_row2.setLayout(btn_row2_layout)
+        btn_row2_layout.addWidget(QPushButton("加载配置", clicked=self.load_config_dialog)) #弹出对话框选择配置文件
+        btn_row2_layout.addWidget(QPushButton("保存配置", clicked=self.save_config_dialog)) #弹出对话框选择配置文件保存路径
 
+        btn_layout.addWidget(btn_row1)
+        btn_layout.addWidget(btn_row2)
         layout.addWidget(btn_frame)
+
 
         # 清空现有资源列表
         self.resource_tree.clear()
