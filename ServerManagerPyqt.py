@@ -202,6 +202,31 @@ class ServerManagerUI(ServerManager, QApplication):
             # 更新状态栏
             self.status_bar.showMessage(f"服务状态: {'正在运行' if self.parent_ui.is_running else '未运行'} | 版本:{Resource.version.version} | 启动时间: {time_str}")
 
+    def get_parents_name(self):
+        """
+        递归获取当前进程的所有父进程名称
+        返回每一级父进程的名称列表
+        """
+        try:
+            parents = []
+            current_process = psutil.Process(os.getpid())
+            
+            # 递归获取所有父进程
+            while True:
+                parent_process = current_process.parent()
+                if parent_process:
+                    parent_name = parent_process.name()
+                    parents.append(parent_name)
+                    current_process = parent_process
+                else:
+                    break
+                    
+            print(f"parents={parents}")
+            return parents
+        except Exception as e:
+            print(f"获取父进程信息时出错: {str(e)}")
+            return []
+    
     def __init__(self, name):
         # 调用 ServerManager 的 __init__ 方法
         ServerManager.__init__(self, name)
@@ -237,23 +262,16 @@ class ServerManagerUI(ServerManager, QApplication):
 
         self.setup_tray()
 
-        #获取启动当前进程的父进程名称 
-        try:
-            current_process = psutil.Process(os.getpid())
-            parent_process = current_process.parent()
-            if parent_process:
-                parent_process_name = parent_process.name()
-                print(f"父进程名称: {parent_process_name}")
-                if "launcher" in parent_process_name:
-                    self.main_widget.auto_startup_checkbox.setDisabled(True)
-                    self.main_widget.auto_startup_checkbox.setText("启动器启动")
-                else:
-                    self.main_widget.auto_startup_checkbox.setDisabled(False)
-
-            else:
-                print("无法获取父进程信息")
-        except Exception as e:
-            print(f"获取父进程信息时出错: {str(e)}")
+        #使用新方法获取所有父进程名称
+        parent_names = self.get_parents_name()
+        print(f"父进程名称列表: {parent_names}")
+        
+        # 检查是否有任何父进程包含"launcher"字符串
+        if any("launcher" in name.lower() for name in parent_names):
+            self.main_widget.auto_startup_checkbox.setDisabled(True)
+            self.main_widget.auto_startup_checkbox.setText("启动器启动")
+        else:
+            self.main_widget.auto_startup_checkbox.setDisabled(False)
         
             
         # 开始更新运行时间
