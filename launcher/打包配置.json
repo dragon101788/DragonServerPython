@@ -1,0 +1,22 @@
+{
+    "source_path": "D:/IMPORTANT/python/DragonServer/launcher",
+    "main_file": "main.py",
+    "output_name": "launcher",
+    "icon_path": "D:/IMPORTANT/python/DragonServer/icon.ico",
+    "onefile": true,
+    "windowed": true,
+    "uac_admin": true,
+    "debug": false,
+    "strip": false,
+    "noupx": false,
+    "clean": true,
+    "clean_spec": true,
+    "version_suffix": true,
+    "python_path": "python",
+    "resources": [
+        [
+            "index.html",
+            "index.html"
+        ]
+    ]
+}

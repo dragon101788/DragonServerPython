@@ -4,6 +4,7 @@
 """
 
 import threading
+import sys
 import os
 from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException
@@ -28,20 +29,28 @@ class ProgramAction(BaseModel):
     name: str
 
 
+def get_executable_path():
+    if getattr(sys, 'frozen', False):
+        # 如果是打包后的可执行文件
+        executable_path = os.path.dirname(sys.executable)
+    else:
+        # 如果是普通的 Python 脚本
+        executable_path = os.path.dirname(os.path.abspath(__file__))
+    
+    return executable_path
+
 class LauncherServer:
     """启动器FastAPI服务类"""
     
-    def __init__(self, app_instance, process_manager, html_file_path=None):
+    def __init__(self, app_instance, process_manager):
         """初始化FastAPI服务
         
         Args:
             app_instance: PyQt应用实例
             process_manager: 进程管理器实例
-            html_file_path: HTML管理界面文件路径
         """
         self.app = app_instance
         self.process_manager = process_manager
-        self.html_file_path = html_file_path
         self.fastapi_app = None
         self.server_thread = None
         self.running = False
@@ -55,14 +64,6 @@ class LauncherServer:
     
     def init_fastapi(self):
         """初始化FastAPI应用"""
-        # 初始化HTML文件路径
-        if self.html_file_path is None:
-            # 默认查找路径
-            default_path = os.path.join(
-                os.path.dirname(__file__), "index.html"
-            )
-            if os.path.exists(default_path):
-                self.html_file_path = default_path
         
         # 创建FastAPI实例
         self.fastapi_app = FastAPI(title="DragonServer Launcher API")
@@ -79,15 +80,16 @@ class LauncherServer:
         # 根路径 - 返回HTML管理界面
         @self.fastapi_app.get("/")
         async def root():
-            if self.html_file_path and os.path.exists(self.html_file_path):
-                return HTMLResponse(open(self.html_file_path, 'r', encoding='utf-8').read())
-            return {"message": "DragonServer Launcher API", "version": "1.0.0"}
+            return await index_html()
         
         # /index.html路径 - 返回HTML管理界面
         @self.fastapi_app.get("/index.html")
         async def index_html():
-            if self.html_file_path and os.path.exists(self.html_file_path):
-                return FileResponse(self.html_file_path)
+
+            executable_path = get_executable_path()
+            html_file_path = os.path.join(executable_path, "index.html")
+            if os.path.exists(html_file_path):
+                return FileResponse(html_file_path)
             return {"message": "HTML interface not available"}
         
         # 获取所有程序列表
@@ -191,16 +193,23 @@ class LauncherServer:
         try:
             import uvicorn
             
+            self._log(f"当前工作目录: {os.getcwd()}")
             self.init_fastapi()
+            self._log(f"FastAPI应用: {self.fastapi_app}")
             
             # 在8804端口上运行服务
             config = uvicorn.Config(
                 app=self.fastapi_app,
                 host="0.0.0.0",
                 port=8804,
-                log_level="info"
+                log_level="info",
+                log_config=None,  # 禁用默认日志配置，避免formatter错误
+                access_log=True
             )
+            self._log(f"FastAPI配置: {config}")
+            
             server = uvicorn.Server(config)
+            self._log(f"FastAPI服务器: {server}")
             
             self._log("FastAPI服务已启动，监听端口: 8804")
             self._log("API文档地址: http://localhost:8804/docs")

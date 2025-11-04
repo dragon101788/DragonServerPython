@@ -116,6 +116,7 @@ class PackageTool:
 
         options_str = ' '.join(self.options)
 
+
         # 设置打包命令
         command = (
             f'{pyinstaller_exec} {options_str} '
@@ -128,7 +129,8 @@ class PackageTool:
         
 
         print("\n开始打包...")
-        self.process_thread = thread_process(command,prefix="[PyInstaller] ",callback=callback);
+        self.process_thread = thread_process(command,prefix="[PyInstaller] ",callback=callback,cwd = self.current_dir);
+
         self.process_thread.start()
         
 
@@ -351,7 +353,7 @@ class PackageToolUI(QMainWindow):
         )
         for file_path in files:
             if file_path:
-                rel_path = os.path.relpath(file_path, self.tool.current_dir)
+                rel_path = os.path.relpath(file_path, self.source_path_edit.text())
                 item = QTreeWidgetItem([rel_path, rel_path])
                 self.resource_tree.addTopLevelItem(item)
 
@@ -360,7 +362,7 @@ class PackageToolUI(QMainWindow):
             self, "选择要添加的资源文件夹", self.source_path_edit.text()  # 直接从控件获取值
         )
         if folder:
-            rel_path = os.path.relpath(folder, self.tool.current_dir)
+            rel_path = os.path.relpath(folder, self.source_path_edit.text())
             item = QTreeWidgetItem([rel_path, rel_path])
             self.resource_tree.addTopLevelItem(item)
 
@@ -641,7 +643,7 @@ class PackageToolUI(QMainWindow):
         self.main_file_combobox.addItems(py_files)
 
         # 尝试找到默认主文件
-        default_files = ['main.py', 'app.py', 'server.py', 'run.py']
+        default_files = ['main.py', 'app.py', 'server.py', 'run.py' ,'__init__.py']
         for default_file in default_files:
             if default_file in py_files:
                 self.main_file_combobox.setCurrentText(default_file)
@@ -706,7 +708,8 @@ class PackageToolUI(QMainWindow):
             QMessageBox.critical(self, "错误", f"找不到主文件: {self.tool.main_file}")
             return
         print(f"使用主文件: {self.tool.main_file}")
-
+        
+        self.tool.current_dir = self.source_path_edit.text()
         
         for index in range(self.resource_tree.topLevelItemCount()):
             item = self.resource_tree.topLevelItem(index)
@@ -732,9 +735,6 @@ class PackageToolUI(QMainWindow):
         
     def stop_package(self):
         self.tool.stop()
-        self.start_package_button.setText("开始打包")
-        self.start_package_button.clicked.disconnect(self.stop_package)
-        self.start_package_button.clicked.connect(self.start_package)
         
     def build_exe_callback(self,ret):
         if ret == 0:

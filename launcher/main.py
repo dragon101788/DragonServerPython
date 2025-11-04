@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 
 # 导入重构后的launcher模块
-from launcher.PyqtUI import LauncherApp
+from PyqtUI import LauncherApp
 
 def main():
     """主函数"""

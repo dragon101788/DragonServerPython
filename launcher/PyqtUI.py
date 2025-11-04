@@ -21,8 +21,8 @@ from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon, QFont
 
-from .Process import ProcessManager
-from .Server import LauncherServer
+from Process import ProcessManager
+from Server import LauncherServer
 
 
 class LauncherApp(QMainWindow):
@@ -58,8 +58,7 @@ class LauncherApp(QMainWindow):
         self.load_config()
         
         # 初始化FastAPI服务
-        html_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
-        self.server = LauncherServer(self, self.process_manager, html_file_path)
+        self.server = LauncherServer(self, self.process_manager)
         self.server.start()
         
         # 启动开机自启程序
