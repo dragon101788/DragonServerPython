@@ -21,3 +21,4 @@ log/*
 /cache/
 /PhotoAlbum/*
 /PhotoAlbum_mobile/*
+launcher/.launcher.json

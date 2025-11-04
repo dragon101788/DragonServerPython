@@ -8,11 +8,14 @@ from typing import List, Tuple
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QComboBox, QCheckBox, QRadioButton, QFileDialog, QTreeWidget, QTreeWidgetItem, QTextEdit,
-    QMessageBox, QTabWidget, QFrame, QGroupBox, QSplitter
+    QMessageBox, QTabWidget, QFrame, QGroupBox, QSplitter, QMenu , QSystemTrayIcon 
 )
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QIcon, QPixmap ,QImage
+from PyQt5.QtWidgets import QSystemTrayIcon
 from process import thread_process
 from process import process
+from PIL import Image
 
 # 获取当前打包时间并生成简洁版本号
 build_time = datetime.now()
@@ -176,6 +179,8 @@ class PackageToolUI(QMainWindow):
         # 连接信号和槽
         self.information_signal.connect(self.show_information)
         self.critical_signal.connect(self.show_critical)
+        # 初始化托盘图标
+        self.setup_tray()
 
     def append_log_message(self, message):
         self.log_text.append(message)
@@ -736,16 +741,105 @@ class PackageToolUI(QMainWindow):
     def stop_package(self):
         self.tool.stop()
         
+    def setup_tray(self):
+        """初始化系统托盘图标"""
+        # 创建托盘图标
+        self.tray_icon = QSystemTrayIcon(self)
+        
+        # 尝试设置图标
+        if hasattr(self, 'icon_preview') and self.icon_preview.pixmap():
+            self.tray_icon.setIcon(QIcon(self.icon_preview.pixmap()))
+        else:
+            # 尝试查找并使用应用图标
+            icon_path = self.tool.find_icon()
+            if icon_path:
+                self.tray_icon.setIcon(QIcon(icon_path))
+                self.icon = Image.open(icon_path)
+                # 将 PIL 图像转换为 QImage
+                qimage = QImage(self.icon.tobytes(), self.icon.width, self.icon.height, self.icon.width * 4, QImage.Format_RGBA8888)
+                # 将 QImage 转换为 QPixmap
+                pixmap = QPixmap.fromImage(qimage)
+                # 将 QPixmap 转换为 QIcon
+                self.setWindowIcon(QIcon(pixmap))
+            else:
+                # 如果没有找到图标，使用PyQt默认图标
+                self.tray_icon.setIcon(QIcon.fromTheme("application-x-executable"))
+        
+        # 设置托盘图标提示文本
+        self.tray_icon.setToolTip("PyInstaller打包工具")
+        
+        # 创建上下文菜单
+        tray_menu = QMenu()
+        
+        # 显示窗口动作
+        show_action = tray_menu.addAction("显示窗口")
+        show_action.triggered.connect(self.show)
+        
+        # 退出动作
+        quit_action = tray_menu.addAction("退出")
+        quit_action.triggered.connect(self.close)
+        
+        # 设置托盘图标菜单
+        self.tray_icon.setContextMenu(tray_menu)
+        
+        # 连接点击信号
+        self.tray_icon.activated.connect(self.tray_icon_activated)
+        
+        # 显示托盘图标
+        self.tray_icon.show()
+    
+    def tray_icon_activated(self, reason):
+        """处理托盘图标点击事件"""
+        if reason == QSystemTrayIcon.Trigger:
+            # 左键点击显示/隐藏窗口
+            if self.isVisible():
+                self.hide()
+            else:
+                self.show()
+                self.activateWindow()
+    
+    def closeEvent(self, event):
+        """重写关闭事件，实现最小化到托盘"""
+        if QMessageBox.question(self, "确认退出", "是否确定退出程序？", 
+                                QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+            # 确认退出
+            event.accept()
+            # 隐藏托盘图标
+            self.tray_icon.hide()
+        else:
+            # 取消退出，最小化到托盘
+            event.ignore()
+            self.hide()
+            self.tray_icon.showMessage(
+                "程序已最小化",
+                "程序已最小化到系统托盘，右键点击托盘图标可以退出程序",
+                QSystemTrayIcon.Information,
+                2000
+            )
+    
     def build_exe_callback(self,ret):
         if ret == 0:
             print("\n打包成功!")
             path = os.path.normpath(os.path.join(self.tool.current_dir, "dist"))
             print(f"打包成功! 输出目录: {path}")
             process(f'explorer "{path}"',show_widnow=True).run()
-            
+            message = "打包成功!"
+            detail = f"输出目录: {path}"
         else:
             print("打包失败!")
+            message = "打包失败"
+            detail = "请查看日志获取详细错误信息"
 
+        # 显示托盘消息
+        if hasattr(self, 'tray_icon') and self.tray_icon.isVisible():
+            self.tray_icon.showMessage(
+                message,
+                detail,
+                QSystemTrayIcon.Information if ret == 0 else QSystemTrayIcon.Warning,
+                3000  # 消息显示3秒
+            )
+        
+        # 恢复按钮状态
         self.start_package_button.setText("开始打包")
         self.start_package_button.clicked.disconnect(self.stop_package)
         self.start_package_button.clicked.connect(self.start_package)

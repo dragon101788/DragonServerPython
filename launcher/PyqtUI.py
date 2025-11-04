@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QPushButton,
     QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, QInputDialog, QMessageBox,
     QStatusBar, QAction, QMenu, QSplitter, QTextEdit, QListWidget, QListWidgetItem,
-    QGroupBox, QLabel, QLineEdit, QCheckBox, QComboBox,QFrame,QHeaderView   
+    QGroupBox, QLabel, QLineEdit, QCheckBox, QComboBox, QFrame, QHeaderView, QSystemTrayIcon
 )
 from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
@@ -60,9 +60,13 @@ class LauncherApp(QMainWindow):
         self.property_panels = {}
         self.property_panel_container = None
         self.property_panel_layout = None
+        self.tray_icon = None
         
         # 初始化UI
         self.init_ui()
+        
+        # 初始化系统托盘
+        self.init_tray_icon()
         
         # 加载配置
         self.load_config()
@@ -668,27 +672,89 @@ class LauncherApp(QMainWindow):
     
     def init_tray_icon(self):
         """初始化系统托盘图标"""
-        # 这里可以添加系统托盘功能
-        pass
+        # 创建系统托盘图标
+        self.tray_icon = QSystemTrayIcon(self)
+        
+        # 设置托盘图标（如果没有图标文件，可以使用默认图标）
+        icon_path = os.path.join(get_executable_path(), 'icon.ico')
+        if os.path.exists(icon_path):
+            self.tray_icon.setIcon(QIcon(icon_path))
+        else:
+            # 使用应用程序默认图标
+            self.tray_icon.setIcon(self.windowIcon())
+        
+        # 设置托盘图标标题
+        self.tray_icon.setToolTip("DragonServer 启动器")
+        
+        # 创建托盘菜单
+        tray_menu = QMenu(self)
+        
+        # 显示主窗口操作
+        show_action = QAction("显示窗口", self)
+        show_action.triggered.connect(self.show_window)
+        tray_menu.addAction(show_action)
+        
+        # 分割线
+        tray_menu.addSeparator()
+        
+        # 退出操作
+        exit_action = QAction("退出", self)
+        exit_action.triggered.connect(self.exit_application)
+        tray_menu.addAction(exit_action)
+        
+        # 设置托盘菜单
+        self.tray_icon.setContextMenu(tray_menu)
+        
+        # 双击托盘图标显示窗口
+        self.tray_icon.activated.connect(self.on_tray_icon_activated)
+        
+        # 显示托盘图标
+        self.tray_icon.show()
+        
+        # 提示信息
+        self.tray_icon.showMessage(
+            "DragonServer 启动器",
+            "启动器已启动，点击托盘图标查看菜单",
+            QSystemTrayIcon.Information,
+            3000
+        )
     
     def show_window(self):
         """显示主窗口"""
         self.show()
         self.raise_()
+        self.activateWindow()
+        
+    def on_tray_icon_activated(self, reason):
+        """托盘图标激活事件处理"""
+        if reason == QSystemTrayIcon.Trigger or reason == QSystemTrayIcon.DoubleClick:
+            self.show_window()
     
     def closeEvent(self, event):
         """窗口关闭事件处理"""
-        # 询问是否真的要退出
-        reply = QMessageBox.question(
-            self, "确认退出", "确定要退出启动器吗？",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-        )
-        
-        if reply == QMessageBox.Yes:
-            event.accept()
-            self.exit_application()
-        else:
+        # 如果系统托盘可用，隐藏窗口而不是关闭
+        if self.tray_icon and self.tray_icon.isVisible():
+            # 最小化到托盘
             event.ignore()
+            self.hide()
+            self.tray_icon.showMessage(
+                "DragonServer 启动器",
+                "启动器已最小化到系统托盘",
+                QSystemTrayIcon.Information,
+                2000
+            )
+        else:
+            # 如果托盘不可用，直接询问是否退出
+            reply = QMessageBox.question(
+                self, "确认退出", "确定要退出启动器吗？",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                event.accept()
+                self.exit_application()
+            else:
+                event.ignore()
     
     def exit_application(self):
         """退出应用程序"""

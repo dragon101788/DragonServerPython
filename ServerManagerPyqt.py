@@ -11,6 +11,7 @@ import os
 import threading
 import time
 import winreg
+import psutil
 
 class ServerManagerUI(ServerManager, QApplication):
     _instance = None
@@ -32,6 +33,7 @@ class ServerManagerUI(ServerManager, QApplication):
             self.parent_ui = parent_ui
             self.elapsed_seconds = 0
             self.setup_ui()
+            
         def closeEvent(self, a0):
             self.hide()
             a0.ignore()
@@ -69,13 +71,9 @@ class ServerManagerUI(ServerManager, QApplication):
             self.auto_startup_checkbox.setChecked(self.parent_ui.is_auto_startup)
             self.auto_startup_checkbox.stateChanged.connect(self.parent_ui.toggle_auto_startup)
             control_layout.addWidget(self.auto_startup_checkbox)
-            # 添加开机自启动复选框
-            config_file = os.path.join(Resource.get_executable_path(), "startup.json")
-            if os.path.exists(config_file):
-                self.auto_startup_checkbox.setDisabled(True)
-                self.auto_startup_checkbox.setText("启动器启动")
-            else:
-                self.auto_startup_checkbox.setDisabled(False)
+
+
+            
             # 日志区域
             self.log_text = QTextEdit(self)
             self.log_text.setReadOnly(True)
@@ -130,6 +128,8 @@ class ServerManagerUI(ServerManager, QApplication):
             select_all_action.triggered.connect(self.select_all_log)
             select_all_action.setShortcut("Ctrl+A")
             self.log_text.addAction(select_all_action)
+
+            
 
         def show_log_menu(self, pos):
             """显示右键菜单"""
@@ -237,6 +237,25 @@ class ServerManagerUI(ServerManager, QApplication):
 
         self.setup_tray()
 
+        #获取启动当前进程的父进程名称 
+        try:
+            current_process = psutil.Process(os.getpid())
+            parent_process = current_process.parent()
+            if parent_process:
+                parent_process_name = parent_process.name()
+                print(f"父进程名称: {parent_process_name}")
+                if "launcher" in parent_process_name:
+                    self.main_widget.auto_startup_checkbox.setDisabled(True)
+                    self.main_widget.auto_startup_checkbox.setText("启动器启动")
+                else:
+                    self.main_widget.auto_startup_checkbox.setDisabled(False)
+
+            else:
+                print("无法获取父进程信息")
+        except Exception as e:
+            print(f"获取父进程信息时出错: {str(e)}")
+        
+            
         # 开始更新运行时间
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.main_widget.update_running_time)
@@ -405,7 +424,6 @@ class ServerManagerUI(ServerManager, QApplication):
                     cmd_line = f"{python_exe} {script_path}"
                 
                 print(f"设置开机自启动命令: {cmd_line}")
-                print(f"注册表路径:\HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run\DragonServer")
                 # 将完整的命令行写入注册表
                 winreg.SetValueEx(key, "DragonServer", 0, winreg.REG_SZ, cmd_line)
             else:
