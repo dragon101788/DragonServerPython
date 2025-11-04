@@ -24,6 +24,7 @@ from PyQt5.QtGui import QIcon, QFont
 from Process import ProcessManager
 from Server import LauncherServer
 
+CONFIG_PATH=".launcher.json"
 
 class LauncherApp(QMainWindow):
     """启动器主应用类"""
@@ -40,7 +41,6 @@ class LauncherApp(QMainWindow):
         
         # 配置相关
         self.programs = []
-        self.config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
         
         # UI相关
         self.program_table = None
@@ -196,12 +196,13 @@ class LauncherApp(QMainWindow):
     def load_config(self):
         """加载配置文件"""
         try:
-            if os.path.exists(self.config_file):
-                with open(self.config_file, 'r', encoding='utf-8') as f:
+            
+            if os.path.exists(CONFIG_PATH):
+                with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
                     self.programs = json.load(f)
-                self.log_message(f"成功加载配置文件: {self.config_file}")
+                self.log_message(f"成功加载配置文件: {CONFIG_PATH}")
             else:
-                self.log_message(f"配置文件不存在，创建默认配置: {self.config_file}")
+                self.log_message(f"配置文件不存在，创建默认配置: {CONFIG_PATH}")
                 self.programs = []
                 self.save_config()
         except Exception as e:
@@ -214,9 +215,9 @@ class LauncherApp(QMainWindow):
     def save_config(self):
         """保存配置文件"""
         try:
-            with open(self.config_file, 'w', encoding='utf-8') as f:
+            with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
                 json.dump(self.programs, f, ensure_ascii=False, indent=2)
-            self.log_message(f"成功保存配置文件: {self.config_file}")
+            self.log_message(f"成功保存配置文件: {CONFIG_PATH}")
         except Exception as e:
             self.log_message(f"保存配置文件时出错: {str(e)}")
     
@@ -601,6 +602,7 @@ class LauncherApp(QMainWindow):
             self.save_config()
             self.update_program_table()
             
+            self.create_program_property_panel(program_index)
             status = "启用" if state == Qt.Checked else "禁用"
             self.log_message(f"{status}程序 '{self.programs[program_index]['name']}' 的管理员权限")
     
