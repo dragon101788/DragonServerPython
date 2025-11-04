@@ -1,21 +1,17 @@
-
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-启动器
-使用pyqt ,帮我写个启动器
-支持设置开机自启动(设置Software\Microsoft\Windows\CurrentVersion\Run)
-启动器负责开机启动其他的程序.(列表项,支持添加,删除,禁用,启用)
-系统是windows平台
-"""
-
 import sys
 import os
 import json
 import winreg
 import time
 import psutil
-
+import threading
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import uvicorn
+import os
 import ctypes
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
@@ -26,6 +22,21 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtCore import Qt, pyqtSignal, QDateTime, QTimer
 import Resource
+
+# FastAPI相关模型定义
+class ProgramInfo(BaseModel):
+    """程序信息模型"""
+    name: str
+    path: str
+    cwd: str
+    args: str
+    startup_with_windows: bool
+    try_admin: bool
+    running: bool
+
+class ProgramAction(BaseModel):
+    """程序操作模型"""
+    program_index: int
 
 class LauncherApp(QMainWindow):
     """启动器主应用类"""
@@ -52,6 +63,9 @@ class LauncherApp(QMainWindow):
         
         # 默认隐藏主窗口，只显示托盘图标
         self.hide()
+        
+        # 初始化并启动FastAPI服务
+        self.init_fastapi()
     
     def init_ui(self):
         """初始化用户界面"""
@@ -903,6 +917,161 @@ class LauncherApp(QMainWindow):
         # 双击托盘图标显示窗口
         if reason == QSystemTrayIcon.DoubleClick:
             self.show_window()
+    
+    def init_fastapi(self):
+        """初始化FastAPI服务"""
+        # 设置HTML文件路径
+        self.html_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "launcher_ui", "index.html")
+        
+        # 创建FastAPI实例
+        self.api_app = FastAPI(
+            title="DragonServer Launcher API",
+            description="提供启动器远程管理功能",
+            version="1.0.0"
+        )
+        
+        # 配置CORS
+        self.api_app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],  # 在生产环境中应该设置具体的域名
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        
+        # 定义API路由
+        @self.api_app.get("/")
+        async def read_root():
+            """提供管理界面HTML"""
+            if os.path.exists(self.html_file_path):
+                with open(self.html_file_path, "r", encoding="utf-8") as f:
+                    return HTMLResponse(content=f.read(), status_code=200)
+            return HTMLResponse(content="管理界面文件未找到", status_code=404)
+        
+        @self.api_app.get("/index.html")
+        async def get_index_html():
+            """提供index.html文件"""
+            if os.path.exists(self.html_file_path):
+                return FileResponse(self.html_file_path)
+            return HTMLResponse(content="HTML文件未找到", status_code=404)
+        
+        @self.api_app.get("/api/programs")
+        async def get_programs():
+            """获取所有程序列表"""
+            result = []
+            for program in self.programs:
+                program_info = ProgramInfo(
+                    name=program.get('name', '未命名'),
+                    path=program.get('path', ''),
+                    cwd=program.get('cwd', ''),
+                    args=program.get('args', ''),
+                    startup_with_windows=program.get('startup_with_windows', False),
+                    try_admin=program.get('try_admin', False),
+                    running=self.is_program_running(program)
+                )
+                result.append(program_info)
+            return {"programs": result}
+        
+        @self.api_app.get("/api/programs/{program_index}")
+        async def get_program(program_index: int):
+            """获取指定程序信息"""
+            if 0 <= program_index < len(self.programs):
+                program = self.programs[program_index]
+                program_info = ProgramInfo(
+                    name=program.get('name', '未命名'),
+                    path=program.get('path', ''),
+                    cwd=program.get('cwd', ''),
+                    args=program.get('args', ''),
+                    startup_with_windows=program.get('startup_with_windows', False),
+                    try_admin=program.get('try_admin', False),
+                    running=self.is_program_running(program)
+                )
+                return {"program": program_info}
+            return {"error": "程序索引不存在"}
+        
+        @self.api_app.post("/api/programs/{program_index}/start")
+        async def start_program(program_index: int):
+            """启动指定程序"""
+            if 0 <= program_index < len(self.programs):
+                program = self.programs[program_index]
+                if not self.is_program_running(program):
+                    # 使用信号槽在主线程中启动程序
+                    threading.Thread(target=self.start_program, args=(program,)).start()
+                    return {"success": True, "message": f"正在启动程序: {program['name']}"}
+                return {"success": False, "message": f"程序 '{program['name']}' 已经在运行"}
+            return {"error": "程序索引不存在"}
+        
+        @self.api_app.post("/api/programs/{program_index}/stop")
+        async def stop_program(program_index: int):
+            """停止指定程序"""
+            if 0 <= program_index < len(self.programs):
+                program = self.programs[program_index]
+                if self.is_program_running(program):
+                    # 使用信号槽在主线程中停止程序
+                    threading.Thread(target=self.stop_program, args=(program,)).start()
+                    return {"success": True, "message": f"正在停止程序: {program['name']}"}
+                return {"success": False, "message": f"程序 '{program['name']}' 未在运行"}
+            return {"error": "程序索引不存在"}
+        
+        @self.api_app.post("/api/programs/start_all")
+        async def start_all_programs():
+            """启动所有程序"""
+            threading.Thread(target=self.start_all_programs).start()
+            return {"success": True, "message": "正在启动所有程序"}
+        
+        @self.api_app.post("/api/programs/stop_all")
+        async def stop_all_programs():
+            """停止所有程序"""
+            threading.Thread(target=self.stop_all_running_programs).start()
+            return {"success": True, "message": "正在停止所有程序"}
+        
+        @self.api_app.get("/api/status")
+        async def get_status():
+            """获取启动器状态"""
+            running_programs = sum(1 for p in self.programs if self.is_program_running(p))
+            return {
+                "total_programs": len(self.programs),
+                "running_programs": running_programs,
+                "launcher_running": True
+            }
+        
+        @self.api_app.post("/api/shutdown")
+        async def shutdown_launcher():
+            """关闭启动器"""
+            threading.Thread(target=self.exit_application).start()
+            return {"success": True, "message": "启动器正在关闭"}
+        
+        # 在单独的线程中启动FastAPI服务
+        self.api_thread = threading.Thread(
+            target=self.run_fastapi_server,
+            daemon=True
+        )
+        self.api_thread.start()
+        self.log_message("FastAPI服务已启动在端口 8804")
+    
+    def run_fastapi_server(self):
+        """运行FastAPI服务器"""
+        try:
+            uvicorn.run(
+                self.api_app,
+                host="0.0.0.0",
+                port=8804,
+                log_level="info"
+            )
+        except Exception as e:
+            self.log_signal.emit(f"FastAPI服务器启动失败: {str(e)}")
+    
+    def start_all_programs(self):
+        """启动所有程序"""
+        for program in self.programs:
+            if not self.is_program_running(program):
+                self.start_program(program)
+    
+    def stop_all_running_programs(self):
+        """停止所有正在运行的程序"""
+        for program in self.programs:
+            if self.is_program_running(program):
+                self.stop_program(program)
     
     def exit_application(self):
         """退出应用程序"""

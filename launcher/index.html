@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DragonServer 远程管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 123, 255, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(220, 53, 69, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #218838);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+        
+        .programs-table {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .status-running {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-stopped {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border-radius: 30px;
+        }
+        
+        .status-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .refresh-indicator {
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast-success {
+            background: linear-gradient(45deg, #28a745, #218838);
+        }
+        
+        .toast-error {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .control-buttons {
+                flex-direction: column;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            th, td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>DragonServer 远程管理</h1>
+            <p>通过浏览器远程管理您的程序</p>
+        </div>
+        
+        <div class="control-panel">
+            <div class="control-buttons">
+                <button class="btn btn-primary" id="startAll">启动所有程序</button>
+                <button class="btn btn-danger" id="stopAll">停止所有程序</button>
+                <button class="btn btn-success" id="refresh">刷新状态</button>
+            </div>
+        </div>
+        
+        <div class="programs-table">
+            <table id="programsTable">
+                <thead>
+                    <tr>
+                        <th>程序名称</th>
+                        <th>路径</th>
+                        <th>参数</th>
+                        <th>状态</th>
+                        <th>开机自启</th>
+                        <th>管理员权限</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="programsBody">
+                    <!-- 程序列表将通过JavaScript动态填充 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="status-bar">
+            <span id="statusText">就绪</span>
+            <span class="refresh-indicator" id="refreshIndicator">⏳</span>
+        </div>
+    </div>
+    
+    <!-- Toast通知 -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // DOM元素
+        const programsBody = document.getElementById('programsBody');
+        const statusText = document.getElementById('statusText');
+        const refreshIndicator = document.getElementById('refreshIndicator');
+        const startAllBtn = document.getElementById('startAll');
+        const stopAllBtn = document.getElementById('stopAll');
+        const refreshBtn = document.getElementById('refresh');
+        const toast = document.getElementById('toast');
+        
+        // 显示Toast通知
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast ${type === 'success' ? 'toast-success' : 'toast-error'} show`;
+            
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
+        
+        // 显示加载状态
+        function showLoading() {
+            refreshIndicator.style.display = 'inline-block';
+            statusText.textContent = '正在加载...';
+        }
+        
+        // 隐藏加载状态
+        function hideLoading() {
+            refreshIndicator.style.display = 'none';
+            statusText.textContent = '就绪';
+        }
+        
+        // 更新程序列表
+        async function updatePrograms() {
+            showLoading();
+            try {
+                const response = await fetch('/api/programs');
+                const programs = await response.json();
+                
+                // 清空表格
+                programsBody.innerHTML = '';
+                
+                // 填充表格
+                programs.forEach(program => {
+                    const row = document.createElement('tr');
+                    
+                    // 程序名称
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = program.name;
+                    row.appendChild(nameCell);
+                    
+                    // 路径
+                    const pathCell = document.createElement('td');
+                    pathCell.textContent = program.path;
+                    pathCell.title = program.path;
+                    row.appendChild(pathCell);
+                    
+                    // 参数
+                    const argsCell = document.createElement('td');
+                    argsCell.textContent = program.args || '-';
+                    row.appendChild(argsCell);
+                    
+                    // 状态
+                    const statusCell = document.createElement('td');
+                    const statusSpan = document.createElement('span');
+                    statusSpan.className = program.running ? 'status-running' : 'status-stopped';
+                    statusSpan.textContent = program.running ? '运行中' : '已停止';
+                    statusCell.appendChild(statusSpan);
+                    row.appendChild(statusCell);
+                    
+                    // 开机自启
+                    const startupCell = document.createElement('td');
+                    startupCell.textContent = program.startup_with_windows ? '是' : '否';
+                    row.appendChild(startupCell);
+                    
+                    // 管理员权限
+                    const adminCell = document.createElement('td');
+                    adminCell.textContent = program.try_admin ? '是' : '否';
+                    row.appendChild(adminCell);
+                    
+                    // 操作按钮
+                    const actionCell = document.createElement('td');
+                    const actionButtons = document.createElement('div');
+                    actionButtons.className = 'action-buttons';
+                    
+                    // 启动按钮
+                    const startBtn = document.createElement('button');
+                    startBtn.className = 'btn btn-success btn-small';
+                    startBtn.textContent = '启动';
+                    startBtn.disabled = program.running;
+                    startBtn.onclick = () => startProgram(program.name);
+                    actionButtons.appendChild(startBtn);
+                    
+                    // 停止按钮
+                    const stopBtn = document.createElement('button');
+                    stopBtn.className = 'btn btn-danger btn-small';
+                    stopBtn.textContent = '停止';
+                    stopBtn.disabled = !program.running;
+                    stopBtn.onclick = () => stopProgram(program.name);
+                    actionButtons.appendChild(stopBtn);
+                    
+                    actionCell.appendChild(actionButtons);
+                    row.appendChild(actionCell);
+                    
+                    programsBody.appendChild(row);
+                });
+                
+                statusText.textContent = `共 ${programs.length} 个程序`;
+            } catch (error) {
+                console.error('更新程序列表失败:', error);
+                showToast('更新程序列表失败', 'error');
+                statusText.textContent = '更新失败';
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // 启动程序
+        async function startProgram(name) {
+            try {
+                const response = await fetch('/api/programs/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast(result.message);
+                    // 延迟更新状态，让程序有时间启动
+                    setTimeout(updatePrograms, 1000);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('启动程序失败:', error);
+                showToast('启动程序失败', 'error');
+            }
+        }
+        
+        // 停止程序
+        async function stopProgram(name) {
+            try {
+                const response = await fetch('/api/programs/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast(result.message);
+                    // 延迟更新状态，让程序有时间停止
+                    setTimeout(updatePrograms, 1000);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('停止程序失败:', error);
+                showToast('停止程序失败', 'error');
+            }
+        }
+        
+        // 启动所有程序
+        async function startAllPrograms() {
+            try {
+                const response = await fetch('/api/programs/start-all', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast(result.message);
+                    // 延迟更新状态
+                    setTimeout(updatePrograms, 2000);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('启动所有程序失败:', error);
+                showToast('启动所有程序失败', 'error');
+            }
+        }
+        
+        // 停止所有程序
+        async function stopAllPrograms() {
+            try {
+                const response = await fetch('/api/programs/stop-all', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast(result.message);
+                    // 延迟更新状态
+                    setTimeout(updatePrograms, 2000);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('停止所有程序失败:', error);
+                showToast('停止所有程序失败', 'error');
+            }
+        }
+        
+        // 绑定事件
+        startAllBtn.addEventListener('click', startAllPrograms);
+        stopAllBtn.addEventListener('click', stopAllPrograms);
+        refreshBtn.addEventListener('click', updatePrograms);
+        
+        // 初始加载
+        updatePrograms();
+        
+        // 定时刷新（每30秒）
+        setInterval(updatePrograms, 30000);
+    </script>
+</body>
+</html>
