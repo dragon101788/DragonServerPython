@@ -139,8 +139,9 @@ class ProcessManager:
             for proc in psutil.process_iter(['name', 'exe']):
                 try:
                     proc_info = proc.info
-                    if (proc_info['name'] == executable_name or 
-                        (proc_info['exe'] and os.path.basename(proc_info['exe']) == executable_name)):
+                    print(proc_info['name'],proc_info['exe'],executable_name)
+                    if (str.lower(proc_info['name']) == str.lower(executable_name) or 
+                        (proc_info['exe'] and str.lower(os.path.basename(proc_info['exe'])) == str.lower(executable_name))):
                         proc.terminate()
                         try:
                             proc.wait(timeout=3)
