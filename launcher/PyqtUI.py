@@ -45,7 +45,6 @@ class LauncherApp(QMainWindow):
         class LogHandler:
             def __init__(self,callback):
                 self.callback = callback
-                self.current_select = ""
 
             def write(self, text):
                 if text == "\n":
@@ -73,6 +72,8 @@ class LauncherApp(QMainWindow):
         self.shared_memory = QSharedMemory("DragonServerLauncherSharedMemory")
         self.original_stdout = None
         self.original_stderr = None
+
+        
         # 尝试创建共享内存，如果失败表示已有实例在运行
         if self.shared_memory.attach():  # 如果能附加到共享内存，说明已有实例
             self.semaphore.release()
@@ -85,6 +86,8 @@ class LauncherApp(QMainWindow):
         
         super().__init__()
         
+        
+        self.current_select = None
         # 初始化组件
         self.process_manager = ProcessManager()
         
@@ -356,7 +359,7 @@ class LauncherApp(QMainWindow):
             
             self.update_program_property_panel()
         except Exception as e:
-            self.log(f"更新程序状态时出错: {str(e)}")
+            print(f"更新程序状态时出错: {str(e)}")
             
     def log_message(self, message: str):
         """记录日志信息"""
