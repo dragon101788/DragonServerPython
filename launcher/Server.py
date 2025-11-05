@@ -171,11 +171,7 @@ class LauncherServer:
         self.server_thread = None
         self.running = False
     
-    def _log(self, message: str):
-        """记录日志"""
-        if hasattr(self.app, 'log_message'):
-            self.app.log_message(message)
-        else:
+    def log(self, message: str):
             print(message)
     
     def init_fastapi(self):
@@ -351,9 +347,9 @@ class LauncherServer:
         try:
             import uvicorn
             
-            self._log(f"当前工作目录: {os.getcwd()}")
+            self.log(f"当前工作目录: {os.getcwd()}")
             self.init_fastapi()
-            self._log(f"FastAPI应用: {self.fastapi_app}")
+            self.log(f"FastAPI应用: {self.fastapi_app}")
             
             # 在8804端口上运行服务
             config = uvicorn.Config(
@@ -364,19 +360,19 @@ class LauncherServer:
                 log_config=None,  # 禁用默认日志配置，避免formatter错误
                 access_log=True
             )
-            self._log(f"FastAPI配置: {config}")
+            self.log(f"FastAPI配置: {config}")
             
             server = uvicorn.Server(config)
-            self._log(f"FastAPI服务器: {server}")
+            self.log(f"FastAPI服务器: {server}")
             
-            self._log("FastAPI服务已启动，监听端口: 8804")
-            self._log("API文档地址: http://localhost:8804/docs")
+            self.log("FastAPI服务已启动，监听端口: 8804")
+            self.log("API文档地址: http://localhost:8804/docs")
             
             # 运行服务器
             server.run()
             
         except Exception as e:
-            self._log(f"FastAPI服务运行出错: {str(e)}")
+            self.log(f"FastAPI服务运行出错: {str(e)}")
     
     def start(self):
         """启动FastAPI服务"""

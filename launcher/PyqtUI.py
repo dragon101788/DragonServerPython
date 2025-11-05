@@ -45,7 +45,7 @@ class LauncherApp(QMainWindow):
         class LogHandler:
             def __init__(self,callback):
                 self.callback = callback
-                
+
             def write(self, text):
                 if text == "\n":
                     return
@@ -401,7 +401,7 @@ class LauncherApp(QMainWindow):
         """记录日志信息"""
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_entry = f"[{timestamp}] {message}\n"
+        log_entry = f"[{timestamp}] {message}"
         
         # 添加到日志文本框
         self.log_text.append(log_entry)
