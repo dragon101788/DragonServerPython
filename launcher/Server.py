@@ -96,78 +96,66 @@ class LauncherServer:
         @self.fastapi_app.get("/api/programs", response_model=List[ProgramInfo])
         async def get_programs():
             programs = []
-            if hasattr(self.app, 'programs'):
-                for program in self.app.programs:
-                    program_info = ProgramInfo(
-                        name=program.get('name', '未命名'),
-                        path=program.get('path', ''),
-                        args=program.get('args', ''),
-                        cwd=program.get('cwd', ''),
-                        startup_with_windows=program.get('startup_with_windows', False),
-                        try_admin=program.get('try_admin', False),
-                        running=self.process_manager.is_program_running(program)
-                    )
-                    programs.append(program_info)
+            for name, program in self.process_manager.programs.items():
+                program_info = ProgramInfo(
+                    name=program.get('name', '未命名'),
+                    path=program.get('path', ''),
+                    args=program.get('args', ''),
+                    cwd=program.get('cwd', ''),
+                    startup_with_windows=program.get('startup_with_windows', False),
+                    try_admin=program.get('try_admin', False),
+                    running=self.process_manager.is_program_running(name)
+                )
+                programs.append(program_info)
             return programs
         
         # 获取单个程序信息
         @self.fastapi_app.get("/api/programs/{program_name}", response_model=ProgramInfo)
         async def get_program(program_name: str):
-            if hasattr(self.app, 'programs'):
-                for program in self.app.programs:
-                    if program.get('name') == program_name:
-                        return ProgramInfo(
-                            name=program.get('name', '未命名'),
-                            path=program.get('path', ''),
-                            args=program.get('args', ''),
-                            cwd=program.get('cwd', ''),
-                            startup_with_windows=program.get('startup_with_windows', False),
-                            try_admin=program.get('try_admin', False),
-                            running=self.process_manager.is_program_running(program)
-                        )
+            if(program_name in self.process_manager.programs):
+                program = self.process_manager.programs[program_name]
+                return ProgramInfo(
+                    name=program.get('name', '未命名'),
+                    path=program.get('path', ''),
+                    args=program.get('args', ''),
+                    cwd=program.get('cwd', ''),
+                    startup_with_windows=program.get('startup_with_windows', False),
+                    try_admin=program.get('try_admin', False),
+                    running=self.process_manager.is_program_running(name)
+                )
             raise HTTPException(status_code=404, detail="程序未找到")
         
         # 启动程序
         @self.fastapi_app.post("/api/programs/start")
         async def start_program(action: ProgramAction):
-            if hasattr(self.app, 'programs'):
-                for program in self.app.programs:
-                    if program.get('name') == action.name:
-                        result = self.process_manager.start_program(program)
-                        if result:
-                            return {"status": "success", "message": f"程序 '{action.name}' 启动成功"}
-                        else:
-                            return {"status": "error", "message": f"程序 '{action.name}' 启动失败"}
-            return {"status": "error", "message": "程序未找到"}
+            
+            result = self.process_manager.start_process_by_name(action.name)
+            if result:
+                return {"status": "success", "message": f"程序 '{action.name}' 启动成功"}
+            else:
+                return {"status": "error", "message": f"程序 '{action.name}' 启动失败"}
         
         # 停止程序
         @self.fastapi_app.post("/api/programs/stop")
         async def stop_program(action: ProgramAction):
-            if hasattr(self.app, 'programs'):
-                for program in self.app.programs:
-                    if program.get('name') == action.name:
-                        result = self.process_manager.stop_program(program)
-                        if result:
-                            return {"status": "success", "message": f"程序 '{action.name}' 停止成功"}
-                        else:
-                            return {"status": "error", "message": f"程序 '{action.name}' 停止失败或未运行"}
-            return {"status": "error", "message": "程序未找到"}
+            
+            result = self.process_manager.stop_process_by_name(action.name)
+            if result:
+                return {"status": "success", "message": f"程序 '{action.name}' 停止成功"}
+            else:
+                return {"status": "error", "message": f"程序 '{action.name}' 停止失败或未运行"}
         
         # 启动所有程序
         @self.fastapi_app.post("/api/programs/start-all")
         async def start_all_programs():
-            if hasattr(self.app, 'programs'):
-                count = self.process_manager.start_all_programs(self.app.programs)
-                return {"status": "success", "message": f"成功启动 {count} 个程序"}
-            return {"status": "error", "message": "程序列表为空"}
+            count = self.process_manager.start_all_programs()
+            return {"status": "success", "message": f"成功启动 {count} 个程序"}
         
         # 停止所有程序
         @self.fastapi_app.post("/api/programs/stop-all")
         async def stop_all_programs():
-            if hasattr(self.app, 'programs'):
-                count = self.process_manager.stop_all_running_programs(self.app.programs)
-                return {"status": "success", "message": f"成功停止 {count} 个程序"}
-            return {"status": "error", "message": "程序列表为空"}
+            count = self.process_manager.stop_all_running_programs()
+            return {"status": "success", "message": f"成功停止 {count} 个程序"}
         
         # 获取服务状态
         @self.fastapi_app.get("/api/status")
@@ -176,8 +164,7 @@ class LauncherServer:
                 "service": "running",
                 "programs": []
             }
-            if hasattr(self.app, 'programs'):
-                status["programs"] = self.process_manager.get_program_status(self.app.programs)
+            status["programs"] = self.process_manager.get_program_status()
             return status
         
         # 关闭启动器
