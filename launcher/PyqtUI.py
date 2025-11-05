@@ -3,8 +3,10 @@
 提供启动器的图形用户界面，负责用户交互和界面渲染。
 """
 
+import statistics
 import sys
 import os
+from tkinter import NO
 import winreg
 import time
 import ctypes
@@ -35,7 +37,32 @@ def get_executable_path():
     return executable_path
 class LauncherApp(QMainWindow):
     """启动器主应用类"""
-    
+    def redirect_output(self, stdout_put, stderr_put=None):
+        
+        if self.original_stdout is not None and self.original_stderr is not None:
+            return
+        # 创建自定义的日志处理类
+        class LogHandler:
+            def __init__(self,callback):
+                self.callback = callback
+                
+            def write(self, text):
+                if text == "\n":
+                    return
+                if text.endswith("\n"):
+                    text = text[:-1]
+                
+                self.callback(text)
+            def flush(self):
+                pass
+        
+        if stderr_put is None:
+            stderr_put = stdout_put
+        self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
+        sys.stdout = LogHandler(stdout_put)
+        sys.stderr = LogHandler(stderr_put)
+
     def __init__(self):
         """初始化启动器应用"""
         # 检查是否已有实例在运行
@@ -43,7 +70,8 @@ class LauncherApp(QMainWindow):
         self.semaphore.acquire()
         
         self.shared_memory = QSharedMemory("DragonServerLauncherSharedMemory")
-        
+        self.original_stdout = None
+        self.original_stderr = None
         # 尝试创建共享内存，如果失败表示已有实例在运行
         if self.shared_memory.attach():  # 如果能附加到共享内存，说明已有实例
             self.semaphore.release()
@@ -58,7 +86,6 @@ class LauncherApp(QMainWindow):
         
         # 初始化组件
         self.process_manager = ProcessManager()
-        self.process_manager.register_log_callback(self.log_message)
         
         self.server = None
         
@@ -77,6 +104,7 @@ class LauncherApp(QMainWindow):
         # 初始化UI
         self.init_ui()
         
+        self.redirect_output(self.log_message)
         # 初始化系统托盘
         self.init_tray_icon()
         
@@ -289,7 +317,7 @@ class LauncherApp(QMainWindow):
         # 更新表格
         self.update_program_table()
         
-        self.log_message(f"添加程序: {name}")
+        print(f"添加程序: {name}")
     
     def remove_program(self):
         """删除选中的程序"""
@@ -313,7 +341,7 @@ class LauncherApp(QMainWindow):
                 self.process_manager.stop_process_by_name(name)
             
             # 删除程序
-            self.log_message(f"删除程序: {program_name}")
+            print(f"删除程序: {program_name}")
             self.process_manager.remove_program(name)
             
             # 从属性面板字典中移除
@@ -408,7 +436,7 @@ class LauncherApp(QMainWindow):
                     checkbox_widget.blockSignals(False)
             
             status = "启用" if enabled else "禁用"
-            self.log_message(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的开机自启动")
+            print(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的开机自启动")
     
     def show_context_menu(self, position):
         """显示右键菜单"""
@@ -583,7 +611,7 @@ class LauncherApp(QMainWindow):
         
         self.create_program_property_panel(name)
         status = "启用" if enabled else "禁用"
-        self.log_message(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的开机自启动")
+        print(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的开机自启动")
     
     def on_admin_checkbox_changed(self, name: str, state: int):
         """当管理员权限复选框状态改变时"""
@@ -593,7 +621,7 @@ class LauncherApp(QMainWindow):
             
             self.create_program_property_panel(name)
             status = "启用" if state == Qt.Checked else "禁用"
-            self.log_message(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的管理员权限")
+            print(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的管理员权限")
     
     def check_auto_startup(self) -> bool:
         """检查启动器自身是否设置为开机自启动"""
@@ -627,24 +655,24 @@ class LauncherApp(QMainWindow):
             
             if enabled:
                 winreg.SetValueEx(key, "DragonServer Launcher", 0, winreg.REG_SZ, sys.executable)
-                self.log_message("已设置启动器开机自启动")
+                print("已设置启动器开机自启动")
             else:
                 try:
                     winreg.DeleteValue(key, "DragonServer Launcher")
-                    self.log_message("已取消启动器开机自启动")
+                    print("已取消启动器开机自启动")
                 except FileNotFoundError:
                     pass
             
             winreg.CloseKey(key)
         except Exception as e:
-            self.log_message(f"设置开机自启动时出错: {str(e)}")
+            print(f"设置开机自启动时出错: {str(e)}")
     
     def start_all_startup_programs(self):
         """启动所有设置为开机自启动的程序"""
         # 使用ProcessManager类的programs属性和正确的方法签名
         count = self.process_manager.start_startup_programs()
         if count > 0:
-            self.log_message(f"已自动启动 {count} 个开机自启程序")
+            print(f"已自动启动 {count} 个开机自启程序")
     
     def init_tray_icon(self):
         """初始化系统托盘图标"""
@@ -734,7 +762,7 @@ class LauncherApp(QMainWindow):
     
     def exit_application(self):
         """退出应用程序"""
-        self.log_message("正在关闭启动器...")
+        print("正在关闭启动器...")
         
         # 停止所有运行的程序
         self.process_manager.stop_all_running_programs()
