@@ -269,21 +269,7 @@ class LauncherServer:
             else:
                 return {"status": "error", "message": f"程序 '{action.name}' 停止失败或未运行"}
         
-        # 启动所有程序
-        @self.fastapi_app.post("/api/programs/start-all")
-        async def start_all_programs(request: Request):
-            await verfiy_by_request(request)
-                
-            count = self.process_manager.start_all_programs()
-            return {"status": "success", "message": f"成功启动 {count} 个程序"}
         
-        # 停止所有程序
-        @self.fastapi_app.post("/api/programs/stop-all")
-        async def stop_all_programs(request: Request):
-            await verfiy_by_request(request)
-                
-            count = self.process_manager.stop_all_running_programs()
-            return {"status": "success", "message": f"成功停止 {count} 个程序"}
         
         # 获取服务状态
         @self.fastapi_app.get("/api/status")

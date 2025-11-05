@@ -58,7 +58,7 @@ class LauncherApp(QMainWindow):
         
         # 初始化组件
         self.process_manager = ProcessManager()
-        self.process_manager.set_log_callback(self.log_message)
+        self.process_manager.register_log_callback(self.log_message)
         
         self.server = None
         
@@ -89,6 +89,7 @@ class LauncherApp(QMainWindow):
         # 启动开机自启程序
         self.start_all_startup_programs()
         
+        self.process_manager.register_status_callback(self.update_program_status)
         # 默认启动到托盘，隐藏主窗口
         self.hide()
     
@@ -331,7 +332,7 @@ class LauncherApp(QMainWindow):
         name = self.program_table.item(selected_row, 0).text()
         
         self.process_manager.start_process_by_name(name)
-        self.update_program_status(name)
+        self.update_program_status()
     
         
             
@@ -343,27 +344,29 @@ class LauncherApp(QMainWindow):
         # 停止程序
         self.process_manager.stop_process_by_name(name)
         time.sleep(0.5)
-        self.update_program_status(name)
+        self.update_program_status()
     
-    def update_program_status(self, name: str):
+    def update_program_status(self):
         """更新程序状态"""
-
-        row = self.program_table.findItems(name, Qt.MatchExactly)[0].row()
-        # 检查行索引是否有效
-        if row < 0 or row >= self.program_table.rowCount():
-            return
+        selected_row = self.program_table.currentRow()
+        for row in range(self.program_table.rowCount()):
+            # 检查行索引是否有效
+            if row < 0 or row >= self.program_table.rowCount():
+                return
+            
+            name = self.program_table.item(row, 0).text()
+            # 更新状态单元格
+            status_item = self.program_table.item(row, 2)
+            if status_item:
+                if self.process_manager.is_program_running(name):
+                    status_item.setText("运行中")
+                    status_item.setForeground(Qt.green)
+                else:
+                    status_item.setText("未运行")
+                    status_item.setForeground(Qt.black)
         
-        # 更新状态单元格
-        status_item = self.program_table.item(row, 2)
-        if status_item:
-            if self.process_manager.is_program_running(name):
-                status_item.setText("运行中")
-                status_item.setForeground(Qt.green)
-            else:
-                status_item.setText("未运行")
-                status_item.setForeground(Qt.black)
-        
-        self.create_program_property_panel(name)
+            if row == selected_row:
+                self.create_program_property_panel(name)
             
     
     def log_message(self, message: str):
@@ -565,13 +568,13 @@ class LauncherApp(QMainWindow):
     def start_program_by_name(self, name: str):
         """通过名称启动程序"""
         self.process_manager.start_process_by_name(name)
-        self.update_program_status(name)
+        self.update_program_status()
     
     def stop_program_by_name(self, name: str):
         """通过名称停止程序"""
         self.process_manager.stop_process_by_name(name)
         time.sleep(0.5)
-        self.update_program_status(name)
+        self.update_program_status()
     
     def toggle_program_startup(self, name: str, enabled: bool):
         """切换程序开机自启动"""

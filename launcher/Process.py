@@ -28,20 +28,29 @@ class ProcessManager:
     
     def __init__(self):
         """初始化进程管理器"""
-        self.log_callback = None
+        self.log_callback = []
+        self.status_callback = []
         self.programs = {}
         self.load_config()
     
-    def set_log_callback(self, callback):
-        """设置日志回调函数"""
-        self.log_callback = callback
+    def register_log_callback(self, callback):
+        """注册日志回调函数"""
+        self.log_callback.append(callback)
     
+    
+    def register_status_callback(self, callback):
+        """注册状态回调函数"""
+        self.status_callback.append(callback)
+    def notify_status(self):
+        """通知状态变化"""
+        for callback in self.status_callback:
+            callback()
+
     def _log(self, message: str):
         """记录日志"""
-        if self.log_callback:
-            self.log_callback(message)
+        for callback in self.log_callback:
+            callback(message)
         print(message)
-    
     def is_program_running(self, name: str) -> bool:
         """检查程序是否正在运行
         
@@ -111,7 +120,7 @@ class ProcessManager:
             # 等待程序启动
             admin_text = "(管理员权限)" if run_as_admin else ""
             self._log(f"程序 '{name}' 已启动{admin_text}")
-            
+            self.notify_status()
             return True
         except Exception as e:
             self._log(f"启动程序 '{name}' 失败: {str(e)}")
@@ -144,6 +153,7 @@ class ProcessManager:
             proc = self.find_process_by_name(name)
             if proc is None:
                 self._log(f"未找到进程: {name}")
+                self.notify_status()
                 return True
             
             proc_info = proc.info
@@ -154,6 +164,7 @@ class ProcessManager:
                 try:
                     proc.wait(timeout=3)
                     self._log(f"已终止进程: {proc_info['name']}")
+                    self.notify_status()
                     return True
                 except psutil.TimeoutExpired:
                     self._log(f"进程 '{proc_info['name']}' 超时，尝试强制终止")
@@ -165,6 +176,7 @@ class ProcessManager:
                         # 再次检查进程是否存在
                         if not psutil.pid_exists(proc.pid):
                             self._log(f"强制终止进程成功: {proc_info['name']}")
+                            self.notify_status()
                             return True
                         else:
                             self._log(f"强制终止进程后仍然存在: {proc_info['name']}")
@@ -172,11 +184,13 @@ class ProcessManager:
                         self._log(f"强制终止进程时遇到访问拒绝: {proc_info['name']}")
                     except psutil.NoSuchProcess:
                         self._log(f"进程 '{proc_info['name']}' 在强制终止前已不存在")
+                        self.notify_status()
                         return True
             except psutil.AccessDenied:
                 self._log(f"终止进程时遇到访问拒绝: {proc_info['name']}")
             except psutil.NoSuchProcess:
                 self._log(f"进程 '{proc_info['name']}' 在终止前已不存在")
+                self.notify_status()
                 return True
             
             # 如果第一次失败且还有重试次数，等待一小段时间后重试
@@ -186,6 +200,7 @@ class ProcessManager:
                 return self.stop_process_by_name(name, retry - 1)
                 
             self._log(f"无法终止进程: {proc_info['name']}")
+            self.notify_status()
             return False
             
         except Exception as e:
@@ -195,6 +210,8 @@ class ProcessManager:
                 self._log(f"发生异常，尝试再次终止进程: {name}")
                 time.sleep(0.5)
                 return self.stop_process_by_name(name, retry - 1)
+            
+            self.notify_status()
             return False
         
     
