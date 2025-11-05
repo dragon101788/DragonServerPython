@@ -734,7 +734,7 @@ class LauncherApp(QMainWindow):
         self.log_message("正在关闭启动器...")
         
         # 停止所有运行的程序
-        self.process_manager.stop_all_programs()
+        self.process_manager.stop_all_running_programs()
         
         # 停止FastAPI服务
         if self.server:

@@ -208,9 +208,9 @@ class ProcessManager:
             int: 成功启动的程序数量
         """
         success_count = 0
-        for program in self.programs.values():
-            if not self.is_program_running(program):
-                if self.start_process_by_name(program):
+        for name, program in self.programs.items():
+            if not self.is_program_running(name):
+                if self.start_process_by_name(name):
                     success_count += 1
                     # 添加短暂延迟，避免同时启动太多进程
                     time.sleep(0.5)
@@ -317,14 +317,12 @@ class ProcessManager:
         Args:
             program_name: 程序名称（字典键）
         """
-        if program_name in self.programs:
-            program = self.programs[program_name]
-            # 停止可能正在运行的程序
-            if self.is_program_running(program):
-                self.stop_process_by_name(program_name)
-            
-            del self.programs[program_name]
-            self.save_config()
+        # 停止可能正在运行的程序
+        if self.is_program_running(program_name):
+            self.stop_process_by_name(program_name)
+        
+        del self.programs[program_name]
+        self.save_config()
     
     def update_program(self, program_name: str, updates: Dict[str, Any]):
         """更新程序信息
