@@ -130,11 +130,12 @@ class ProcessManager:
                     continue
             
             return None
-    def stop_process_by_name(self, name: str) -> bool:
+    def stop_process_by_name(self, name: str, retry: int = 1) -> bool:
         """通过进程名终止程序
         
         Args:
             name: 程序名称（作为字典键）
+            retry: 重试次数
             
         Returns:
             bool: 是否成功终止进程
@@ -143,21 +144,58 @@ class ProcessManager:
             proc = self.find_process_by_name(name)
             if proc is None:
                 self._log(f"未找到进程: {name}")
-                return False
-            else:
-                proc_info = proc.info
+                return True
+            
+            proc_info = proc.info
+            
+            # 尝试正常终止进程
+            try:
                 proc.terminate()
                 try:
                     proc.wait(timeout=3)
                     self._log(f"已终止进程: {proc_info['name']}")
+                    return True
                 except psutil.TimeoutExpired:
-                    proc.kill()
-                    self._log(f"强制终止进程: {proc_info['name']}")
-                except psutil.AccessDenied:
-                    proc.kill()
-                    self._log(f"强制终止进程: {proc_info['name']}")
+                    self._log(f"进程 '{proc_info['name']}' 超时，尝试强制终止")
+                    # 超时后尝试强制终止
+                    try:
+                        proc.kill()
+                        # 再等待一段时间确认进程是否终止
+                        time.sleep(1)
+                        # 再次检查进程是否存在
+                        if not psutil.pid_exists(proc.pid):
+                            self._log(f"强制终止进程成功: {proc_info['name']}")
+                            return True
+                        else:
+                            self._log(f"强制终止进程后仍然存在: {proc_info['name']}")
+                    except psutil.AccessDenied:
+                        self._log(f"强制终止进程时遇到访问拒绝: {proc_info['name']}")
+                    except psutil.NoSuchProcess:
+                        self._log(f"进程 '{proc_info['name']}' 在强制终止前已不存在")
+                        return True
+            except psutil.AccessDenied:
+                self._log(f"终止进程时遇到访问拒绝: {proc_info['name']}")
+            except psutil.NoSuchProcess:
+                self._log(f"进程 '{proc_info['name']}' 在终止前已不存在")
+                return True
+            
+            # 如果第一次失败且还有重试次数，等待一小段时间后重试
+            if retry > 0:
+                self._log(f"尝试再次终止进程: {proc_info['name']}")
+                time.sleep(0.5)  # 短暂延迟后重试
+                return self.stop_process_by_name(name, retry - 1)
+                
+            self._log(f"无法终止进程: {proc_info['name']}")
+            return False
+            
         except Exception as e:
             self._log(f"终止程序 '{name}' 时出错: {str(e)}")
+            # 如果发生其他异常且还有重试次数，也进行重试
+            if retry > 0:
+                self._log(f"发生异常，尝试再次终止进程: {name}")
+                time.sleep(0.5)
+                return self.stop_process_by_name(name, retry - 1)
+            return False
         
     
     def start_all_programs(self) -> int:

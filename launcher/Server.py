@@ -139,7 +139,7 @@ class LauncherServer:
         @self.fastapi_app.post("/api/programs/stop")
         async def stop_program(action: ProgramAction):
             
-            result = self.process_manager.stop_process_by_name(action.name)
+            result = self.process_manager.stop_process_by_name(action.name,3)
             if result:
                 return {"status": "success", "message": f"程序 '{action.name}' 停止成功"}
             else:
