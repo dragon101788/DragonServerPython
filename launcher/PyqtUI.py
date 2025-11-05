@@ -118,7 +118,8 @@ class LauncherApp(QMainWindow):
         # 确保在更改布局时停止当前运行的程序
         for program in self.programs:
             if self.process_manager.is_program_running(program):
-                self.process_manager.stop_program(program, self.stop_callback)
+                self.process_manager.stop_program(program)
+                self.after_stop()
         
         # 创建工具栏
         toolbar = QWidget()
@@ -371,7 +372,7 @@ class LauncherApp(QMainWindow):
         self.process_manager.start_program(program)
         self.update_program_status(selected_row, program)
     
-    def stop_callback(self):
+    def after_stop(self):
         
         selected_row = self.program_table.currentRow()
         program = self.programs[selected_row]
@@ -388,7 +389,8 @@ class LauncherApp(QMainWindow):
         
         # 停止程序
         program = self.programs[selected_row]
-        self.process_manager.stop_program(program, self.stop_callback)
+        self.process_manager.stop_program(program)
+        self.after_stop()
     
     def update_program_status(self, row: int, program: Dict[str, Any]):
         """更新程序状态"""
@@ -622,7 +624,8 @@ class LauncherApp(QMainWindow):
         """通过索引停止程序"""
         if 0 <= index < len(self.programs):
             program = self.programs[index]
-            self.process_manager.stop_program(program, self.stop_callback)
+            self.process_manager.stop_program(program)
+            self.after_stop()
     
     def on_startup_checkbox_changed(self, program_index: int, state: int):
         """当开机自启复选框状态改变时"""
@@ -783,7 +786,8 @@ class LauncherApp(QMainWindow):
         # 停止所有运行的程序
         for program in self.programs:
             if self.process_manager.is_program_running(program):
-                self.process_manager.stop_program(program, self.stop_callback)
+                self.process_manager.stop_program(program)
+                self.after_stop()
         
         # 停止FastAPI服务
         if self.server:

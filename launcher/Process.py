@@ -37,18 +37,11 @@ class ProcessManager:
             bool: 程序是否在运行
         """
         executable_name = os.path.basename(program['path'])
-        try:
-            for proc in psutil.process_iter(['name', 'exe']):
-                try:
-                    proc_info = proc.info
-                    if (proc_info['name'] == executable_name or 
-                        (proc_info['exe'] and os.path.basename(proc_info['exe']) == executable_name)):
-                        return True
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    continue
-        except Exception as e:
-            self._log(f"检查程序 '{program['name']}' 状态时出错: {str(e)}")
-        return False
+        proc = self.find_process_by_name(executable_name)
+        if proc:
+            return True
+        else:
+            return False
     
     def start_program(self, program: Dict[str, Any]) -> bool:
         """使用ShellExecuteW启动指定的程序
@@ -109,7 +102,7 @@ class ProcessManager:
             self._log(f"启动程序 '{program['name']}' 失败: {str(e)}")
             return False
     
-    def stop_program(self, program: Dict[str, Any] , callback) -> bool:
+    def stop_program(self, program: Dict[str, Any] ) -> bool:
         """停止指定的程序
         
         Args:
@@ -121,8 +114,17 @@ class ProcessManager:
         
         # 通过进程名终止
         self._terminate_process_by_name(program)
-        callback()
-    
+    def find_process_by_name(self,name):
+            for proc in psutil.process_iter(['name', 'exe']):
+                try:
+                    proc_info = proc.info
+                    if (str.lower(proc_info['name']) == str.lower(name) or 
+                        (proc_info['exe'] and str.lower(os.path.basename(proc_info['exe'])) == str.lower(name))):
+                        return proc
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            
+            return None
     def _terminate_process_by_name(self, program: Dict[str, Any]) -> bool:
         """通过进程名终止程序
         
@@ -136,21 +138,19 @@ class ProcessManager:
         program_name = program['name']
         
         try:
-            for proc in psutil.process_iter(['name', 'exe']):
+            proc = self.find_process_by_name(executable_name)
+            if proc is None:
+                self._log(f"未找到进程: {executable_name}")
+                return False
+            else:
+                proc_info = proc.info
+                proc.terminate()
                 try:
-                    proc_info = proc.info
-                    print(proc_info['name'],proc_info['exe'],executable_name)
-                    if (str.lower(proc_info['name']) == str.lower(executable_name) or 
-                        (proc_info['exe'] and str.lower(os.path.basename(proc_info['exe'])) == str.lower(executable_name))):
-                        proc.terminate()
-                        try:
-                            proc.wait(timeout=3)
-                            self._log(f"已终止进程: {proc_info['name']}")
-                        except psutil.TimeoutExpired:
-                            proc.kill()
-                            self._log(f"强制终止进程: {proc_info['name']}")
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    continue
+                    proc.wait(timeout=3)
+                    self._log(f"已终止进程: {proc_info['name']}")
+                except psutil.TimeoutExpired:
+                    proc.kill()
+                    self._log(f"强制终止进程: {proc_info['name']}")
         except Exception as e:
             self._log(f"终止程序 '{program_name}' 时出错: {str(e)}")
         
