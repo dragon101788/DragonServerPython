@@ -176,10 +176,11 @@ class LauncherServer:
         self.max_log_history = 100  # 最大保存的日志数量
     
     def log(self, message: str):
+        print(message)
+
+    def websocket_log_callback(self, message: str):
         """记录日志并通过WebSocket广播"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_message = f"[{timestamp}] {message}"
-        print(log_message)
         
         # 保存到日志历史
         self.log_history.append({
@@ -191,9 +192,32 @@ class LauncherServer:
             self.log_history = self.log_history[-self.max_log_history:]
         
         # 通过WebSocket广播日志
-        # 注意：这里在同步方法中调用异步方法，需要特殊处理
-        # 由于FastAPI的事件循环，我们简化处理，只打印到控制台
-        # 实际的WebSocket广播会在异步环境中自动处理
+        # 在同步方法中调用异步方法，需要使用asyncio事件循环
+        try:
+            import asyncio
+            
+            # 尝试获取当前事件循环
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                # 如果没有运行中的事件循环，创建一个新的
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # 创建一个异步任务来广播日志
+            async def broadcast_task():
+                await self.broadcast_log(message)
+            
+            # 如果在事件循环的线程中运行，直接调用
+            if loop.is_running():
+                # 使用call_soon_threadsafe在运行中的事件循环中调度任务
+                loop.call_soon_threadsafe(lambda: asyncio.create_task(broadcast_task()))
+            else:
+                # 如果事件循环没有运行，可以使用run_until_complete
+                loop.run_until_complete(broadcast_task())
+        except Exception as e:
+            # 如果异步调用失败，至少我们已经打印了日志到控制台
+            print(f"广播日志失败: {e}")
         
     async def broadcast_log(self, message: str):
         """通过WebSocket广播日志消息给所有连接的客户端"""

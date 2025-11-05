@@ -396,7 +396,6 @@ class LauncherApp(QMainWindow):
             if row == selected_row:
                 self.create_program_property_panel(name)
             
-    
     def log_message(self, message: str):
         """记录日志信息"""
         from datetime import datetime
@@ -410,6 +409,9 @@ class LauncherApp(QMainWindow):
         
         # 更新状态栏
         self.status_text.setText(message)
+
+        if self.server:
+            self.server.websocket_log_callback(log_entry)
     
     def check_process_status(self):
         """检查所有进程状态"""
