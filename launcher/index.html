@@ -109,6 +109,7 @@
             padding: 20px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
         
         table {
@@ -213,6 +214,81 @@
             background: linear-gradient(45deg, #dc3545, #c82333);
         }
         
+        /* 日志区域样式 */
+        .logs-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .logs-header h2 {
+            color: #2c3e50;
+            font-size: 1.5rem;
+        }
+        
+        .logs-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-clear-logs {
+            background: linear-gradient(45deg, #ffc107, #e0a800);
+            color: #212529;
+        }
+        
+        .btn-clear-logs:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 193, 7, 0.3);
+        }
+        
+        .logs-content {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+        
+        .log-timestamp {
+            color: #cbd5e0;
+            margin-right: 10px;
+        }
+        
+        .websocket-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+        
+        .websocket-connected {
+            background-color: #28a745;
+        }
+        
+        .websocket-disconnected {
+            background-color: #dc3545;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -234,6 +310,12 @@
             
             th, td {
                 padding: 10px;
+            }
+            
+            .logs-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
             }
         }
     </style>
@@ -272,6 +354,19 @@
             </table>
         </div>
         
+        <!-- 日志显示区域 -->
+        <div class="logs-container">
+            <div class="logs-header">
+                <h2>实时日志 <span class="websocket-status websocket-disconnected" id="websocketStatus"></span></h2>
+                <div class="logs-controls">
+                    <button class="btn btn-clear-logs btn-small" id="clearLogs">清空日志</button>
+                </div>
+            </div>
+            <div class="logs-content" id="logsContent">
+                <!-- 日志将通过WebSocket实时填充 -->
+            </div>
+        </div>
+        
         <div class="status-bar">
             <span id="statusText">就绪</span>
             <span class="refresh-indicator" id="refreshIndicator">⏳</span>
@@ -290,6 +385,101 @@
         const stopAllBtn = document.getElementById('stopAll');
         const refreshBtn = document.getElementById('refresh');
         const toast = document.getElementById('toast');
+        const logsContent = document.getElementById('logsContent');
+        const clearLogsBtn = document.getElementById('clearLogs');
+        const websocketStatus = document.getElementById('websocketStatus');
+        
+        // WebSocket连接
+        let ws = null;
+        const maxLogEntries = 200; // 最大显示的日志条数
+        
+        // 初始化WebSocket连接
+        function initWebSocket() {
+            // 确保WebSocket连接关闭
+            if (ws !== null) {
+                ws.close();
+            }
+            
+            // 根据当前页面的协议创建WebSocket URL
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/logs`;
+            
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function() {
+                    console.log('WebSocket连接已建立');
+                    websocketStatus.className = 'websocket-status websocket-connected';
+                    addLog('WebSocket连接已建立');
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'log' && data.message) {
+                            addLog(data.message);
+                        }
+                    } catch (e) {
+                        console.error('解析日志消息失败:', e);
+                    }
+                };
+                
+                ws.onclose = function() {
+                    console.log('WebSocket连接已关闭');
+                    websocketStatus.className = 'websocket-status websocket-disconnected';
+                    addLog('WebSocket连接已关闭，5秒后尝试重连...');
+                    // 5秒后尝试重连
+                    setTimeout(initWebSocket, 5000);
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket错误:', error);
+                    addLog(`WebSocket错误: ${error.message || '未知错误'}`);
+                };
+            } catch (e) {
+                console.error('创建WebSocket连接失败:', e);
+                addLog(`创建WebSocket连接失败: ${e.message}`);
+                // 5秒后尝试重连
+                setTimeout(initWebSocket, 5000);
+            }
+        }
+        
+        // 添加日志到日志区域
+        function addLog(message) {
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            
+            // 尝试提取时间戳
+            const timestampMatch = message.match(/\[(.*?)\]/);
+            if (timestampMatch && timestampMatch[1]) {
+                const timestampSpan = document.createElement('span');
+                timestampSpan.className = 'log-timestamp';
+                timestampSpan.textContent = timestampMatch[0];
+                
+                const messageText = document.createTextNode(message.substring(timestampMatch[0].length).trim());
+                
+                logEntry.appendChild(timestampSpan);
+                logEntry.appendChild(messageText);
+            } else {
+                logEntry.textContent = message;
+            }
+            
+            logsContent.appendChild(logEntry);
+            
+            // 自动滚动到底部
+            logsContent.scrollTop = logsContent.scrollHeight;
+            
+            // 限制日志条数
+            while (logsContent.children.length > maxLogEntries) {
+                logsContent.removeChild(logsContent.firstChild);
+            }
+        }
+        
+        // 清空日志
+        function clearLogs() {
+            logsContent.innerHTML = '';
+            addLog('日志已清空');
+        }
         
         // 显示Toast通知
         function showToast(message, type = 'success') {
@@ -494,12 +684,26 @@
         startAllBtn.addEventListener('click', startAllPrograms);
         stopAllBtn.addEventListener('click', stopAllPrograms);
         refreshBtn.addEventListener('click', updatePrograms);
+        clearLogsBtn.addEventListener('click', clearLogs);
         
-        // 初始加载
-        updatePrograms();
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            // 初始加载程序列表
+            updatePrograms();
+            
+            // 初始化WebSocket连接
+            initWebSocket();
+            
+            // 定时刷新（每30秒）
+            setInterval(updatePrograms, 30000);
+        });
         
-        // 定时刷新（每30秒）
-        setInterval(updatePrograms, 30000);
+        // 页面关闭时关闭WebSocket连接
+        window.addEventListener('beforeunload', function() {
+            if (ws !== null) {
+                ws.close();
+            }
+        });
     </script>
 </body>
 </html>

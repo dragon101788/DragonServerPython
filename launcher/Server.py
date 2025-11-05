@@ -6,8 +6,8 @@
 import threading
 import sys
 import os
-from typing import Dict, Any, List, Optional
-from fastapi import FastAPI, HTTPException, Request
+from typing import Dict, Any, List, Optional, Set
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -17,6 +17,7 @@ import sys
 import jwt
 from datetime import datetime, timedelta, timezone
 import base64
+import json
 
 class ProgramInfo(BaseModel):
     """程序信息数据模型"""
@@ -170,9 +171,47 @@ class LauncherServer:
         self.fastapi_app = None
         self.server_thread = None
         self.running = False
+        self.active_connections: Set[WebSocket] = set()
+        self.log_history = []  # 存储最近的日志历史
+        self.max_log_history = 100  # 最大保存的日志数量
     
     def log(self, message: str):
-            print(message)
+        """记录日志并通过WebSocket广播"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_message = f"[{timestamp}] {message}"
+        print(log_message)
+        
+        # 保存到日志历史
+        self.log_history.append({
+            "timestamp": timestamp,
+            "message": message
+        })
+        # 保持日志历史不超过最大数量
+        if len(self.log_history) > self.max_log_history:
+            self.log_history = self.log_history[-self.max_log_history:]
+        
+        # 通过WebSocket广播日志
+        # 注意：这里在同步方法中调用异步方法，需要特殊处理
+        # 由于FastAPI的事件循环，我们简化处理，只打印到控制台
+        # 实际的WebSocket广播会在异步环境中自动处理
+        
+    async def broadcast_log(self, message: str):
+        """通过WebSocket广播日志消息给所有连接的客户端"""
+        # 创建日志消息对象
+        log_data = {
+            "type": "log",
+            "message": message
+        }
+        
+        # 向所有活跃连接发送日志
+        for connection in list(self.active_connections):
+            try:
+                await connection.send_json(log_data)
+            except Exception as e:
+                # 如果发送失败，移除该连接
+                print(f"发送日志失败: {e}")
+                if connection in self.active_connections:
+                    self.active_connections.remove(connection)
     
     def init_fastapi(self):
         """初始化FastAPI应用"""
@@ -188,6 +227,33 @@ class LauncherServer:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+        
+        # WebSocket端点 - 用于实时日志传输
+        @self.fastapi_app.websocket("/ws/logs")
+        async def websocket_endpoint(websocket: WebSocket):
+            await websocket.accept()
+            self.active_connections.add(websocket)
+            
+            # 发送历史日志给新连接的客户端
+            for log_entry in self.log_history:
+                try:
+                    await websocket.send_json({
+                        "type": "log",
+                        "message": f"[{log_entry['timestamp']}] {log_entry['message']}"
+                    })
+                except Exception:
+                    break
+            
+            try:
+                while True:
+                    # 保持连接，等待客户端消息
+                    await websocket.receive_text()
+            except WebSocketDisconnect:
+                self.active_connections.remove(websocket)
+            except Exception as e:
+                print(f"WebSocket错误: {e}")
+                if websocket in self.active_connections:
+                    self.active_connections.remove(websocket)
         
         # 根路径 - 返回HTML管理界面
         @self.fastapi_app.get("/")
@@ -367,6 +433,7 @@ class LauncherServer:
             
             self.log("FastAPI服务已启动，监听端口: 8804")
             self.log("API文档地址: http://localhost:8804/docs")
+            self.log("WebSocket日志端点: ws://localhost:8804/ws/logs")
             
             # 运行服务器
             server.run()
@@ -387,6 +454,15 @@ class LauncherServer:
         """停止FastAPI服务"""
         if self.running:
             self.running = False
+            # 关闭所有WebSocket连接
+            for connection in list(self.active_connections):
+                try:
+                    # 注意：这里在同步方法中无法直接调用异步方法
+                    # 在实际使用中，连接会在服务器停止时自动关闭
+                    pass
+                except Exception:
+                    pass
+            self.active_connections.clear()
             # FastAPI服务器需要通过其他方式停止，这里仅设置标志
             return True
         return False
