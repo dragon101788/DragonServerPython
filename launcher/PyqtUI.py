@@ -45,6 +45,7 @@ class LauncherApp(QMainWindow):
         class LogHandler:
             def __init__(self,callback):
                 self.callback = callback
+                self.current_select = ""
 
             def write(self, text):
                 if text == "\n":
@@ -96,7 +97,6 @@ class LauncherApp(QMainWindow):
         self.status_text = None
         self.log_text = None
         self.property_panel = None
-        self.property_panels = {}
         self.property_panel_container = None
         self.property_panel_layout = None
         self.tray_icon = None
@@ -117,7 +117,6 @@ class LauncherApp(QMainWindow):
         # 启动开机自启程序
         self.start_all_startup_programs()
         
-        self.process_manager.register_status_callback(self.update_program_status)
         # 默认启动到托盘，隐藏主窗口
         self.hide()
     
@@ -258,7 +257,6 @@ class LauncherApp(QMainWindow):
     def update_program_table(self):
         """更新程序列表表格"""
         self.program_table.setRowCount(0)
-        
         for name, program in self.process_manager.programs.items():
             row_position = self.program_table.rowCount()
             self.program_table.insertRow(row_position)
@@ -310,91 +308,55 @@ class LauncherApp(QMainWindow):
             'startup_with_windows': False,
             'try_admin': False
         }
+
+        self.current_select = name;
         
         # 添加到程序列表
         self.process_manager.add_program(program)
         
-        # 更新表格
-        self.update_program_table()
         
         print(f"添加程序: {name}")
     
     def remove_program(self):
         """删除选中的程序"""
-        selected_row = self.program_table.currentRow()
-        name = self.program_table.item(selected_row, 0).text()
-        
-        if selected_row < 0:
-            QMessageBox.warning(self, "警告", "请先选择要删除的程序")
-            return
         
         # 确认删除
-        program_name = self.process_manager.programs[name].get('name', '未命名')
         reply = QMessageBox.question(
-            self, "确认删除", f"确定要删除程序 '{program_name}' 吗?",
+            self, "确认删除", f"确定要删除程序 '{self.current_select}' 吗?",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         
         if reply == QMessageBox.Yes:
-            # 停止可能正在运行的程序
-            if self.process_manager.is_program_running(name):
-                self.process_manager.stop_process_by_name(name)
-            
             # 删除程序
-            print(f"删除程序: {program_name}")
-            self.process_manager.remove_program(name)
-            
-            # 从属性面板字典中移除
-            if program_name in self.property_panels:
-                del self.property_panels[program_name]
-            
-            # 更新表格
-            self.update_program_table()
-            
+            print(f"删除程序: {self.current_select}")
+            self.process_manager.remove_program(self.current_select)
+
             # 清除属性面板
             self.clear_property_panels()
     
     def start_selected_program(self):
         """启动选中的程序"""
-        selected_row = self.program_table.currentRow()
-        name = self.program_table.item(selected_row, 0).text()
         
-        self.process_manager.start_process_by_name(name)
+        self.process_manager.start_process_by_name(self.current_select)
         self.update_program_status()
     
         
             
     def stop_selected_program(self):
         """停止选中的程序"""
-        selected_row = self.program_table.currentRow()
-        name = self.program_table.item(selected_row, 0).text()
     
         # 停止程序
-        self.process_manager.stop_process_by_name(name)
+        self.process_manager.stop_process_by_name(self.current_select)
         time.sleep(0.5)
         self.update_program_status()
     
     def update_program_status(self):
-        """更新程序状态"""
-        selected_row = self.program_table.currentRow()
-        for row in range(self.program_table.rowCount()):
-            # 检查行索引是否有效
-            if row < 0 or row >= self.program_table.rowCount():
-                return
+        try:
+            self.update_program_table()
             
-            name = self.program_table.item(row, 0).text()
-            # 更新状态单元格
-            status_item = self.program_table.item(row, 2)
-            if status_item:
-                if self.process_manager.is_program_running(name):
-                    status_item.setText("运行中")
-                    status_item.setForeground(Qt.green)
-                else:
-                    status_item.setText("未运行")
-                    status_item.setForeground(Qt.black)
-        
-            if row == selected_row:
-                self.create_program_property_panel(name)
+            self.update_program_property_panel()
+        except Exception as e:
+            self.log(f"更新程序状态时出错: {str(e)}")
             
     def log_message(self, message: str):
         """记录日志信息"""
@@ -402,6 +364,8 @@ class LauncherApp(QMainWindow):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"[{timestamp}] {message}"
         
+        if "状态更新" in message:
+            self.update_program_status()
         # 添加到日志文本框
         self.log_text.append(log_entry)
         # 滚动到底部
@@ -411,31 +375,14 @@ class LauncherApp(QMainWindow):
         self.status_text.setText(message)
 
         if self.server:
-            self.server.websocket_log_callback(log_entry)
+            self.server.websocket_log_callback(message)
     
-    def check_process_status(self):
-        """检查所有进程状态"""
-        # 重新加载整个列表以更新所有状态
-        self.update_program_table()
-        
-        # 如果有选中的程序，更新其属性面板
-        selected_items = self.program_table.selectedItems()
-        if len(selected_items) == 1:
-            index = selected_items[0].data(Qt.UserRole)
-            self.create_program_property_panel(index)
     
     def toggle_program_startup(self, name: str, enabled: bool):
         """切换程序的开机自启动状态"""
         if name in self.process_manager.programs:
             self.process_manager.update_program(name, {'startup_with_windows': enabled})
             
-            # 同步更新表格中的复选框状态
-            if program_index < self.program_table.rowCount():
-                checkbox_widget = self.program_table.cellWidget(program_index, 1)
-                if isinstance(checkbox_widget, QCheckBox):
-                    checkbox_widget.blockSignals(True)
-                    checkbox_widget.setChecked(enabled)
-                    checkbox_widget.blockSignals(False)
             
             status = "启用" if enabled else "禁用"
             print(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的开机自启动")
@@ -465,12 +412,16 @@ class LauncherApp(QMainWindow):
         # 显示菜单
         menu.exec_(self.program_table.mapToGlobal(position))
     
-    def create_program_property_panel(self, name: str):
+    def update_program_property_panel(self):
+        name = self.current_select
         
+        if name not in self.process_manager.programs:
+            return
+
         
         # 清除旧的属性面板
         self.clear_property_panels()
-        
+
         # 更新面板标题
         self.property_panel_container.setTitle(f"程序详情: {name}")
         
@@ -515,17 +466,13 @@ class LauncherApp(QMainWindow):
         # 开机自启
         startup_checkbox = QCheckBox("开机自启动")
         startup_checkbox.setChecked(self.process_manager.programs[name].get('startup_with_windows', False))
-        startup_checkbox.stateChanged.connect(
-            lambda state: self.toggle_program_startup(name, state != 0)
-        )
+        startup_checkbox.stateChanged.connect(self.toggle_program_startup)
         panel_layout.addWidget(startup_checkbox)
         
         # 管理员权限
         admin_checkbox = QCheckBox("以管理员权限运行")
         admin_checkbox.setChecked(self.process_manager.programs[name].get('try_admin', False))
-        admin_checkbox.stateChanged.connect(
-            lambda state: self.toggle_program_admin(name, state != 0)
-        )
+        admin_checkbox.stateChanged.connect(self.on_admin_checkbox_changed)
         panel_layout.addWidget(admin_checkbox)
         
         # 运行状态
@@ -556,8 +503,6 @@ class LauncherApp(QMainWindow):
         # 添加到属性面板容器
         self.property_panel_layout.addWidget(panel_widget)
         
-        # 保存面板引用
-        self.property_panels[name] = panel_widget
     
     def clear_property_panels(self):
         """清除所有属性面板"""
@@ -576,19 +521,16 @@ class LauncherApp(QMainWindow):
         no_selection_label.setStyleSheet("color: gray; font-style: italic;")
         self.property_panel_layout.addWidget(no_selection_label)
         
-        # 清空属性面板字典
-        self.property_panels.clear()
     
     def on_program_selected(self):
         """当选中程序时"""
         selected_row = self.program_table.currentRow()
-        
-        # 如果选中了有效行，显示属性面板
-        if selected_row >= 0:
-            name = self.program_table.item(selected_row, 0).text()
-            self.create_program_property_panel(name)
-        else:
+        if selected_row < 0:
             self.clear_property_panels()
+        else:
+            self.current_select = self.program_table.item(selected_row, 0).text()
+            self.update_program_property_panel()
+       
     
     def on_program_cell_changed(self, row: int, column: int):
         """当表格单元格内容改变时"""
@@ -606,24 +548,21 @@ class LauncherApp(QMainWindow):
         time.sleep(0.5)
         self.update_program_status()
     
-    def toggle_program_startup(self, name: str, enabled: bool):
+    def toggle_program_startup(self):
         """切换程序开机自启动"""
-        self.process_manager.update_program(name, {'startup_with_windows': enabled})
-        self.update_program_table()
-        
-        self.create_program_property_panel(name)
-        status = "启用" if enabled else "禁用"
-        print(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的开机自启动")
+        checked = not self.process_manager.programs[self.current_select].get('startup_with_windows', False)
+        status = "启用" if checked else "禁用"
+        name = self.process_manager.programs[self.current_select]['name']
+        self.process_manager.update_program(self.current_select, {'startup_with_windows': checked })
+        print(f"{status}程序 '{name}' 的开机自启动")
     
-    def on_admin_checkbox_changed(self, name: str, state: int):
+    def on_admin_checkbox_changed(self):
         """当管理员权限复选框状态改变时"""
-        if name in self.process_manager.programs:
-            self.process_manager.update_program(name, {'try_admin': state == Qt.Checked})
-            self.update_program_table()
-            
-            self.create_program_property_panel(name)
-            status = "启用" if state == Qt.Checked else "禁用"
-            print(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的管理员权限")
+        checked = not self.process_manager.programs[self.current_select].get('try_admin', False)
+        status = "启用" if checked else "禁用"
+        name = self.process_manager.programs[self.current_select]['name']
+        self.process_manager.update_program(self.current_select, {'try_admin': checked })
+        print(f"{status}程序 '{name}' 的管理员权限")
     
     def check_auto_startup(self) -> bool:
         """检查启动器自身是否设置为开机自启动"""
