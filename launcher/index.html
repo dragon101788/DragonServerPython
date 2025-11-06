@@ -61,9 +61,6 @@
             <button id="add-program-btn" class="bg-primary hover:bg-primary/90 text-white px-4 py-1.5 rounded-md transition-colors">
                 <i class="fa fa-plus mr-1"></i> 添加程序
             </button>
-            <button id="exit-btn" class="text-gray-600 hover:text-danger p-2 rounded-md hover:bg-gray-100 transition-colors">
-                <i class="fa fa-sign-out"></i>
-            </button>
         </div>
     </header>
 
@@ -713,30 +710,6 @@
             }
         }
         
-        // 退出启动器
-        async function exitLauncher() {
-            if (confirm('确定要关闭启动器吗？')) {
-                try {
-                    const response = await fetch('/api/exit', {
-                        method: 'POST'
-                    });
-                    
-                    if (!response.ok) throw new Error('关闭失败');
-                    
-                    const result = await response.json();
-                    logMessage(`成功: ${result.message}`);
-                    
-                    // 延迟关闭页面
-                    setTimeout(() => {
-                        window.close();
-                    }, 1000);
-                } catch (error) {
-                    console.error('退出启动器出错:', error);
-                    logMessage(`错误: 关闭启动器失败 - ${error.message}`);
-                    alert(`关闭失败: ${error.message}`);
-                }
-            }
-        }
         
         // 浏览文件
         function browseFile(inputId, isDirectory = false) {
@@ -773,8 +746,6 @@
             // 添加程序按钮
             document.getElementById('add-program-btn').addEventListener('click', () => openProgramModal());
             
-            // 退出按钮
-            document.getElementById('exit-btn').addEventListener('click', exitLauncher);
             
             // 模态框相关事件
             document.getElementById('close-modal').addEventListener('click', closeProgramModal);

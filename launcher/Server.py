@@ -441,15 +441,6 @@ class LauncherServer:
             except Exception as e:
                 return {"status": "error", "message": f"更新程序失败: {str(e)}"}
         
-        # 关闭启动器
-        @self.fastapi_app.post("/api/exit")
-        async def exit_launcher(request: Request):
-            await verfiy_by_request(request)
-                
-            if hasattr(self.app, 'exit_application'):
-                threading.Thread(target=self.app.exit_application).start()
-                return {"status": "success", "message": "启动器正在关闭..."}
-            return {"status": "error", "message": "无法关闭启动器"}
     
     def run_fastapi_server(self):
         """在单独的线程中运行FastAPI服务"""
