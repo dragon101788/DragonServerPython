@@ -1,8 +1,3 @@
-"""DragonServer 启动器主入口
-
-使用重构后的launcher模块，启动程序管理界面和远程控制服务。
-"""
-
 import sys
 import os
 
@@ -10,7 +5,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 
 # 导入重构后的launcher模块
-from PyqtUI import LauncherApp
+from src.launcher.PyqtUI import LauncherApp
 
 def main():
     """主函数"""

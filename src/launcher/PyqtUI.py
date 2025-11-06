@@ -23,8 +23,8 @@ from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon, QFont
 
-from Process import ProcessManager
-from Server import LauncherServer
+from src.launcher.Process import ProcessManager
+from src.launcher.Server import LauncherServer
 
 def get_executable_path():
     if getattr(sys, 'frozen', False):
