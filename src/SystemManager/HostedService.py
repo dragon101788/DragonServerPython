@@ -1,6 +1,6 @@
 
 
-from server_config import *
+from src.server_config import *    
 import process
 import atexit
 """

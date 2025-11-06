@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timedelta
 import time
 import timestamp
-from server_config import *
+from src.server_config import *
 import importlib
 import multiprocessing
 from fastapi import FastAPI

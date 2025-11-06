@@ -17,7 +17,7 @@ from xml.etree import ElementTree as ET
 import aiofiles
 
 from PIL import Image
-from server_config import *    
+from src.server_config import *    
 from src.webdav.Thumb import ResponseThumb
 # 定义 WebDAV 命名空间
 ns = {'D': 'DAV:'}

@@ -5,7 +5,7 @@ from src.ServerManagerPyqt import *
 ServerManagerUI.get_instance()
 import Resource
 
-from server_config import *    
+
 
 
 

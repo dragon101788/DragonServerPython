@@ -10,7 +10,7 @@ import config
 import os
 import time
 import io
-from server_config import *   
+from src.server_config import *    
 import timestamp   
 from ChatAI import chat_router
 import mimetypes    
