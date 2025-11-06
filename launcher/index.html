@@ -265,6 +265,10 @@
                                     title="停止程序">
                                 <i class="fa fa-stop"></i>
                             </button>
+                            <button class="text-xs p-1 hover:bg-gray-200 rounded ${isActive ? 'text-warning' : 'text-gray-500'} restart-program-btn"
+                                    title="重启程序">
+                                <i class="fa fa-repeat"></i>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -308,6 +312,15 @@
                     stopProgram(programName);
                 });
             });
+            
+            // 绑定重启按钮事件
+            document.querySelectorAll('.restart-program-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const programName = btn.closest('.program-item').getAttribute('data-name');
+                    restartProgram(programName);
+                });
+            });
         }
         
         // 渲染程序详情
@@ -345,6 +358,9 @@
                             <button class="start-stop-btn px-3 py-1.5 ${program.running ? 'bg-danger hover:bg-danger/90' : 'bg-primary hover:bg-primary/90'} text-white rounded-md transition-colors text-sm">
                                 <i class="fa ${program.running ? 'fa-stop mr-1' : 'fa-play mr-1'}"></i>
                                 ${program.running ? '停止' : '启动'}
+                            </button>
+                            <button class="restart-program-btn px-3 py-1.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-md transition-colors text-sm">
+                                <i class="fa fa-repeat mr-1"></i> 重启
                             </button>
                         </div>
                     </div>
@@ -385,6 +401,22 @@
                     startProgram(program.name);
                 }
             });
+            
+            // 绑定重启按钮事件 - 确保选择详情面板中的按钮
+            const restartBtn = detailsContainer.querySelector('.restart-program-btn');
+            if (restartBtn) {
+                // 使用闭包确保使用正确的program.name
+                (function(currentProgramName) {
+                    // 移除可能存在的旧事件监听器
+                    const newBtn = restartBtn.cloneNode(true);
+                    restartBtn.parentNode.replaceChild(newBtn, restartBtn);
+                    
+                    // 添加新的事件监听器
+                    newBtn.addEventListener('click', function() {
+                        restartProgram(currentProgramName);
+                    });
+                })(program.name);
+            }
         }
         
         // 打开程序模态框
@@ -602,10 +634,55 @@
                 
                 // 重新加载程序列表，更新状态
                 setTimeout(loadPrograms, 500);
+                
+                return true;
             } catch (error) {
                 console.error('停止程序出错:', error);
                 logMessage(`错误: 停止程序失败 - ${error.message}`);
                 alert(`停止失败: ${error.message}`);
+                return false;
+            }
+        }
+        
+        // 重启程序
+        async function restartProgram(name) {
+            try {
+                logMessage(`正在重启程序: ${name}`);
+                
+                // 先停止程序
+                const stopSuccess = await stopProgram(name);
+                if (!stopSuccess) {
+                    return;
+                }
+                
+                // 延迟一段时间后启动程序，确保程序完全停止
+                setTimeout(async () => {
+                    try {
+                        const response = await fetch('/api/programs/start', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ name })
+                        });
+                        
+                        if (!response.ok) throw new Error('重启启动失败');
+                        
+                        const result = await response.json();
+                        logMessage(`成功: 程序 ${name} 重启完成`);
+                        
+                        // 重新加载程序列表，更新状态
+                        setTimeout(loadPrograms, 500);
+                    } catch (error) {
+                        console.error('重启启动程序出错:', error);
+                        logMessage(`错误: 重启启动程序失败 - ${error.message}`);
+                        alert(`重启失败: ${error.message}`);
+                    }
+                }, 1000);
+            } catch (error) {
+                console.error('重启程序出错:', error);
+                logMessage(`错误: 重启程序失败 - ${error.message}`);
+                alert(`重启失败: ${error.message}`);
             }
         }
         
