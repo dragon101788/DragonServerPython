@@ -45,6 +45,15 @@
             .program-item-active {
                 @apply bg-primary/10 border-l-4 border-primary text-primary;
             }
+            .resize-handle {
+                height: 5px;
+                background-color: #374151;
+                cursor: ns-resize;
+                transition: background-color 0.2s;
+            }
+            .resize-handle:hover {
+                background-color: #4B5563;
+            }
         }
     </style>
 </head>
@@ -92,9 +101,12 @@
                     <p class="text-lg">请从左侧选择一个程序</p>
                 </div>
             </div>
+            
+            <!-- 分隔线 -->
+            <div id="resize-handle" class="resize-handle"></div>
 
             <!-- 右下日志窗口 -->
-            <div class="h-64 bg-gray-800 text-white border-t border-gray-700 flex flex-col">
+            <div id="log-container" class="h-64 bg-gray-800 text-white border-t border-gray-700 flex flex-col">
                 <div class="p-2 border-b border-gray-700 flex justify-between items-center">
                     <h3 class="font-medium text-sm"><i class="fa fa-terminal mr-2"></i> 日志窗口</h3>
                     <div class="flex space-x-2">
@@ -815,6 +827,57 @@
             return div.innerHTML;
         }
         
+        // 实现日志窗口大小调整
+        function initResizeHandle() {
+            const resizeHandle = document.getElementById('resize-handle');
+            const logContainer = document.getElementById('log-container');
+            const mainContent = document.querySelector('main');
+            
+            let isResizing = false;
+            
+            resizeHandle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                isResizing = true;
+                
+                // 添加全局事件监听器
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+            
+            function onMouseMove(e) {
+                if (!isResizing) return;
+                
+                // 获取主内容区域的位置和尺寸
+                const mainRect = mainContent.getBoundingClientRect();
+                
+                // 计算新的日志窗口高度
+                // 鼠标位置相对于主内容区域的底部
+                const newLogHeight = mainRect.bottom - e.clientY;
+                
+                // 设置最小和最大高度限制
+                const minHeight = 120; // 最小高度
+                const maxHeight = mainRect.height - 100; // 最大高度，留出空间给程序详情区域
+                
+                // 确保高度在有效范围内
+                const boundedHeight = Math.max(minHeight, Math.min(maxHeight, newLogHeight));
+                
+                // 设置日志容器高度
+                logContainer.style.height = `${boundedHeight}px`;
+                
+                // 移除默认的h-64类以允许自定义高度
+                if (logContainer.classList.contains('h-64')) {
+                    logContainer.classList.remove('h-64');
+                }
+            }
+            
+            function onMouseUp() {
+                isResizing = false;
+                // 移除全局事件监听器
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+        }
+        
         // 绑定事件监听器
         function bindEventListeners() {
             // 刷新按钮
@@ -823,6 +886,8 @@
             // 添加程序按钮
             document.getElementById('add-program-btn').addEventListener('click', () => openProgramModal());
             
+            // 初始化调整大小功能
+            initResizeHandle();
             
             // 模态框相关事件
             document.getElementById('close-modal').addEventListener('click', closeProgramModal);
