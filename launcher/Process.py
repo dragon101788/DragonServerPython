@@ -29,8 +29,25 @@ class ProcessManager:
     def __init__(self):
         """初始化进程管理器"""
         self.programs = {}
+        self.notify_chain = []
         self.load_config()
+
+    def register_notify(self, callback):
+        """注册状态更新回调
+        
+        Args:
+            callback: 状态更新回调函数，参数为(status: str, data: Dict[str, Any])
+        """
+        self.notify_chain.append(callback)
     
+    def notify_status(self, **kwargs):
+        """通知所有注册的回调函数状态更新
+        
+        Args:
+            **kwargs: 包含状态相关数据的关键字参数
+        """
+        for callback in self.notify_chain:
+            callback(**kwargs)
     
 
     def log(self, message: str):
@@ -104,7 +121,7 @@ class ProcessManager:
             # 等待程序启动
             admin_text = "(管理员权限)" if run_as_admin else ""
             self.log(f"程序 '{name}' 已启动{admin_text}")
-            self.log("状态更新")
+            self.notify_status(status="running", name=name, admin_text=admin_text)
             return True
         except Exception as e:
             self.log(f"启动程序 '{name}' 失败: {str(e)}")
@@ -139,7 +156,7 @@ class ProcessManager:
             proc = self.find_process_by_name(name)
             if proc is None:
                 self.log(f"未找到进程: {name}")
-                self.log("状态更新")
+                self.notify_status(status="stopped", name=name)
                 return True
             
             proc_info = proc.info
@@ -150,7 +167,7 @@ class ProcessManager:
                 try:
                     proc.wait(timeout=3)
                     self.log(f"已终止进程: {proc_info['name']}")
-                    self.log("状态更新")
+                    self.notify_status(status="stopped", name=name)
                     return True
                 except psutil.TimeoutExpired:
                     self.log(f"进程 '{proc_info['name']}' 超时，尝试强制终止")
@@ -162,7 +179,7 @@ class ProcessManager:
                         # 再次检查进程是否存在
                         if not psutil.pid_exists(proc.pid):
                             self.log(f"强制终止进程成功: {proc_info['name']}")
-                            self.log("状态更新")
+                            self.notify_status(status="stopped", name=name)
                             return True
                         else:
                             self.log(f"强制终止进程后仍然存在: {proc_info['name']}")
@@ -170,13 +187,13 @@ class ProcessManager:
                         self.log(f"强制终止进程时遇到访问拒绝: {proc_info['name']}")
                     except psutil.NoSuchProcess:
                         self.log(f"进程 '{proc_info['name']}' 在强制终止前已不存在")
-                        self.log("状态更新")
+                        self.notify_status(status="stopped", name=name)
                         return True
             except psutil.AccessDenied:
                 self.log(f"终止进程时遇到访问拒绝: {proc_info['name']}")
             except psutil.NoSuchProcess:
                 self.log(f"进程 '{proc_info['name']}' 在终止前已不存在")
-                self.log("状态更新")
+                self.notify_status(status="stopped", name=name)
                 return True
             
             # 如果第一次失败且还有重试次数，等待一小段时间后重试
@@ -186,7 +203,7 @@ class ProcessManager:
                 return self.stop_process_by_name(name, retry - 1)
                 
             self.log(f"无法终止进程: {proc_info['name']}")
-            self.log("状态更新")
+            self.notify_status(status="stopped", name=name)
             return False
             
         except Exception as e:
@@ -197,7 +214,7 @@ class ProcessManager:
                 time.sleep(0.5)
                 return self.stop_process_by_name(name, retry - 1)
             
-            self.log("状态更新")
+            self.notify_status(status="stopped", name=name)
             return False
         
     
@@ -286,7 +303,7 @@ class ProcessManager:
                 with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
                     self.programs = json.load(f)
                 self.log(f"成功加载配置文件: {CONFIG_PATH}")
-                self.log("状态更新")
+                self.notify_status(status="loaded", name="config")
             else:
                 self.log(f"配置文件不存在，创建默认配置: {CONFIG_PATH}")
                 self.programs = {}
@@ -314,7 +331,7 @@ class ProcessManager:
         program_name = program.get('name', f'未命名程序_{len(self.programs)}')
         self.programs[program_name] = program
         self.save_config()
-        self.log("状态更新")
+        self.notify_status(status="added", name=program_name)
     
     def remove_program(self, program_name: str):
         """删除程序
@@ -329,7 +346,7 @@ class ProcessManager:
             
             del self.programs[program_name]
             self.save_config()
-            self.log("状态更新")
+            self.notify_status(status="removed", name=program_name)
         except Exception as e:
             self.log(f"删除程序时出错: {str(e)}")
         
@@ -355,4 +372,4 @@ class ProcessManager:
                 # 直接更新现有条目
                 self.programs[program_name].update(updates)
             self.save_config()
-            self.log("状态更新")
+            self.notify_status(status="updated", name=program_name)

@@ -37,6 +37,8 @@ def get_executable_path():
     return executable_path
 class LauncherApp(QMainWindow):
     """启动器主应用类"""
+    # 添加信号用于处理跨线程调用
+    status_update_signal = pyqtSignal(dict)
     def redirect_output(self, stdout_put, stderr_put=None):
         
         if self.original_stdout is not None and self.original_stderr is not None:
@@ -86,11 +88,14 @@ class LauncherApp(QMainWindow):
         
         super().__init__()
         
+        # 连接信号到槽函数
+        self.status_update_signal.connect(self.update_program_status)
         
         self.current_select = None
         # 初始化组件
         self.process_manager = ProcessManager()
-        
+        # 使用信号来处理跨线程调用
+        self.process_manager.register_notify(lambda **kwargs: self.status_update_signal.emit(kwargs))
         self.server = None
         
         # 配置相关 - 现在由ProcessManager管理
@@ -367,8 +372,7 @@ class LauncherApp(QMainWindow):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"[{timestamp}] {message}"
         
-        if "状态更新" in message:
-            self.update_program_status()
+            
         # 添加到日志文本框
         self.log_text.append(log_entry)
         # 滚动到底部

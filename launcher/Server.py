@@ -168,13 +168,22 @@ class LauncherServer:
         """
         self.app = app_instance
         self.process_manager = process_manager
+        self.process_manager.register_notify(self.notify_status)
         self.fastapi_app = None
         self.server_thread = None
         self.running = False
         self.active_connections: Set[WebSocket] = set()
         self.log_history = []  # 存储最近的日志历史
         self.max_log_history = 100  # 最大保存的日志数量
-    
+
+
+    def notify_status(self, **kwargs):
+        pass
+        #self.log(f"状态更新: {kwargs}")
+        # self.boardcast_message({
+        #     "type": "status_update"
+        # })
+
     def log(self, message: str):
         print(message)
 
@@ -219,6 +228,16 @@ class LauncherServer:
             # 如果异步调用失败，至少我们已经打印了日志到控制台
             print(f"广播日志失败: {e}")
         
+    def boardcast_message(self, message: dict):
+        # 向所有活跃连接发送日志
+        for connection in list(self.active_connections):
+            try:
+                connection.send_json(message)
+            except Exception as e:
+                # 如果发送失败，移除该连接
+                print(f"发送日志失败: {e}")
+                if connection in self.active_connections:
+                    self.active_connections.remove(connection)
     async def broadcast_log(self, message: str):
         """通过WebSocket广播日志消息给所有连接的客户端"""
         # 创建日志消息对象
