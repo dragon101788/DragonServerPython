@@ -12,7 +12,6 @@ import time
 import io
 from server_config import *   
 import timestamp   
-from console import console_router
 from ChatAI import chat_router
 import mimetypes    
 
@@ -44,7 +43,6 @@ templates = Jinja2Templates(Resource.path.templates)
 
 # 设置WebDAV服务器的根目录
 
-app.include_router(console_router)
 app.include_router(chat_router)
 app.include_router(account_router)
 app.mount("/chatroom", chatroom_app)
