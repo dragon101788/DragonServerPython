@@ -1,11 +1,8 @@
 
 
 import Resource
-import config
-import shutil 
-from ServerManagerPyqt import *
+from src.ServerManagerPyqt import *
 ServerManagerUI.get_instance()
-import WebServer
 import Resource
 
 from server_config import *    

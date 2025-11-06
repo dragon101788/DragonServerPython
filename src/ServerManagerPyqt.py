@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout ,QAction, QHBoxLayout, QPushButton, QTextEdit, QLabel, QStatusBar, QFileDialog, QMenu, QCheckBox
 from PyQt5.QtGui import QIcon, QImage, QPixmap
 from PyQt5.QtCore import QTimer, QEvent
-from ServerManager import *
+from src.ServerManager import *
 from PIL import Image
 import pystray
 import sys

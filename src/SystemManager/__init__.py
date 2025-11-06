@@ -15,7 +15,7 @@ from server_config import *
 import src.SystemManager.HostedService as HostedService
 
 router = APIRouter()
-from ServerManagerPyqt import *
+from src.ServerManagerPyqt import *
 
 
 async def send_log_to_clients(message: str):
