@@ -13,6 +13,9 @@ from fastapi import FastAPI
 import uvicorn
 from typing import Any
 
+import src.WebServer as WebServer
+import src.webdav.WebdavService as WebdavService
+
 log_config = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -142,32 +145,35 @@ class ServerManager:
 
     def add_server(self, port,server):
         self.services[port] = server
-
+    def add_uvicorn_server(self, app, options = {}):
+        self.add_server(options["port"], UvicornService(app, options))
     def get_servers_by_port(self, port):
         return self.services.get(port, None)
     def scan_config(self):
-        """
-        根据 server_config 的配置自动添加并启动 Uvicorn 服务。
-        """
-        server_list = server_config.get("server_list", [])
 
-        for server_info in server_list:
-            try:
-                type = server_info["type"]
-                if type != "uvicorn":
-                    continue
-                enabled = server_info.get("enabled", True)
-                if not enabled:
-                    continue
-                app_path = server_info["app"]
-                app = import_app(app_path)
-                server_options = server_info["config"]
-                port = server_options["port"]
-                uvicorn_service = UvicornService(app, server_options)
-
-                self.add_server(port,uvicorn_service)
-            except ImportError as e:
-                print(f"配置文件有误: {str(e)}")
+        self.add_uvicorn_server(WebServer.app, {   
+                "host" : "0.0.0.0",#主机地址，默认0.0.0.0
+                "port" : 8443, #端口号，默认8443
+                "ssl" : "search_file",#启用ssl证书，search_file是搜索文件，默认不启用
+                "backlog" : 100,  #连接队列长度，默认100
+            })
+        self.add_uvicorn_server(WebServer.app, {   
+                "host" : "0.0.0.0",#主机地址，默认0.0.0.0
+                "port" : 8800, #端口号，默认8800
+                "backlog" : 100,  #连接队列长度，默认100
+            })
+        self.add_uvicorn_server(WebdavService.app, {   
+                "host" : "0.0.0.0",#主机地址，默认0.0.0.0
+                "port" : 8901, #端口号，默认8901
+                "ssl" : "search_file",#启用ssl证书，search_file是搜索文件，默认不启用
+                "backlog" : 100,  #连接队列长度，默认100
+            })
+        self.add_uvicorn_server(WebdavService.app, {   
+                "host" : "0.0.0.0",#主机地址，默认0.0.0.0
+                "port" : 8900, #端口号，默认8900
+                "ssl" : "search_file",#启用ssl证书，search_file是搜索文件，默认不启用
+                "backlog" : 100,  #连接队列长度，默认100
+            })
 
     def start_server_by_config(self):
         self.scan_config()
