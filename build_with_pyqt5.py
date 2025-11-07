@@ -17,6 +17,8 @@ from process import thread_process
 from process import process
 from PIL import Image
 
+import Resource
+
 # 获取当前打包时间并生成简洁版本号
 build_time = datetime.now()
 version = build_time.strftime("%y%m%d%H")
@@ -746,24 +748,20 @@ class PackageToolUI(QMainWindow):
         # 创建托盘图标
         self.tray_icon = QSystemTrayIcon(self)
         
-        # 尝试设置图标
-        if hasattr(self, 'icon_preview') and self.icon_preview.pixmap():
-            self.tray_icon.setIcon(QIcon(self.icon_preview.pixmap()))
+        icon_path = Resource.real_path_math("icon.ico")
+        if icon_path:
+            self.tray_icon.setIcon(QIcon(icon_path))
+            self.icon = Image.open(icon_path)
+            # 将 PIL 图像转换为 QImage
+            qimage = QImage(self.icon.tobytes(), self.icon.width, self.icon.height, self.icon.width * 4, QImage.Format_RGBA8888)
+            # 将 QImage 转换为 QPixmap
+            pixmap = QPixmap.fromImage(qimage)
+            # 将 QPixmap 转换为 QIcon
+            self.setWindowIcon(QIcon(pixmap))
         else:
-            # 尝试查找并使用应用图标
-            icon_path = self.tool.find_icon()
-            if icon_path:
-                self.tray_icon.setIcon(QIcon(icon_path))
-                self.icon = Image.open(icon_path)
-                # 将 PIL 图像转换为 QImage
-                qimage = QImage(self.icon.tobytes(), self.icon.width, self.icon.height, self.icon.width * 4, QImage.Format_RGBA8888)
-                # 将 QImage 转换为 QPixmap
-                pixmap = QPixmap.fromImage(qimage)
-                # 将 QPixmap 转换为 QIcon
-                self.setWindowIcon(QIcon(pixmap))
-            else:
-                # 如果没有找到图标，使用PyQt默认图标
-                self.tray_icon.setIcon(QIcon.fromTheme("application-x-executable"))
+            # 如果没有找到图标，使用PyQt默认图标
+            self.tray_icon.setIcon(QIcon.fromTheme("application-x-executable"))
+           
         
         # 设置托盘图标提示文本
         self.tray_icon.setToolTip("PyInstaller打包工具")

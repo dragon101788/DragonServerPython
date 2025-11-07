@@ -244,11 +244,11 @@ class ServerManagerUI(ServerManager, QApplication):
         print(f"Resource.path.templates={Resource.path.templates}")
         print(f"Resource.path.static={Resource.path.static}")
 
-        icon_path = os.path.join(Resource.path.static, "icon.ico")
+        icon_path = Resource.real_path_math("icon.ico")
         try:
             with open(icon_path, 'rb') as f:
                 bytes = f.read()
-                self.icon = Image.open(os.path.join(Resource.path.static, "icon.ico"))
+                self.icon = Image.open(icon_path)
                 # 将 PIL 图像转换为 QImage
                 qimage = QImage(self.icon.tobytes(), self.icon.width, self.icon.height, self.icon.width * 4, QImage.Format_RGBA8888)
                 # 将 QImage 转换为 QPixmap
