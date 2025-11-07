@@ -146,7 +146,6 @@ async def check_path(path: str = ""):
         else:
             return JSONResponse({"exists": False})
     except Exception as e:
-        print(f"Template error for path '{path}': {str(e)}")
         return JSONResponse({"exists": False})
 
 @app.get("/{path:path}")
@@ -170,7 +169,6 @@ async def AccessFiles(request: Request, path: str = ""):
         
         raise Exception("文件不存在")
     except Exception as e:
-        print(f"Template error for path '{path}': {str(e)}")
         return templates.TemplateResponse("error.html", {"request": request ,"reason" : e.__str__() ,"status_code" : "404"}, status_code=404)
 
 

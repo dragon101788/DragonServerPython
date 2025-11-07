@@ -18,7 +18,8 @@ import jwt
 from datetime import datetime, timedelta, timezone
 import base64
 import json
-
+import account 
+import Resource
 class ProgramInfo(BaseModel):
     """程序信息数据模型"""
     name: str
@@ -29,6 +30,39 @@ class ProgramInfo(BaseModel):
     try_admin: bool = False
     running: bool = False
 
+
+def responseFile(file_path: str):
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    # 获取文件大小
+    file_size = os.path.getsize(file_path)
+    
+    # 对于大文件（>10MB）使用流式响应
+    if file_size > 10 * 1024 * 1024:
+        # 定义流式读取生成器函数
+        async def file_streamer(file_path, chunk_size=8192):
+            with open(file_path, "rb") as file:
+                while chunk := file.read(chunk_size):
+                    yield chunk
+                    # 可以选择在每个chunk之间添加短暂的延迟
+                    # await asyncio.sleep(0.001)
+        
+        # 获取文件的MIME类型
+        import mimetypes
+        content_type, _ = mimetypes.guess_type(file_path)
+        content_type = content_type or "application/octet-stream"
+        
+        return StreamingResponse(
+            file_streamer(file_path),
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"inline; filename={os.path.basename(file_path)}",
+                "Content-Length": str(file_size)
+            }
+        )
+    else:
+        # 小文件仍然使用普通的FileResponse
+        return FileResponse(file_path)
 
 class ProgramAction(BaseModel):
     """程序操作数据模型"""
@@ -44,117 +78,6 @@ class ProgramUpdate(BaseModel):
     startup_with_windows: Optional[bool] = None
     try_admin: Optional[bool] = None
 
-
-def get_executable_path():
-    if getattr(sys, 'frozen', False):
-        # 如果是打包后的可执行文件
-        executable_path = os.path.dirname(sys.executable)
-    else:
-        # 如果是普通的 Python 脚本
-        executable_path = os.path.dirname(os.path.abspath(__file__))
-    
-    return executable_path
-
-# JWT 密钥，实际应用中应使用更安全的方式存储
-SECRET_KEY = "881017"
-ALGORITHM = "HS256"
-
-
-    
-async def verfiy_by_token(token):
-    try:
-        if token.startswith("Bearer "):
-            token = token.split(" ")[1]
-        if token.startswith("bearer "):
-            token = token.split(" ")[1]
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        # 检查token是否过期
-        if datetime.now(timezone.utc) > datetime.fromtimestamp(payload["exp"], tz=timezone.utc):
-            raise HTTPException(
-                status_code=401,
-                detail="Token已过期",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        return payload
-    except jwt.PyJWTError as e:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-
-      
-
-   
-    
-async def verfiy_by_request(request):
-
-
-    auth_header = request.headers.get("Authorization")
-    
-    if auth_header == "guest":
-        request.username = "guest"
-        return request
-    elif auth_header and auth_header.startswith("Basic "):
-        try:
-        # 解析 Base64 编码的认证信息
-            encoded_credentials = auth_header.split(" ")[1]
-            decoded_credentials = base64.b64decode(encoded_credentials).decode("utf-8")
-            username, password = decoded_credentials.split(":", 1)
-            credentials = HTTPBasicCredentials(username=username, password=password)
-            if credentials.username != "dragon" or credentials.password != "Dragon101788!":
-                raise HTTPException(
-                    status_code=401,
-                    detail="Invalid username or password",
-                    headers={"WWW-Authenticate": 'Basic realm="WebDAV Service"'},
-                )
-            else:
-                request.username = username
-                return request
-        except (ValueError, UnicodeDecodeError):
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid authentication credentials",
-                headers={"WWW-Authenticate": 'Basic realm="WebDAV Service"'},
-            )
-    elif auth_header and auth_header.startswith("Bearer "):
-        # 解析 Bearer 令牌
-        try:
-            payload = await verfiy_by_token(auth_header)
-            request.username = payload.get("username")
-            return request
-        except HTTPException as e:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid token",
-                headers={"WWW-Authenticate": 'Bearer realm="WebDAV Service"'},
-            )
-    
-    cookie_token = request.cookies.get("token",None)
-    if cookie_token is not None:
-        payload = await verfiy_by_token(cookie_token)
-        request.username = payload.get("username")
-        return request
-
-    cookie = request.headers.get("cookie", None)
-    cookie_token = cookie.split("token=")[1].split(";")[0] if cookie else None
-    if cookie_token is not None:
-        payload = await verfiy_by_token(cookie_token)
-        request.username = payload.get("username")
-        return request
-
-    url_token = request.query_params.get("token",None)
-    if url_token is not None:
-        payload = await verfiy_by_token(url_token)
-        request.username = payload.get("username")
-        return request
-    
-    raise HTTPException(
-        status_code=401,
-        detail="Invalid authentication method",
-        headers={"WWW-Authenticate": 'Basic realm="WebDAV Service"'},
-    )
 
 class LauncherServer:
     """启动器FastAPI服务类"""
@@ -298,27 +221,13 @@ class LauncherServer:
                 if websocket in self.active_connections:
                     self.active_connections.remove(websocket)
         
-        # 根路径 - 返回HTML管理界面
-        @self.fastapi_app.get("/")
-        async def root(request: Request):
-            await verfiy_by_request(request)
-            return await index_html(request)
+
         
-        # /index.html路径 - 返回HTML管理界面
-        @self.fastapi_app.get("/index.html")
-        async def index_html(request: Request):
-            await verfiy_by_request(request)
-                
-            executable_path = get_executable_path()
-            html_file_path = os.path.join(executable_path, "index.html")
-            if os.path.exists(html_file_path):
-                return FileResponse(html_file_path)
-            return {"message": "HTML interface not available"}
         
         # 获取所有程序列表
         @self.fastapi_app.get("/api/programs", response_model=List[ProgramInfo])
         async def get_programs(request: Request):
-            await verfiy_by_request(request)
+            await account.verfiy_by_request(request)
                 
             programs = []
             for name, program in self.process_manager.programs.items():
@@ -337,7 +246,7 @@ class LauncherServer:
         # 获取单个程序信息
         @self.fastapi_app.get("/api/programs/{program_name}", response_model=ProgramInfo)
         async def get_program(request: Request, program_name: str):
-            await verfiy_by_request(request)
+            await account.verfiy_by_request(request)
                 
             if(program_name in self.process_manager.programs):
                 program = self.process_manager.programs[program_name]
@@ -355,7 +264,7 @@ class LauncherServer:
         # 启动程序
         @self.fastapi_app.post("/api/programs/start")
         async def start_program(request: Request, action: ProgramAction):
-            await verfiy_by_request(request)
+            await account.verfiy_by_request(request)
             
             result = self.process_manager.start_process_by_name(action.name)
             if result:
@@ -366,7 +275,7 @@ class LauncherServer:
         # 停止程序
         @self.fastapi_app.post("/api/programs/stop")
         async def stop_program(request: Request, action: ProgramAction):
-            await verfiy_by_request(request)
+            await account.verfiy_by_request(request)
             
             result = self.process_manager.stop_process_by_name(action.name,3)
             if result:
@@ -379,7 +288,7 @@ class LauncherServer:
         # 获取服务状态
         @self.fastapi_app.get("/api/status")
         async def get_status(request: Request):
-            await verfiy_by_request(request)
+            await account.verfiy_by_request(request)
                 
             status = {
                 "service": "running",
@@ -391,7 +300,7 @@ class LauncherServer:
         # 添加程序
         @self.fastapi_app.post("/api/programs/add")
         async def add_program(request: Request, program: ProgramInfo):
-            await verfiy_by_request(request)
+            await account.verfiy_by_request(request)
                 
             try:
                 # 将ProgramInfo转换为字典格式
@@ -407,7 +316,7 @@ class LauncherServer:
         # 删除程序
         @self.fastapi_app.post("/api/programs/remove")
         async def remove_program(request: Request, action: ProgramAction):
-            await verfiy_by_request(request)
+            await account.verfiy_by_request(request)
                 
             try:
                 # 检查程序是否存在
@@ -422,7 +331,7 @@ class LauncherServer:
         # 更新程序
         @self.fastapi_app.post("/api/programs/update/{program_name}")
         async def update_program(request: Request, program_name: str, updates: ProgramUpdate):
-            await verfiy_by_request(request)
+            await account.verfiy_by_request(request)
                 
             try:
                 # 检查程序是否存在
@@ -440,7 +349,34 @@ class LauncherServer:
                 return {"status": "success", "message": f"程序 '{program_name}' 更新成功"}
             except Exception as e:
                 return {"status": "error", "message": f"更新程序失败: {str(e)}"}
-        
+
+        @self.fastapi_app.get("/{path:path}")
+        async def AccessFiles(request: Request, path: str = ""):
+            try:
+                if not path:
+                    path = "index.html"
+                
+                cur_path = os.path.dirname(os.path.abspath(__file__))
+                if os.path.exists(os.path.join(cur_path, path)):
+                    return responseFile(os.path.join(cur_path, path))
+                elif os.path.exists(os.path.join(Resource.path.executable, path)):
+                    return responseFile(os.path.join(Resource.path.executable, path))
+                elif os.path.exists(os.path.join(Resource.path.src, path)):
+                    if path.endswith(".py"):
+                        raise Exception("禁止访问.py文件")
+                    return responseFile(os.path.join(Resource.path.src, path))
+                elif os.path.exists(os.path.join(Resource.path.templates, path)):
+                    return templates.TemplateResponse(path, {"request": request})
+                    
+                
+                raise Exception("文件%s不存在"%path)
+            except Exception as e:
+                
+                return {"status": "error", "message": f"文件访问失败: {str(e)}"}
+                return templates.TemplateResponse("error.html", {"request": request ,"reason" : e.__str__() ,"status_code" : "404"}, status_code=404)
+
+
+
     
     def run_fastapi_server(self):
         """在单独的线程中运行FastAPI服务"""

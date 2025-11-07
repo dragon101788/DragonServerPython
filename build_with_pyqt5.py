@@ -298,7 +298,9 @@ class PackageToolUI(QMainWindow):
         self.python_path_edit.setText(self.config.get("python_path", ""))
         self.resource_tree.clear()
         for src, dst in self.config.get("resources", []):
+            # 确保创建的是可编辑的树项
             item = QTreeWidgetItem([src, dst])
+            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
             self.resource_tree.addTopLevelItem(item)
     def create_resource_panel(self, parent):
         # 创建左侧资源面板
@@ -316,6 +318,11 @@ class PackageToolUI(QMainWindow):
         self.resource_tree.setColumnCount(2)
         self.resource_tree.setHeaderLabels(["源路径", "目标路径"])
         self.resource_tree.setSelectionMode(QTreeWidget.ExtendedSelection)
+        # 设置更全面的编辑触发器
+        self.resource_tree.setEditTriggers(QTreeWidget.DoubleClicked | QTreeWidget.EditKeyPressed | 
+                                         QTreeWidget.SelectedClicked | QTreeWidget.AnyKeyPressed)
+        # 连接双击信号
+        self.resource_tree.itemDoubleClicked.connect(self.on_item_double_clicked)
         layout.addWidget(self.resource_tree)
 
         # 按钮框架
@@ -361,7 +368,9 @@ class PackageToolUI(QMainWindow):
         for file_path in files:
             if file_path:
                 rel_path = os.path.relpath(file_path, self.source_path_edit.text())
+                # 确保创建的是可编辑的树项
                 item = QTreeWidgetItem([rel_path, rel_path])
+                item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
                 self.resource_tree.addTopLevelItem(item)
 
     def add_resource_folder(self):
@@ -370,8 +379,19 @@ class PackageToolUI(QMainWindow):
         )
         if folder:
             rel_path = os.path.relpath(folder, self.source_path_edit.text())
+            # 确保创建的是可编辑的树项
             item = QTreeWidgetItem([rel_path, rel_path])
+            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
             self.resource_tree.addTopLevelItem(item)
+
+    def on_item_double_clicked(self, item, column):
+        # 确保项目可编辑
+        item.setFlags(item.flags() | Qt.ItemIsEditable)
+        # 开始编辑
+        try:
+            self.resource_tree.editItem(item, column)
+        except Exception as e:
+            print(f"编辑资源项失败: {str(e)}")
 
     def remove_resource(self):
         for item in self.resource_tree.selectedItems():
@@ -384,7 +404,9 @@ class PackageToolUI(QMainWindow):
         # 重新扫描并添加资源
         resources = self.tool.scan_resources()
         for src, dst in resources:
+            # 确保创建的是可编辑的树项
             item = QTreeWidgetItem([src, dst])
+            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
             self.resource_tree.addTopLevelItem(item)
 
     def select_python_path(self):
@@ -707,8 +729,11 @@ class PackageToolUI(QMainWindow):
         
         self.tool.current_dir = self.source_path_edit.text()
         
+        # 确保资源项在添加到tool.resources之前也可编辑
         for index in range(self.resource_tree.topLevelItemCount()):
             item = self.resource_tree.topLevelItem(index)
+            # 确保项可编辑
+            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
             src = item.text(0)
             dst = item.text(1)
             self.tool.resources.append((src, dst))
