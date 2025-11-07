@@ -1,3 +1,4 @@
+import json
 import account 
 from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect
 import os
@@ -11,6 +12,8 @@ import asyncio
 from urllib.parse import parse_qs
 import threading  # 导入 threading 模块
 from src.server_config import *    
+
+import src.ServerManagerPyqt as ServerManager 
 
 
 router = APIRouter()
@@ -124,8 +127,15 @@ async def get_system_info(request: Request):
         raise HTTPException(status_code=500, detail=f"Failed to fetch system metrics: {str(e)}")
 
 
-
-
+@router.get("/api/get_log_history")
+async def get_log_history(request :Request):
+    await account.verfiy_by_request(request);
+    role = account.get_profile(request.username).get("role")
+    if "SuperAdmin" not in role:
+        raise HTTPException(status_code=403, detail="Permission denied")
+        
+    from src.ServerManager import history_log
+    return JSONResponse(content=json.dumps(history_log))
 
 @router.get("/api/get_extra_static")
 async def get_extra_static(request: Request):

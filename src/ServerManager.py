@@ -1,3 +1,4 @@
+import statistics
 import sys
 import threading
 import Resource
@@ -13,6 +14,7 @@ from fastapi import FastAPI
 import uvicorn
 from typing import Any
 
+import account
 import src.WebServer as WebServer
 import src.webdav.WebdavService as WebdavService
 
@@ -130,9 +132,12 @@ def import_app(app_path: str) -> Any:
         return getattr(module, app_name)
     except (ImportError, AttributeError) as e:
         raise ImportError(f"无法导入应用实例 {app_path}: {str(e)}")
-    
+
+history_log = []
 # 服务管理类，处理服务线程管理
 class ServerManager:
+    
+
     def __init__(self  ,name ):
         self.services = {}
         self.is_running = False
@@ -141,7 +146,13 @@ class ServerManager:
         self.original_stdout = None
         self.name = name
         
+
         self.redirect_output()
+        self.register_log_callback(self.send_log_to_clients)
+
+    def send_log_to_clients(self, log):
+        history_log.append(log)
+        account.send_to_all_clients("system_log",log)
 
     def add_server(self, port,server):
         self.services[port] = server

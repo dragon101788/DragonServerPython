@@ -167,7 +167,20 @@ class SystemManager extends HTMLElement {
     connectedCallback() {
         this.render();
         this.setupEventListeners();
-        // 调用 loadServerList 函数加载服务列表
+        
+        fetch('/api/get_log_history')
+        .then(response => response.json())
+        .then(data => {
+            const consoleElement = this.shadowRoot.getElementById('system-log');
+            if (consoleElement) {
+                for (const log of JSON.parse(data)) {
+                    consoleElement.textContent += `\n${log}`;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('获取日志历史失败:', error);
+        });
         console.log('SystemManager 加载');
     }
 
@@ -411,9 +424,7 @@ class SystemManager extends HTMLElement {
                     <canvas id="network-chart-canvas" width="500" height="200"></canvas>
                 </div>
                 
-                <div class="system-log" id="system-log">
-                    <h2>系统log</h2>
-                </div>
+                <div class="system-log" id="system-log"></div>
             </div>
         `;
 
