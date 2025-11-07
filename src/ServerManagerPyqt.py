@@ -244,23 +244,13 @@ class ServerManagerUI(ServerManager, QApplication):
         print(f"Resource.path.templates={Resource.path.templates}")
         print(f"Resource.path.static={Resource.path.static}")
 
-        icon_path = Resource.real_path_math("icon.ico")
-        try:
-            with open(icon_path, 'rb') as f:
-                bytes = f.read()
-                self.icon = Image.open(icon_path)
-                # 将 PIL 图像转换为 QImage
-                qimage = QImage(self.icon.tobytes(), self.icon.width, self.icon.height, self.icon.width * 4, QImage.Format_RGBA8888)
-                # 将 QImage 转换为 QPixmap
-                pixmap = QPixmap.fromImage(qimage)
-                # 将 QPixmap 转换为 QIcon
-                self.main_widget.setWindowIcon(QIcon(pixmap))
-            print(f"成功加载图标{icon_path}")
-        except Exception as e:
-            print(f"警告: 无法加载图标文件，使用默认图标 {e}")
-            self.icon = Image.new('RGBA', (32, 32), 'blue')
+        img = Resource.DragonImg()
+        qimage = QImage(img.tobytes(), img.width, img.height, QImage.Format_RGBA8888)
+        qpixmap = QPixmap.fromImage(qimage)
+        # 将 QPixmap 转换为 QIcon
+        self.main_widget.setWindowIcon(QIcon(qpixmap))
 
-        self.setup_tray()
+        self.setup_tray(img)
 
         #使用新方法获取所有父进程名称
         parent_names = self.get_parents_name()
@@ -279,7 +269,7 @@ class ServerManagerUI(ServerManager, QApplication):
         self.timer.timeout.connect(self.main_widget.update_running_time)
         self.timer.start(1000)
 
-    def setup_tray(self):
+    def setup_tray(self, icon):
         # 初始化托盘图标的菜单
         self.auto_startup_item = pystray.MenuItem(
             "开机自启动", 
@@ -289,7 +279,7 @@ class ServerManagerUI(ServerManager, QApplication):
         
         self.systray = pystray.Icon(
             "server_manager",
-            self.icon,
+            icon,
             self.name,
             menu=pystray.Menu(
                 pystray.MenuItem("显示主窗口", self.show_window),

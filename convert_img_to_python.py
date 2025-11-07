@@ -7,6 +7,13 @@ import sys
 def convert_img_to_python(path):
     pypath = path.replace(".png", ".py")
     img = Image.open(path)
+    
+    # new_width = 100
+    # ratio = new_width / img.width
+    # new_height = int(img.height * ratio)
+    # new_size = (new_width, new_height)
+
+    # img = img.resize(new_size, Image.LANCZOS)
     print(img.size)
     print(img.mode)
 

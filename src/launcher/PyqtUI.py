@@ -620,11 +620,12 @@ class LauncherApp(QMainWindow):
         self.tray_icon = QSystemTrayIcon(self)
         
         # 设置托盘图标（如果没有图标文件，可以使用默认图标）
-        img = Resource.DragonImg(170)
+        img = Resource.DragonImg(hue=170)
         qimage = QImage(img.tobytes(), img.width, img.height, QImage.Format_RGBA8888)
         pixmap = QPixmap.fromImage(qimage)
-        self.tray_icon.setIcon(QIcon(pixmap))
-        self.setWindowIcon(QIcon(pixmap))
+        self.icon = QIcon(pixmap)
+        self.tray_icon.setIcon(self.icon)
+        self.setWindowIcon(self.icon)
         
         # 设置托盘图标标题
         self.tray_icon.setToolTip("DragonServer 启动器")
