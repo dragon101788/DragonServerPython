@@ -223,7 +223,7 @@ class PackageToolUI(QMainWindow):
         """保存当前打包配置到指定文件"""
         self.config = {
             "source_path": self.source_path_edit.text(),  # 直接从控件获取值
-            "main_file": self.main_file_combobox.currentText(),  # 直接从控件获取值
+            "main_file": self.main_file_combobox.text(),  # 直接从控件获取值
             "output_name": self.output_name_edit.text(),  # 直接从控件获取值
             "icon_path": self.icon_edit.text(),  # 直接从控件获取值
             "onefile": self.onefile_check.isChecked(),  # 直接从控件获取值
@@ -283,7 +283,7 @@ class PackageToolUI(QMainWindow):
     
     def update_config_to_ui(self):
         self.source_path_edit.setText(self.config.get("source_path", ""))
-        self.main_file_combobox.setCurrentText(self.config.get("main_file", ""))
+        self.main_file_combobox.setText(self.config.get("main_file", ""))
         self.output_name_edit.setText(self.config.get("output_name", ""))
         self.icon_edit.setText(self.config.get("icon_path", ""))
         self.onefile_check.setChecked(self.config.get("onefile", False))
@@ -423,14 +423,14 @@ class PackageToolUI(QMainWindow):
         row1_layout.addWidget(self.python_path_edit)
         row1_layout.addWidget(QPushButton("浏览", clicked=self.select_python_path))
 
-        # 第一行：源目录和主文件
+        # 第一行：源目录选择
         row2 = QWidget()
         row2_layout = QHBoxLayout()
         row2_layout.setContentsMargins(0, 0, 0, 0)
         row2_layout.setSpacing(0)
         row2.setLayout(row2_layout)
 
-        # 源目录选择（左半部分）
+        # 源目录选择
         source_frame = QWidget()
         source_layout = QHBoxLayout()
         source_frame.setLayout(source_layout)
@@ -440,7 +440,16 @@ class PackageToolUI(QMainWindow):
         source_layout.addWidget(self.source_path_edit)
         source_layout.addWidget(QPushButton("浏览", clicked=self.select_source_dir))
 
-        # 主文件选择（右半部分）
+        row2_layout.addWidget(source_frame)
+
+        # 第二行：主文件选择
+        row3 = QWidget()
+        row3_layout = QHBoxLayout()
+        row3_layout.setContentsMargins(0, 0, 0, 0)
+        row3_layout.setSpacing(0)
+        row3.setLayout(row3_layout)
+
+        # 主文件选择
         main_file_frame = QWidget()
         main_file_layout = QHBoxLayout()
         main_file_layout.setContentsMargins(0, 0, 0, 0)  # 调整边距
@@ -448,21 +457,19 @@ class PackageToolUI(QMainWindow):
 
         main_file_frame.setLayout(main_file_layout)
         main_file_layout.addWidget(QLabel("主文件:"))
-        self.main_file_combobox = QComboBox()
-        self.main_file_combobox.addItems(['main.py', 'app.py', 'server.py', 'run.py'])
-        self.main_file_combobox.setCurrentText(self.config.get("main_file", ""))
+        self.main_file_combobox = QLineEdit()
+        self.main_file_combobox.setText(self.config.get("main_file", ""))
         main_file_layout.addWidget(self.main_file_combobox)
         main_file_layout.addWidget(QPushButton("浏览", clicked=self.select_main_file))
 
-        row2_layout.addWidget(source_frame)
-        row2_layout.addWidget(main_file_frame)
+        row3_layout.addWidget(main_file_frame)
 
-        # 第二行：输出名称和图标文件
-        row3 = QWidget()
-        row3_layout = QHBoxLayout()
-        row3_layout.setContentsMargins(0, 0, 0, 0)
-        row3_layout.setSpacing(0)
-        row3.setLayout(row3_layout)
+        # 第三行：输出名称和图标文件
+        row4 = QWidget()
+        row4_layout = QHBoxLayout()
+        row4_layout.setContentsMargins(0, 0, 0, 0)
+        row4_layout.setSpacing(0)
+        row4.setLayout(row4_layout)
 
         # 输出名称（左半部分）
         output_frame = QWidget()
@@ -495,12 +502,13 @@ class PackageToolUI(QMainWindow):
         self.icon_preview = QLabel()
         icon_layout.addWidget(self.icon_preview)
 
-        row3_layout.addWidget(output_frame)
-        row3_layout.addWidget(icon_frame)
+        row4_layout.addWidget(output_frame)
+        row4_layout.addWidget(icon_frame)
 
         path_layout.addWidget(row1)
         path_layout.addWidget(row2)
         path_layout.addWidget(row3)
+        path_layout.addWidget(row4)
 
         parent.addWidget(path_frame)
 
@@ -628,8 +636,6 @@ class PackageToolUI(QMainWindow):
             directory = directory.replace( "\\",   "/")
             self.source_path_edit.setText(directory)
             self.tool.current_dir = directory # 更新当前目录
-            # 更新主文件列表
-            self.update_main_file_list()
 
     def select_main_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -637,27 +643,10 @@ class PackageToolUI(QMainWindow):
         )
         if file_path:
             try:
-                self.main_file_combobox.addItems([file_path])
-                self.main_file_combobox.setCurrentText(file_path)
+                self.main_file_combobox.setText(file_path)
             except Exception as e:
                 print(f"选择主文件失败: {str(e)}")
 
-    def update_main_file_list(self):
-        # 扫描目录下的所有.py文件
-        py_files = [f for f in os.listdir(self.tool.current_dir)
-                    if f.endswith('.py') and os.path.isfile(os.path.join(self.tool.current_dir, f))]
-        self.main_file_combobox.clear()
-        self.main_file_combobox.addItems(py_files)
-
-        # 尝试找到默认主文件
-        default_files = ['main.py', 'app.py', 'server.py', 'run.py' ,'__init__.py']
-        for default_file in default_files:
-            if default_file in py_files:
-                self.main_file_combobox.setCurrentText(default_file)
-                break
-        else:
-            if py_files:
-                self.main_file_combobox.setCurrentText(py_files[0])
 
     def clear_log(self):
         self.log_text.clear()
@@ -670,7 +659,7 @@ class PackageToolUI(QMainWindow):
         self.tool.resources = []
 
         # 检查必要的输入
-        if not self.main_file_combobox.currentText():
+        if not self.main_file_combobox.text():
             QMessageBox.critical(self, "错误", "请选择主文件！")
             return
         if not self.output_name_edit.text():
@@ -710,7 +699,7 @@ class PackageToolUI(QMainWindow):
             else:
                 print("\n未找到图标文件，将使用默认图标")
 
-        self.tool.main_file = self.main_file_combobox.currentText()
+        self.tool.main_file = self.main_file_combobox.text()
         if not os.path.exists(os.path.join(self.tool.current_dir, self.tool.main_file)):
             QMessageBox.critical(self, "错误", f"找不到主文件: {self.tool.main_file}")
             return

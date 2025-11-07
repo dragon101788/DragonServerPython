@@ -1,7 +1,7 @@
 {
     "source_path": "D:/IMPORTANT/python/DragonServer",
-    "main_file": "main.py",
-    "output_name": "DragonServer",
+    "main_file": "D:/IMPORTANT/python/DragonServer/LauncherApp.py",
+    "output_name": "launcher",
     "icon_path": "D:/IMPORTANT/python/DragonServer/icon.ico",
     "onefile": true,
     "windowed": true,
