@@ -1,5 +1,4 @@
 // 导入 rebootSystem 函数
-import { rebootSystem, rebootServer ,start_server,stop_server} from './api.js';
 import { AccountManager } from '/AccountManager.js';
 import { InputDialog } from '/BaseModal.js';
 
@@ -243,53 +242,6 @@ class SystemManager extends HTMLElement {
     }
 
     setupEventListeners() {
-        // 绑定重启按钮点击事件
-        const rebootBtn = this.shadowRoot.getElementById('system-reboot-btn');
-        if (rebootBtn) {
-            rebootBtn.addEventListener('click', async () => {
-
-                InputDialog.open({title:"重启服务器",message:"注意:你确定知道自己在做什么?\n 请输入[重启服务器]\n将会重启服务器"}).addEventListener('confirm', async (event) => {
-                    if (event.detail.value === '重启服务器') {
-                            try {
-                        const message = await rebootSystem();
-                        const statusElement = this.shadowRoot.getElementById('status');
-                        if (statusElement) {
-                            statusElement.textContent = message;
-                        }
-                    } catch (error) {
-                        const statusElement = this.shadowRoot.getElementById('status');
-                        if (statusElement) {
-                            statusElement.textContent = `重启失败: ${error.message}`;
-                        }
-                        console.error('重启系统出错:', error);
-                    }
-                    }
-                })
-
-                
-            });
-        }
-
-        const serverRebootBtn = this.shadowRoot.getElementById('server-reboot-btn');
-        if (serverRebootBtn) {
-            serverRebootBtn.addEventListener('click', async () => {
-                InputDialog.open({title:"重启服务",message:"注意:你确定知道自己在做什么?\n 请输入[重启服务进程]\n将会重启服务进程"}).addEventListener('confirm', async (event) => {
-                    if (event.detail.value === '重启服务进程') {
-                         try {
-                            const message = await rebootServer();
-                            console.log(message);
-                            alert(message);
-                            location.reload();
-
-                        } catch (error) {
-                            console.error('服务重启失败:', error);
-                            alert('服务重启失败，请稍后重试');
-                        }
-                    } 
-                })
-               
-            });
-        }
     }
     formatUptime(seconds) {
             const days = Math.floor(seconds / (3600 * 24));
@@ -457,13 +409,8 @@ class SystemManager extends HTMLElement {
                     </div>
                     
                     <canvas id="network-chart-canvas" width="500" height="200"></canvas>
-                    <div class="control-buttons">
-                        <button id="system-reboot-btn" style="background-color: #dc3545;">重启系统</button>
-                        <button id="server-reboot-btn" style="background-color: #fd7e14;">重启服务</button> 
-                    </div> 
                 </div>
                 
-                <div id="server-list"></div>
                 <div class="system-log" id="system-log">
                     <h2>系统log</h2>
                 </div>

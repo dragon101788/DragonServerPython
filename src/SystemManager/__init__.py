@@ -126,25 +126,6 @@ async def get_system_info(request: Request):
 
 
 
-        
-@router.post("/api/update_server_config")
-async def update_server_config(request: Request):
-    await account.verfiy_by_request(request);
-    role = account.get_profile(request.username).get("role")
-    if "SuperAdmin" not in role:
-        raise HTTPException(status_code=403, detail="Permission denied")
-    try:
-        data = await request.json()
-        #对比两个字典,打印出不同的部分
-        print(f"{request.username}保存配置")
-        server_config.check_diffrent(data);
-        server_config.update(data)
-        return JSONResponse(content={"message": "Config updated successfully"})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update config: {str(e)}")
-
-
-    
 
 @router.get("/api/get_extra_static")
 async def get_extra_static(request: Request):
