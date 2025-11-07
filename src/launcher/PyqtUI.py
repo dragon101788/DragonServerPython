@@ -19,9 +19,9 @@ from PyQt5.QtWidgets import (
     QStatusBar, QAction, QMenu, QSplitter, QTextEdit, QListWidget, QListWidgetItem,
     QGroupBox, QLabel, QLineEdit, QCheckBox, QComboBox, QFrame, QHeaderView, QSystemTrayIcon
 )
-from PyQt5.QtGui import QContextMenuEvent
+from PyQt5.QtGui import QContextMenuEvent, QImage
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QIcon, QFont
+from PyQt5.QtGui import QIcon, QFont, QPixmap
 
 from src.launcher.Process import ProcessManager
 from src.launcher.Server import LauncherServer
@@ -620,14 +620,11 @@ class LauncherApp(QMainWindow):
         self.tray_icon = QSystemTrayIcon(self)
         
         # 设置托盘图标（如果没有图标文件，可以使用默认图标）
-        icon_path = Resource.real_path_math('icon.ico')
-        
-        if os.path.exists(icon_path):
-            self.tray_icon.setIcon(QIcon(icon_path))
-            self.setWindowIcon(QIcon(icon_path))
-        else:
-            # 使用应用程序默认图标
-            self.tray_icon.setIcon(self.windowIcon())
+        img = Resource.DragonImg(170)
+        qimage = QImage(img.tobytes(), img.width, img.height, QImage.Format_RGBA8888)
+        pixmap = QPixmap.fromImage(qimage)
+        self.tray_icon.setIcon(QIcon(pixmap))
+        self.setWindowIcon(QIcon(pixmap))
         
         # 设置托盘图标标题
         self.tray_icon.setToolTip("DragonServer 启动器")
