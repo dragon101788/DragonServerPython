@@ -620,7 +620,7 @@ class LauncherApp(QMainWindow):
         self.tray_icon = QSystemTrayIcon(self)
         
         # 设置托盘图标（如果没有图标文件，可以使用默认图标）
-        img = Resource.DragonImg(hue=170)
+        img = Resource.DragonImg(newsize=100, hue=170)
         qimage = QImage(img.tobytes(), img.width, img.height, QImage.Format_RGBA8888)
         pixmap = QPixmap.fromImage(qimage)
         self.icon = QIcon(pixmap)

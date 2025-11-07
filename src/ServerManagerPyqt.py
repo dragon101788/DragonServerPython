@@ -244,7 +244,7 @@ class ServerManagerUI(ServerManager, QApplication):
         print(f"Resource.path.templates={Resource.path.templates}")
         print(f"Resource.path.static={Resource.path.static}")
 
-        img = Resource.DragonImg()
+        img = Resource.DragonImg(newsize=100)
         qimage = QImage(img.tobytes(), img.width, img.height, QImage.Format_RGBA8888)
         qpixmap = QPixmap.fromImage(qimage)
         # 将 QPixmap 转换为 QIcon
