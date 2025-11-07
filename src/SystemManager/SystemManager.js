@@ -1,5 +1,5 @@
 // 导入 rebootSystem 函数
-import { getSystemInfo, connectToLogWebSocket, getLog, rebootSystem, rebootServer, get_server_status ,start_server,stop_server} from './api.js';
+import { rebootSystem, rebootServer ,start_server,stop_server} from './api.js';
 import { AccountManager } from '/AccountManager.js';
 import { InputDialog } from '/BaseModal.js';
 
@@ -208,7 +208,6 @@ class SystemManager extends HTMLElement {
         })
        AccountManager.register_ws_recv_callback("system_info",async (data)=>{
         
-            this.loadServerList(await get_server_status());
             this.loadSystemInfo(data)
        })
     }
@@ -313,24 +312,9 @@ class SystemManager extends HTMLElement {
             
         }
 
-    async loadSystemLog() {
-        try {
-            const log = await getLog();
-            const logElement = this.shadowRoot.getElementById('system-log');
-            // 将 \n 全局替换为 <br>
-            const formattedLog = `${log}`;
-            
-            logElement.textContent = formattedLog; 
-            logElement.scrollTop = logElement.scrollHeight;
-            
-        } catch (error) {
-            console.error('加载系统日志失败:', error);
-        }
-    }
 
     async init() {
         const session = await AccountManager.getUserSession();
-        this.loadSystemLog();
     }
 
    

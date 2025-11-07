@@ -23,7 +23,6 @@ class ServerConfig extends HTMLElement {
     }
     async loadConfig() {
         try {
-            this.config = await get_server_config();
             this.renderServerList();
             this.updateSettingsDisplay();
         } catch (error) {
