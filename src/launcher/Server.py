@@ -252,6 +252,21 @@ class LauncherServer:
             except Exception as e:
                 return {"status": "error", "message": f"更新程序失败: {str(e)}"}
         
+        def backup_program(program_name: str):
+            program = self.process_manager.programs[program_name];
+            program_path = program.get("path")
+            print(f"备份程序路径: {program_path}")
+
+            try:
+                #备份到history 并命名YYMMDDHH
+                os.makedirs(os.path.join(os.path.dirname(program_path), "history"), exist_ok=True)
+                basename = os.path.basename(program_path)
+                backup_path = os.path.join(os.path.dirname(program_path), f"history/{basename.replace(".exe","") + datetime.now().strftime("%y%m%d%H%M") + ".exe"}")
+                shutil.move(program_path, backup_path)
+                print(f"程序 '{program_name}' 已备份到: {backup_path}")
+            except Exception as e:
+                print(f"备份程序 '{program_name}' 失败: {str(e)}")
+
         # 升级程序 - 上传文件
         @self.fastapi_app.post("/api/programs/upgrade")
         async def upgrade_program(request: Request, file: UploadFile = File(...), program_name: str = Form(...)):
@@ -266,12 +281,7 @@ class LauncherServer:
                 program_path = program.get("path")
                 print(f"升级程序路径: {program_path}")
 
-                #备份到history 并命名YYMMDDHH
-                os.makedirs(os.path.join(os.path.dirname(program_path), "history"), exist_ok=True)
-                basename = os.path.basename(program_path)
-                backup_path = os.path.join(os.path.dirname(program_path), f"history/{basename.replace(".exe","") + datetime.now().strftime("%y%m%d%H%M") + ".exe"}")
-                shutil.move(program_path, backup_path)
-                print(f"程序 '{program_name}' 已备份到: {backup_path}")
+                backup_program(program_name)
 
                 
                 # 写入文件
