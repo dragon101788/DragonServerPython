@@ -44,8 +44,12 @@ class SystemPanel extends HTMLElement {
     render() {
         this.shadowRoot.innerHTML = `
         <style>
+            :host {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
             .system-panel {
-                padding: 20px;
                 background: #f5f5f5;
                 border-radius: 8px;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -62,6 +66,7 @@ class SystemPanel extends HTMLElement {
                 grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
                 gap: 20px;
                 margin-bottom: 20px;
+                padding: 20px;
             }
             .metric-card {
                 background: white;
@@ -83,6 +88,7 @@ class SystemPanel extends HTMLElement {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
                 gap: 20px;
+                padding: 20px;
             }
             .chart-container {
                 background: white;
