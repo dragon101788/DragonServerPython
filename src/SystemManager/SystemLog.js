@@ -25,11 +25,11 @@ export class SystemLog extends HTMLElement {
         this.bindEvents();
 
         
-        // 获取日志
-        this.getLogs();
-        AccountManager.register_ws_recv_callback("system_log", (message) => {
-            this.logMessage(message);
-        });
+            // 获取日志
+            this.getLogs();
+            AccountManager.register_ws_recv_callback("system_log", (message) => {
+                this.logMessage(message);
+            });
     }
     disconnectedCallback() {
         // 注销WebSocket接收回调
@@ -47,7 +47,8 @@ export class SystemLog extends HTMLElement {
                     border-top: 1px solid #374151;
                     display: flex;
                     flex-direction: column;
-                    height: 300px;
+                    height: 100%;
+                    width: 100%;
                     position: relative;
                 }
                 

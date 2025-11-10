@@ -3,6 +3,8 @@ const chartJS = document.createElement('script');
 chartJS.src = 'https://cdn.jsdelivr.net/npm/chart.js';
 document.head.appendChild(chartJS);
 
+import { AccountManager } from "/AccountManager.js";
+
 class SystemPanel extends HTMLElement {
     constructor() {
         super();
@@ -22,7 +24,13 @@ class SystemPanel extends HTMLElement {
         this.render();
         this.initCharts();
         this.fetchSystemInfo();
-        this.startAutoUpdate();
+
+        AccountManager.register_ws_recv_callback("system_info", (message) => {
+            this.updatePanel(message);
+        });
+    }
+    disconnectedCallback() {
+        AccountManager.unregister_ws_recv_callback("system_info");
     }
 
     disconnectedCallback() {
@@ -350,13 +358,6 @@ class SystemPanel extends HTMLElement {
             this.charts.memory.data.datasets[0].data = [...this.dataHistory.memory_usage];
             this.charts.memory.update('none');
         }
-    }
-
-    startAutoUpdate() {
-        // 每秒钟更新一次数据
-        this.updateInterval = setInterval(() => {
-            this.fetchSystemInfo();
-        }, 1000);
     }
 
     formatTime(seconds) {
