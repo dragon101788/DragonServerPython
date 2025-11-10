@@ -95,9 +95,7 @@ class LauncherServer:
         self.fastapi_app = None
         self.server_thread = None
         self.running = False
-        self.active_connections: Set[WebSocket] = set()
         self.log_history = []  # 存储最近的日志历史
-        self.max_log_history = 100  # 最大保存的日志数量
 
 
     def notify_status(self, **kwargs):
@@ -110,74 +108,9 @@ class LauncherServer:
     def log(self, message: str):
         print(message)
 
-    def websocket_log_callback(self, message: str):
-        """记录日志并通过WebSocket广播"""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
         
-        # 保存到日志历史
-        self.log_history.append({
-            "timestamp": timestamp,
-            "message": message
-        })
-        # 保持日志历史不超过最大数量
-        if len(self.log_history) > self.max_log_history:
-            self.log_history = self.log_history[-self.max_log_history:]
         
-        # 通过WebSocket广播日志
-        # 在同步方法中调用异步方法，需要使用asyncio事件循环
-        try:
-            import asyncio
-            
-            # 尝试获取当前事件循环
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                # 如果没有运行中的事件循环，创建一个新的
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
-            # 创建一个异步任务来广播日志
-            async def broadcast_task():
-                await self.broadcast_log(message)
-            
-            # 如果在事件循环的线程中运行，直接调用
-            if loop.is_running():
-                # 使用call_soon_threadsafe在运行中的事件循环中调度任务
-                loop.call_soon_threadsafe(lambda: asyncio.create_task(broadcast_task()))
-            else:
-                # 如果事件循环没有运行，可以使用run_until_complete
-                loop.run_until_complete(broadcast_task())
-        except Exception as e:
-            # 如果异步调用失败，至少我们已经打印了日志到控制台
-            print(f"广播日志失败: {e}")
-        
-    def boardcast_message(self, message: dict):
-        # 向所有活跃连接发送日志
-        for connection in list(self.active_connections):
-            try:
-                connection.send_json(message)
-            except Exception as e:
-                # 如果发送失败，移除该连接
-                print(f"发送日志失败: {e}")
-                if connection in self.active_connections:
-                    self.active_connections.remove(connection)
-    async def broadcast_log(self, message: str):
-        """通过WebSocket广播日志消息给所有连接的客户端"""
-        # 创建日志消息对象
-        log_data = {
-            "type": "log",
-            "message": message
-        }
-        
-        # 向所有活跃连接发送日志
-        for connection in list(self.active_connections):
-            try:
-                await connection.send_json(log_data)
-            except Exception as e:
-                # 如果发送失败，移除该连接
-                print(f"发送日志失败: {e}")
-                if connection in self.active_connections:
-                    self.active_connections.remove(connection)
     
     def init_fastapi(self):
         """初始化FastAPI应用"""
@@ -194,39 +127,8 @@ class LauncherServer:
             allow_headers=["*"],
         )
         
-        # 包含account路由
-        self.fastapi_app.include_router(account.account_router)
         
-        # WebSocket端点 - 用于实时日志传输
-        @self.fastapi_app.websocket("/ws/logs")
-        async def websocket_endpoint(websocket: WebSocket):
-            await websocket.accept()
-            self.active_connections.add(websocket)
-            
-            # 发送历史日志给新连接的客户端
-            for log_entry in self.log_history:
-                try:
-                    await websocket.send_json({
-                        "type": "log",
-                        "message": f"[{log_entry['timestamp']}] {log_entry['message']}"
-                    })
-                except Exception:
-                    break
-            
-            try:
-                while True:
-                    # 保持连接，等待客户端消息
-                    await websocket.receive_text()
-            except WebSocketDisconnect:
-                self.active_connections.remove(websocket)
-            except Exception as e:
-                print(f"WebSocket错误: {e}")
-                if websocket in self.active_connections:
-                    self.active_connections.remove(websocket)
-        
-
-        
-        
+       
         # 获取所有程序列表
         @self.fastapi_app.get("/api/programs", response_model=List[ProgramInfo])
         async def get_programs(request: Request):
@@ -353,7 +255,11 @@ class LauncherServer:
             except Exception as e:
                 return {"status": "error", "message": f"更新程序失败: {str(e)}"}
 
-        # 在init_fastapi方法中应该直接调用include_router，而不是在这里作为装饰器使用
+        self.fastapi_app.include_router(account.account_router)
+        @self.fastapi_app.get("/api/logs")
+        async def get_logs(request: Request):
+            await account.verfiy_by_request(request)
+            return json.dumps(self.log_history, ensure_ascii=False)
 
         @self.fastapi_app.get("/{path:path}")
         async def AccessFiles(request: Request, path: str = ""):
@@ -382,7 +288,13 @@ class LauncherServer:
 
 
 
-    
+    def websocket_log_callback(self, message: str):
+        """通过WebSocket广播日志消息给所有连接的客户端"""
+        self.log_history.append(message)
+        # 只保留最近的100条日志
+        self.log_history = self.log_history[-100:]
+
+        return account.send_to_all_clients("system_log",message)
     def run_fastapi_server(self):
         """在单独的线程中运行FastAPI服务"""
         try:
@@ -429,15 +341,6 @@ class LauncherServer:
         """停止FastAPI服务"""
         if self.running:
             self.running = False
-            # 关闭所有WebSocket连接
-            for connection in list(self.active_connections):
-                try:
-                    # 注意：这里在同步方法中无法直接调用异步方法
-                    # 在实际使用中，连接会在服务器停止时自动关闭
-                    pass
-                except Exception:
-                    pass
-            self.active_connections.clear()
             # FastAPI服务器需要通过其他方式停止，这里仅设置标志
             return True
         return False

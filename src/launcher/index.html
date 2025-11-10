@@ -206,12 +206,27 @@
         function init() {
             // 加载程序列表
             loadPrograms();
-            // 初始化WebSocket连接
-            initWebSocket();
+            getLogs();
+            AccountManager.register_ws_recv_callback("system_log", (message) => {
+                logMessage(message);
+            });
             // 绑定事件监听器
             bindEventListeners();
         }
-        
+        async function getLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                if (!response.ok) throw new Error('获取日志失败');
+                const data = await response.json();
+                const logs = JSON.parse(data);
+                // 检查返回的数据是否为对象，如果是对象且有logs属性，则使用logs属性的值
+                // 否则假设data本身就是日志数组
+                logs.forEach(log => logMessage(log));
+            } catch (error) {
+                console.error('获取日志出错:', error);
+                logMessage(`错误: 获取日志失败 - ${error.message}`);
+            }
+        }   
         // 加载程序列表
         async function loadPrograms() {
             try {
@@ -700,52 +715,8 @@
             }
         }
         
-        // 初始化WebSocket连接
-        function initWebSocket() {
-            try {
-                // 获取当前页面的主机名和端口
-                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${wsProtocol}//${window.location.host}/ws/logs`;
-                
-                // 创建WebSocket连接
-                ws = new WebSocket(wsUrl);
-                
-                // 连接打开
-                ws.onopen = () => {
-                    logMessage('日志连接已建立');
-                };
-                
-                // 接收消息
-                ws.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data.type === 'log' && data.message) {
-                            logMessage(data.message);
-                        }
-                    } catch (error) {
-                        console.error('解析日志消息出错:', error);
-                    }
-                };
-                
-                // 连接关闭
-                ws.onclose = () => {
-                    logMessage('日志连接已关闭，将在5秒后重新连接...');
-                    // 5秒后重新连接
-                    setTimeout(initWebSocket, 5000);
-                };
-                
-                // 连接错误
-                ws.onerror = (error) => {
-                    console.error('WebSocket错误:', error);
-                    logMessage(`错误: 日志连接失败 - ${error.message || '未知错误'}`);
-                };
-            } catch (error) {
-                console.error('初始化WebSocket出错:', error);
-                logMessage(`错误: 无法建立日志连接 - ${error.message}`);
-                // 5秒后重新连接
-                setTimeout(initWebSocket, 5000);
-            }
-        }
+        
+        
         
         // 记录日志消息
         function logMessage(message) {
@@ -778,7 +749,6 @@
                 logWindow.scrollTop = logWindow.scrollHeight;
             }
         }
-        
         // 清空日志
         function clearLog() {
             document.getElementById('log-window').innerHTML = '<div class="text-gray-500 italic">日志已清空</div>';
