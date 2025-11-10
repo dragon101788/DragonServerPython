@@ -28,7 +28,7 @@ export class SystemLog extends HTMLElement {
         // 获取日志
         this.getLogs();
         AccountManager.register_ws_recv_callback("system_log", (message) => {
-            systemLog.logMessage(message);
+            this.logMessage(message);
         });
     }
     disconnectedCallback() {
