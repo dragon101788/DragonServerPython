@@ -1,6 +1,8 @@
 // 导入 rebootSystem 函数
 import { AccountManager } from '/AccountManager.js';
 import { InputDialog } from '/BaseModal.js';
+import {SystemLog} from '/SystemManager/SystemLog.js';
+
 
 
 import '/lib/chart.js';// 导入 Chart 组件 ,不要动这个,chart.js在本地目录下SystemManager,并没有esm导出
@@ -168,19 +170,6 @@ class SystemManager extends HTMLElement {
         this.render();
         this.setupEventListeners();
         
-        fetch('/api/get_log_history')
-        .then(response => response.json())
-        .then(data => {
-            const consoleElement = this.shadowRoot.getElementById('system-log');
-            if (consoleElement) {
-                for (const log of JSON.parse(data)) {
-                    consoleElement.textContent += `\n${log}`;
-                }
-            }
-        })
-        .catch(error => {
-            console.error('获取日志历史失败:', error);
-        });
         console.log('SystemManager 加载');
     }
 
@@ -209,15 +198,7 @@ class SystemManager extends HTMLElement {
 
     onTabActive() {
        console.log('SystemManager 激活'); 
-       const logElement = this.shadowRoot.getElementById('system-log');
-       logElement.scrollTop = logElement.scrollHeight;
        
-       AccountManager.register_ws_recv_callback("system_log",async (data)=>{
-        
-            const logElement = this.shadowRoot.getElementById('system-log');
-            logElement.textContent += `\n${data}`;
-            logElement.scrollTop = logElement.scrollHeight;
-        })
        AccountManager.register_ws_recv_callback("system_info",async (data)=>{
         
             this.loadSystemInfo(data)
@@ -225,7 +206,6 @@ class SystemManager extends HTMLElement {
     }
     onTabEscape() {
         console.log('SystemManager 离开');
-        AccountManager.unregister_ws_recv_callback("system_log");
         AccountManager.unregister_ws_recv_callback("system_info");
     }
     loadSystemInfo(systemInfo) {
@@ -324,20 +304,6 @@ class SystemManager extends HTMLElement {
                 padding: 10px;
             }
 
-            .system-log {
-                /* 可根据实际情况调整高度 */
-                height: auto;
-                min-height: 400px;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                padding: 10px;
-                overflow-y: auto; 
-                white-space: pre-wrap; 
-                word-wrap: break-word; 
-                overflow-wrap: break-word; 
-                background-color: #f5f5f5;
-                border: 1px solid #ccc;
-            }
 
             .top-section {
                 flex-shrink: 0; 
@@ -424,7 +390,7 @@ class SystemManager extends HTMLElement {
                     <canvas id="network-chart-canvas" width="500" height="200"></canvas>
                 </div>
                 
-                <div class="system-log" id="system-log"></div>
+                <system-log></system-log>
             </div>
         `;
 

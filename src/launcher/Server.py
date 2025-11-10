@@ -95,7 +95,6 @@ class LauncherServer:
         self.fastapi_app = None
         self.server_thread = None
         self.running = False
-        self.log_history = []  # 存储最近的日志历史
 
 
     def notify_status(self, **kwargs):
@@ -256,10 +255,6 @@ class LauncherServer:
                 return {"status": "error", "message": f"更新程序失败: {str(e)}"}
 
         self.fastapi_app.include_router(account.account_router)
-        @self.fastapi_app.get("/api/logs")
-        async def get_logs(request: Request):
-            await account.verfiy_by_request(request)
-            return json.dumps(self.log_history, ensure_ascii=False)
 
         @self.fastapi_app.get("/{path:path}")
         async def AccessFiles(request: Request, path: str = ""):
@@ -292,9 +287,9 @@ class LauncherServer:
 
     def websocket_log_callback(self, message: str):
         """通过WebSocket广播日志消息给所有连接的客户端"""
-        self.log_history.append(message)
+        account.history_log.append(message)
         # 只保留最近的100条日志
-        self.log_history = self.log_history[-100:]
+        account.history_log = account.history_log[-100:]
 
         return account.send_to_all_clients("system_log",message)
     def run_fastapi_server(self):

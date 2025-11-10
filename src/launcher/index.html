@@ -93,11 +93,15 @@
                 </div>
             </div>
             
-            <!-- 系统日志组件 -->
-            <system-log id="log-section">
-                    <div class="text-gray-500 italic">正在连接日志流...</div>
-                </div>
+            <!-- 拖动条 -->
+            <div id="log-resizer" class="h-1 bg-gray-300 cursor-row-resize hover:bg-gray-400 transition-colors" style="position: relative;">
+                <div class="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-3 bg-gray-500 rounded-full"></div>
             </div>
+            
+            <!-- 系统日志组件 -->
+            <system-log id="log-section" style="height: 300px; overflow: hidden;">
+                <div class="text-gray-500 italic">正在连接日志流...</div>
+            </system-log>
         </main>
     </div>
 
@@ -187,20 +191,6 @@
             // 绑定事件监听器
             bindEventListeners();
         }
-        async function getLogs() {
-            try {
-                const response = await fetch('/api/logs');
-                if (!response.ok) throw new Error('获取日志失败');
-                const data = await response.json();
-                const logs = JSON.parse(data);
-                // 检查返回的数据是否为对象，如果是对象且有logs属性，则使用logs属性的值
-                // 否则假设data本身就是日志数组
-                logs.forEach(log => logMessage(log));
-            } catch (error) {
-                console.error('获取日志出错:', error);
-                logMessage(`错误: 获取日志失败 - ${error.message}`);
-            }
-        }   
         // 加载程序列表
         async function loadPrograms() {
             try {
@@ -767,6 +757,48 @@
             // 添加程序按钮
             document.getElementById('add-program-btn').addEventListener('click', () => openProgramModal());
             
+            
+            // 日志高度调整功能
+            const resizer = document.getElementById('log-resizer');
+            const logSection = document.getElementById('log-section');
+            const programDetails = document.getElementById('program-details');
+            let isResizing = false;
+            
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                document.body.style.cursor = 'row-resize';
+                // 阻止默认行为和冒泡
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                // 获取主内容区域的位置和尺寸
+                const mainElement = document.querySelector('main');
+                const mainRect = mainElement.getBoundingClientRect();
+                
+                // 计算新的日志高度（相对于主内容区域的底部）
+                const newHeight = mainRect.bottom - e.clientY;
+                
+                // 设置最小高度为150px，最大高度为主内容区域高度的80%
+                const minHeight = 150;
+                const maxHeight = mainRect.height * 0.8;
+                
+                if (newHeight >= minHeight && newHeight <= maxHeight) {
+                    logSection.style.height = `${newHeight}px`;
+                    // 让program-details自动适应剩余空间
+                    programDetails.style.flex = '1';
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = '';
+                }
+            });
             
             // 日志相关事件已在SystemLog组件中绑定
             document.getElementById('close-modal').addEventListener('click', closeProgramModal);

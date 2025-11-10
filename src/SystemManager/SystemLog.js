@@ -125,30 +125,8 @@ export class SystemLog extends HTMLElement {
                     word-wrap: break-word;
                 }
                 
-                .resize-handle {
-                    height: 4px;
-                    background-color: #4b5563;
-                    cursor: ns-resize;
-                    position: relative;
-                }
-                
-                .resize-handle:hover {
-                    background-color: #6b7280;
-                }
-                
-                .resize-handle::after {
-                    content: '';
-                    position: absolute;
-                    left: 50%;
-                    top: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 20px;
-                    height: 2px;
-                    background-color: #9ca3af;
-                }
             </style>
             
-            <div class="resize-handle" id="resize-handle"></div>
             
             <div class="log-header">
                 <div class="log-title">系统日志</div>
@@ -164,16 +142,12 @@ export class SystemLog extends HTMLElement {
         this.shadowRoot.innerHTML = html;
         
         // 保存引用
-        this.resizeHandle = this.shadowRoot.getElementById('resize-handle');
         this.clearLogBtn = this.shadowRoot.getElementById('clear-log-btn');
         this.autoscrollToggle = this.shadowRoot.getElementById('autoscroll-toggle');
         this.logContent = this.shadowRoot.getElementById('log-content');
     }
     
     bindEvents() {
-        // 绑定调整大小事件
-        this.resizeHandle.addEventListener('mousedown', (e) => this._onResizeStart(e));
-        
         // 绑定清除日志按钮事件
         this.clearLogBtn.addEventListener('click', () => this.clearLog());
         
@@ -181,56 +155,12 @@ export class SystemLog extends HTMLElement {
         this.autoscrollToggle.addEventListener('click', () => this.toggleAutoscroll());
     }
     
-    _onResizeStart(e) {
-        e.preventDefault();
-        this.isResizing = true;
-        
-        // 添加全局事件监听器
-        document.addEventListener('mousemove', this._onResizeMove.bind(this));
-        document.addEventListener('mouseup', this._onResizeEnd.bind(this));
-    }
     
-    _onResizeMove(e) {
-        if (!this.isResizing) return;
-        
-        // 获取组件的位置和尺寸
-        const rect = this.getBoundingClientRect();
-        const parentRect = this.parentElement.getBoundingClientRect();
-        
-        // 计算新的高度
-        const newHeight = rect.bottom - e.clientY;
-        
-        // 设置最小和最大高度限制
-        const minHeight = 120;
-        const maxHeight = parentRect.height - 100;
-        
-        // 确保高度在有效范围内
-        const boundedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
-        
-        // 设置组件高度
-        this.style.height = `${boundedHeight}px`;
-    }
-    
-    _onResizeEnd() {
-        this.isResizing = false;
-        // 移除全局事件监听器
-        document.removeEventListener('mousemove', this._onResizeMove.bind(this));
-        document.removeEventListener('mouseup', this._onResizeEnd.bind(this));
-    }
-    
-    // 当元素从DOM中移除时调用
-    disconnectedCallback() {
-        // 确保清理所有事件监听器
-        if (this.isResizing) {
-            document.removeEventListener('mousemove', this._onResizeMove.bind(this));
-            document.removeEventListener('mouseup', this._onResizeEnd.bind(this));
-        }
-    }
     
     // 公开方法
     async getLogs() {
         try {
-            const response = await fetch('/api/logs');
+            const response = await fetch('/api/get_history_log');
             if (!response.ok) throw new Error('获取日志失败');
             const data = await response.json();
             const logs = JSON.parse(data);

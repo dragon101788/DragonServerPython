@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 import jwt
 import base64
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response ,JSONResponse
 from fastapi import UploadFile, File
 from PIL import Image
 from datetime import datetime, timedelta
@@ -630,8 +630,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
     await active_connections[websocket.username].wait_finish();
 
-
-    
+history_log = []
+@account_router.get("/api/get_history_log")
+async def get_history_log(request: Request):
+    await verfiy_by_request(request);
+    return JSONResponse(content=json.dumps(history_log))
 
 # 检查账户目录是否存在，不存在则创建
 if not os.path.exists(ACCOUNT_DIR):

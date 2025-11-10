@@ -133,7 +133,6 @@ def import_app(app_path: str) -> Any:
     except (ImportError, AttributeError) as e:
         raise ImportError(f"无法导入应用实例 {app_path}: {str(e)}")
 
-history_log = []
 # 服务管理类，处理服务线程管理
 class ServerManager:
     
@@ -151,7 +150,9 @@ class ServerManager:
         self.register_log_callback(self.send_log_to_clients)
 
     def send_log_to_clients(self, log):
-        history_log.append(log)
+        account.history_log.append(log)
+        
+        account.history_log = account.history_log[-100:]
         account.send_to_all_clients("system_log",log)
 
     def add_server(self, port,server):
