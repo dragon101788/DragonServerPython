@@ -194,6 +194,9 @@ class LauncherServer:
             allow_headers=["*"],
         )
         
+        # 包含account路由
+        self.fastapi_app.include_router(account.account_router)
+        
         # WebSocket端点 - 用于实时日志传输
         @self.fastapi_app.websocket("/ws/logs")
         async def websocket_endpoint(websocket: WebSocket):
@@ -349,6 +352,8 @@ class LauncherServer:
                 return {"status": "success", "message": f"程序 '{program_name}' 更新成功"}
             except Exception as e:
                 return {"status": "error", "message": f"更新程序失败: {str(e)}"}
+
+        # 在init_fastapi方法中应该直接调用include_router，而不是在这里作为装饰器使用
 
         @self.fastapi_app.get("/{path:path}")
         async def AccessFiles(request: Request, path: str = ""):

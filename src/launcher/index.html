@@ -190,7 +190,7 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         // 当前选中的程序
         let selectedProgram = null;
         // 是否自动滚动日志
@@ -200,6 +200,8 @@
         // 是否正在编辑程序
         let isEditing = false;
         
+        import { AccountManager } from '../AccountManager.js';
+        await  AccountManager.init();
         // 初始化函数
         function init() {
             // 加载程序列表

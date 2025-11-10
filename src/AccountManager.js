@@ -217,7 +217,7 @@ export class AccountManager {
             }
         }
 
-        await this.connectWebsocket();
+        this.connectWebsocket();
         return this.token;
     }
     static async connectWebsocket(){
