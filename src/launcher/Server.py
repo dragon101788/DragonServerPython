@@ -267,14 +267,16 @@ class LauncherServer:
                 if not path:
                     path = "index.html"
                 
+                
+                if path.endswith(".py"):
+                    raise Exception("禁止访问.py文件")
+
                 cur_path = os.path.dirname(os.path.abspath(__file__))
                 if os.path.exists(os.path.join(cur_path, path)):
                     return responseFile(os.path.join(cur_path, path))
                 elif os.path.exists(os.path.join(Resource.path.executable, path)):
                     return responseFile(os.path.join(Resource.path.executable, path))
                 elif os.path.exists(os.path.join(Resource.path.src, path)):
-                    if path.endswith(".py"):
-                        raise Exception("禁止访问.py文件")
                     return responseFile(os.path.join(Resource.path.src, path))
                 elif os.path.exists(os.path.join(Resource.path.templates, path)):
                     return templates.TemplateResponse(path, {"request": request})

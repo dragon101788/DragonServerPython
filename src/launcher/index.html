@@ -45,15 +45,6 @@
             .program-item-active {
                 @apply bg-primary/10 border-l-4 border-primary text-primary;
             }
-            .resize-handle {
-                height: 5px;
-                background-color: #374151;
-                cursor: ns-resize;
-                transition: background-color 0.2s;
-            }
-            .resize-handle:hover {
-                background-color: #4B5563;
-            }
         }
     </style>
 </head>
@@ -102,23 +93,8 @@
                 </div>
             </div>
             
-            <!-- 分隔线 -->
-            <div id="resize-handle" class="resize-handle"></div>
-
-            <!-- 右下日志窗口 -->
-            <div id="log-container" class="bg-gray-800 text-white border-t border-gray-700 flex flex-col h-3/5">
-                <div class="p-2 border-b border-gray-700 flex justify-between items-center">
-                    <h3 class="font-medium text-sm"><i class="fa fa-terminal mr-2"></i> 日志窗口</h3>
-                    <div class="flex space-x-2">
-                        <button id="clear-log-btn" class="text-xs text-gray-400 hover:text-white p-1 rounded">
-                            <i class="fa fa-trash-o"></i>
-                        </button>
-                        <button id="autoscroll-toggle" class="text-xs text-gray-400 hover:text-white p-1 rounded active">
-                            <i class="fa fa-arrow-down"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="flex-1 overflow-y-auto p-3 text-sm font-mono" id="log-window">
+            <!-- 系统日志组件 -->
+            <system-log id="log-section">
                     <div class="text-gray-500 italic">正在连接日志流...</div>
                 </div>
             </div>
@@ -193,23 +169,21 @@
     <script type="module">
         // 当前选中的程序
         let selectedProgram = null;
-        // 是否自动滚动日志
-        let autoscrollLog = true;
+        // SystemLog实例
+        let systemLog = null;
         // WebSocket连接
         let ws = null;
         // 是否正在编辑程序
         let isEditing = false;
         
-        import { AccountManager } from '../AccountManager.js';
-        await  AccountManager.init();
+        import { SystemLog } from './SystemLog.js';
         // 初始化函数
         function init() {
+            // 创建SystemLog实例
+            systemLog = new SystemLog();
+            
             // 加载程序列表
             loadPrograms();
-            getLogs();
-            AccountManager.register_ws_recv_callback("system_log", (message) => {
-                logMessage(message);
-            });
             // 绑定事件监听器
             bindEventListeners();
         }
@@ -754,22 +728,6 @@
             document.getElementById('log-window').innerHTML = '<div class="text-gray-500 italic">日志已清空</div>';
         }
         
-        // 切换自动滚动
-        function toggleAutoscroll() {
-            autoscrollLog = !autoscrollLog;
-            const toggleBtn = document.getElementById('autoscroll-toggle');
-            
-            if (autoscrollLog) {
-                toggleBtn.classList.add('active', 'text-white');
-                toggleBtn.classList.remove('text-gray-400');
-                // 滚动到底部
-                const logWindow = document.getElementById('log-window');
-                logWindow.scrollTop = logWindow.scrollHeight;
-            } else {
-                toggleBtn.classList.remove('active', 'text-white');
-                toggleBtn.classList.add('text-gray-400');
-            }
-        }
         
         
         // 浏览文件
@@ -799,56 +757,7 @@
             return div.innerHTML;
         }
         
-        // 实现日志窗口大小调整
-        function initResizeHandle() {
-            const resizeHandle = document.getElementById('resize-handle');
-            const logContainer = document.getElementById('log-container');
-            const mainContent = document.querySelector('main');
-            
-            let isResizing = false;
-            
-            resizeHandle.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                isResizing = true;
-                
-                // 添加全局事件监听器
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
-            });
-            
-            function onMouseMove(e) {
-                if (!isResizing) return;
-                
-                // 获取主内容区域的位置和尺寸
-                const mainRect = mainContent.getBoundingClientRect();
-                
-                // 计算新的日志窗口高度
-                // 鼠标位置相对于主内容区域的底部
-                const newLogHeight = mainRect.bottom - e.clientY;
-                
-                // 设置最小和最大高度限制
-                const minHeight = 120; // 最小高度
-                const maxHeight = mainRect.height - 100; // 最大高度，留出空间给程序详情区域
-                
-                // 确保高度在有效范围内
-                const boundedHeight = Math.max(minHeight, Math.min(maxHeight, newLogHeight));
-                
-                // 设置日志容器高度
-                logContainer.style.height = `${boundedHeight}px`;
-                
-                // 移除默认的h-64类以允许自定义高度
-                if (logContainer.classList.contains('h-64')) {
-                    logContainer.classList.remove('h-64');
-                }
-            }
-            
-            function onMouseUp() {
-                isResizing = false;
-                // 移除全局事件监听器
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
-            }
-        }
+       
         
         // 绑定事件监听器
         function bindEventListeners() {
@@ -858,10 +767,8 @@
             // 添加程序按钮
             document.getElementById('add-program-btn').addEventListener('click', () => openProgramModal());
             
-            // 初始化调整大小功能
-            initResizeHandle();
             
-            // 模态框相关事件
+            // 日志相关事件已在SystemLog组件中绑定
             document.getElementById('close-modal').addEventListener('click', closeProgramModal);
             document.getElementById('cancel-modal').addEventListener('click', closeProgramModal);
             document.getElementById('save-program-btn').addEventListener('click', saveProgram);
@@ -871,9 +778,6 @@
             document.getElementById('browse-btn').addEventListener('click', () => browseFile('program-path'));
             document.getElementById('browse-cwd-btn').addEventListener('click', () => browseFile('program-cwd', true));
             
-            // 日志相关事件
-            document.getElementById('clear-log-btn').addEventListener('click', clearLog);
-            document.getElementById('autoscroll-toggle').addEventListener('click', toggleAutoscroll);
             
             // 点击模态框背景关闭
             document.getElementById('program-modal').addEventListener('click', (e) => {
