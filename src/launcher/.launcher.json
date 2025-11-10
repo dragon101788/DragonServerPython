@@ -1,9 +1,9 @@
 {
-  "python": {
-    "name": "python",
-    "path": "D:\\IMPORTANT\\python\\win_python312_cuda128\\python.exe",
+  "cuda_11.8.0_522.06_windows": {
+    "name": "cuda_11.8.0_522.06_windows",
+    "path": "D:/IMPORTANT/cuda_11.8.0_522.06_windows.exe",
     "args": "",
-    "cwd": "D:\\IMPORTANT\\python\\win_python312_cuda128\\",
+    "cwd": "D:/IMPORTANT",
     "startup_with_windows": false,
     "try_admin": false
   }

@@ -181,6 +181,8 @@
         let isEditing = false;
         
         import { SystemLog } from '/SystemManager/SystemLog.js';
+        import { ProgressModal } from '/BaseModal.js';
+        import { AccountManager } from '/AccountManager.js';
 
         const systemlog = document.querySelector('system-log');
         // 初始化函数
@@ -347,6 +349,9 @@
                             </div>
                         </div>
                         <div class="flex space-x-2">
+                            <button class="upgrade-program-btn px-3 py-1.5 bg-green-100 hover:bg-green-200 text-green-800 rounded-md transition-colors text-sm">
+                                <i class="fa fa-upload mr-1"></i> 升级
+                            </button>
                             <button class="edit-program-btn px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors text-sm">
                                 <i class="fa fa-pencil mr-1"></i> 编辑
                             </button>
@@ -409,6 +414,102 @@
                     // 添加新的事件监听器
                     newBtn.addEventListener('click', function() {
                         restartProgram(currentProgramName);
+                    });
+                })(program.name);
+            }
+            
+            // 绑定升级按钮事件
+            const upgradeBtn = detailsContainer.querySelector('.upgrade-program-btn');
+            if (upgradeBtn) {
+                // 使用闭包确保使用正确的program.name
+                (function(currentProgramName) {
+                    // 移除可能存在的旧事件监听器
+                    const newBtn = upgradeBtn.cloneNode(true);
+                    upgradeBtn.parentNode.replaceChild(newBtn, upgradeBtn);
+                    
+
+                    // 添加新的事件监听器
+                    newBtn.addEventListener('click', async function() {
+                        // 创建隐藏的文件选择输入框
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.style.display = 'none';
+                        
+                        // 文件选择完成后的处理
+                        fileInput.onchange = async function(event) {
+                            const file = event.target.files[0];
+                            if (!file) return;
+                            
+                            try {
+                                // 创建FormData对象
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                formData.append('program_name', currentProgramName);
+                                
+                                // 显示日志
+                                systemlog.logMessage(`正在上传升级文件: ${file.name}`);
+                                
+                                stopProgram(currentProgramName);
+                                // 使用XMLHttpRequest来支持进度监听
+                                const xhr = new XMLHttpRequest();
+                                
+                                
+                                const uploadProgressModal = ProgressModal.open({title: '上传中:'}); 
+                                AccountManager.register_ws_recv_callback("upgrade_progress", (data) => {
+                                    uploadProgressModal.updateProgress(data.progress,`更新文件${data.progress.toFixed(2)}%`);
+                                })
+
+                                // 监听进度事件
+                                xhr.upload.addEventListener('progress', function(e) {
+                                    if (e.lengthComputable) {
+                                        const percentComplete = (e.loaded / e.total) * 100;
+                                        console.log(`上传进度: ${percentComplete.toFixed(2)}% (${e.loaded} / ${e.total} 字节)`);
+                                        uploadProgressModal.updateProgress(percentComplete,`上传文件${percentComplete.toFixed(2)}%`);
+                                    }
+                                });
+                                
+                                // 请求完成时的处理
+                                xhr.addEventListener('load', async function() {
+                                    if (xhr.status === 200) {
+                                        try {
+                                            const result = JSON.parse(xhr.responseText);
+                                            systemlog.logMessage(`成功: ${result.message}`);
+                                            
+                                        } catch (parseError) {
+                                            systemlog.logMessage(`成功: 文件上传完成`);
+                                        }
+                                        uploadProgressModal.close();
+
+                                        startProgram(currentProgramName);
+                                    } else {
+                                        try {
+                                            const error = JSON.parse(xhr.responseText);
+                                            systemlog.logMessage(`错误: ${error.message || '上传失败'}`);
+                                        } catch (parseError) {
+                                            systemlog.logMessage(`错误: 上传失败 - 状态码 ${xhr.status}`);
+                                        }
+                                    }
+                                });
+                                
+                                // 请求错误时的处理
+                                xhr.addEventListener('error', function() {
+                                    console.log('上传发生网络错误');
+                                    systemlog.logMessage(`错误: 上传过程中发生网络错误`);
+                                });
+                                
+                                // 发送请求
+                                xhr.open('POST', '/api/programs/upgrade');
+                                xhr.send(formData);
+                            } catch (error) {
+                                systemlog.logMessage(`错误: 上传过程中发生错误 - ${error.message}`);
+                            }
+                        };
+                        
+                        // 添加到DOM并触发点击
+                        document.body.appendChild(fileInput);
+                        fileInput.click();
+                        // 移除临时元素
+                        setTimeout(() => fileInput.remove(), 100);
                     });
                 })(program.name);
             }

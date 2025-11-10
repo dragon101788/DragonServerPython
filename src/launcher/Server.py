@@ -7,9 +7,9 @@ import threading
 import sys
 import os
 from typing import Dict, Any, List, Optional, Set
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -18,6 +18,8 @@ import jwt
 from datetime import datetime, timedelta, timezone
 import base64
 import json
+import shutil
+
 import account 
 import Resource
 class ProgramInfo(BaseModel):
@@ -253,6 +255,62 @@ class LauncherServer:
                 return {"status": "success", "message": f"程序 '{program_name}' 更新成功"}
             except Exception as e:
                 return {"status": "error", "message": f"更新程序失败: {str(e)}"}
+        
+        # 升级程序 - 上传文件
+        @self.fastapi_app.post("/api/programs/upgrade")
+        async def upgrade_program(request: Request, file: UploadFile = File(...), program_name: str = Form(...)):
+            await account.verfiy_by_request(request)
+                
+            try:
+                # 检查程序是否存在
+                if program_name not in self.process_manager.programs:
+                    return {"status": "error", "message": f"程序 '{program_name}' 不存在"}
+                
+                program = self.process_manager.programs[program_name];
+                program_path = program.get("path")
+                print(f"升级程序路径: {program_path}")
+
+                #备份到history 并命名YYMMDDHH
+                os.makedirs(os.path.join(os.path.dirname(program_path), "history"), exist_ok=True)
+                basename = os.path.basename(program_path)
+                backup_path = os.path.join(os.path.dirname(program_path), f"history/{basename.replace(".exe","") + datetime.now().strftime("%y%m%d%H%M") + ".exe"}")
+                shutil.move(program_path, backup_path)
+                print(f"程序 '{program_name}' 已备份到: {backup_path}")
+
+                
+                # 写入文件
+                # 获取文件大小（如果可用）
+                file_size = 0
+                if hasattr(file, 'size'):
+                    file_size = file.size
+                
+                # 分片读取并写入文件，同时打印进度
+                chunk_size = 1024 * 1024  # 1MB 分片
+                total_written = 0
+                
+                with open(program_path, "wb") as buffer:
+                    while True:
+                        chunk = await file.read(chunk_size)
+                        if not chunk:
+                            break
+                        buffer.write(chunk)
+                        total_written += len(chunk)
+                        
+                        # 打印进度信息
+                        if file_size > 0:
+                            progress = (total_written / file_size) * 100
+                            print(f"上传进度: {progress:.2f}% ({total_written}/{file_size} 字节)")
+                            account.send_to_all_clients("upgrade_progress",{"progress": progress, "total_written": total_written, "file_size": file_size})
+                        else:
+                            print(f"上传进度: {total_written} 字节已上传")
+                
+                print(f"文件上传完成，总计写入 {total_written} 字节")
+                self.log(f"程序 '{program_name}' 升级文件 '{file.filename}' 已上传，保存路径: {program_path}")
+                
+                return {"status": "success", "message": f"程序 '{program_name}' 升级文件 '{file.filename}' 上传成功"}
+            except Exception as e:
+                self.log(f"升级程序失败: {str(e)}")
+                return {"status": "error", "message": f"升级程序失败: {str(e)}"}
 
         self.fastapi_app.include_router(account.account_router)
 
