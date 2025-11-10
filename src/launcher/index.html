@@ -450,15 +450,19 @@
                                 const formData = new FormData();
                                 formData.append('file', file);
                                 formData.append('program_name', currentProgramName);
-                                
+                                let restart = false;
                                 // 显示日志
                                 systemlog.logMessage(`正在上传升级文件: ${file.name}`);
                                 
-                                const stopResult = await stopProgram(currentProgramName);
-                                if (stopResult===false) {
-                                    systemlog.logMessage(`停止程序失败: ${stopResult}`);
-                                    return;
+                                if (program.running) {
+                                    const stopResult = await stopProgram(currentProgramName);
+                                    if (stopResult===false) {
+                                        systemlog.logMessage(`停止程序失败: ${stopResult}`);
+                                        return;
+                                    }
+                                    restart = true;
                                 }
+                                
                                 // 使用XMLHttpRequest来支持进度监听
                                 const xhr = new XMLHttpRequest();
                                 
@@ -488,8 +492,9 @@
                                             systemlog.logMessage(`成功: 文件上传完成`);
                                         }
                                         uploadProgressModal.close();
-
-                                        startProgram(currentProgramName);
+                                        if (restart) {
+                                            startProgram(currentProgramName);
+                                        }
 
                                         AccountManager.unregister_ws_recv_callback("upgrade_progress");
                                     } else {
@@ -718,8 +723,6 @@
                 const result = await response.json();
                 systemlog.logMessage(`成功: ${result.message}`);
                 
-                // 重新加载程序列表，更新状态
-                setTimeout(loadPrograms, 500);
             } catch (error) {
                 console.error('启动程序出错:', error);
                 systemlog.logMessage(`错误: 启动程序失败 - ${error.message}`);
@@ -743,8 +746,6 @@
                 const result = await response.json();
                 systemlog.logMessage(`成功: ${result.message}`);
                 
-                // 重新加载程序列表，更新状态
-                setTimeout(loadPrograms, 500);
                 
                 return true;
             } catch (error) {
@@ -782,8 +783,6 @@
                         const result = await response.json();
                         systemlog.logMessage(`成功: 程序 ${name} 重启完成`);
                         
-                        // 重新加载程序列表，更新状态
-                        setTimeout(loadPrograms, 500);
                     } catch (error) {
                         console.error('重启启动程序出错:', error);
                         systemlog.logMessage(`错误: 重启启动程序失败 - ${error.message}`);
