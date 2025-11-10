@@ -13,7 +13,6 @@ from urllib.parse import parse_qs
 import threading  # 导入 threading 模块
 from src.server_config import *    
 
-import src.ServerManagerPyqt as ServerManager 
 
 
 router = APIRouter()

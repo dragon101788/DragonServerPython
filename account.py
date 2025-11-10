@@ -640,5 +640,6 @@ async def get_history_log(request: Request):
 if not os.path.exists(ACCOUNT_DIR):
     os.makedirs(ACCOUNT_DIR)
 
-    
+if not os.path.exists(os.path.join(ACCOUNT_DIR, DEFALUT_ADMIN,"profile.json")):
+    create_user(DEFALUT_ADMIN,DEFALUT_ADMIN_PASSWORD,role=["Admin","SuperAdmin"])
 
