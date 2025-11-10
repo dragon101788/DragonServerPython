@@ -181,11 +181,12 @@
         let isEditing = false;
         
         import { SystemLog } from '/SystemManager/SystemLog.js';
+
+        const systemlog = document.querySelector('system-log');
         // 初始化函数
         function init() {
             // 创建SystemLog实例
             systemLog = new SystemLog();
-            
             // 加载程序列表
             loadPrograms();
             // 绑定事件监听器
@@ -208,7 +209,8 @@
                 }
             } catch (error) {
                 console.error('加载程序列表出错:', error);
-                logMessage(`错误: 加载程序列表失败 - ${error.message}`);
+                systemlog.logMessage(`错误: 加载程序列表失败 - ${error.message}`);
+
                 // 显示错误提示
                 document.getElementById('program-list').innerHTML = `
                     <div class="text-center py-8 text-danger">
@@ -527,7 +529,7 @@
                 if (!response.ok) throw new Error('保存失败');
                 
                 const result = await response.json();
-                logMessage(`成功: ${result.message}`);
+                systemlog.logMessage(`成功: ${result.message}`);
                 
                 // 关闭模态框
                 closeProgramModal();
@@ -536,7 +538,7 @@
                 loadPrograms();
             } catch (error) {
                 console.error('保存程序出错:', error);
-                logMessage(`错误: 保存程序失败 - ${error.message}`);
+                systemlog.logMessage(`错误: 保存程序失败 - ${error.message}`);
                 alert(`保存失败: ${error.message}`);
             }
         }
@@ -559,7 +561,7 @@
                 if (!response.ok) throw new Error('删除失败');
                 
                 const result = await response.json();
-                logMessage(`成功: ${result.message}`);
+                systemlog.logMessage(`成功: ${result.message}`);
                 
                 // 关闭模态框
                 closeProgramModal();
@@ -579,7 +581,7 @@
                 loadPrograms();
             } catch (error) {
                 console.error('删除程序出错:', error);
-                logMessage(`错误: 删除程序失败 - ${error.message}`);
+                systemlog.logMessage(`错误: 删除程序失败 - ${error.message}`);
                 alert(`删除失败: ${error.message}`);
             }
         }
@@ -598,13 +600,13 @@
                 if (!response.ok) throw new Error('启动失败');
                 
                 const result = await response.json();
-                logMessage(`成功: ${result.message}`);
+                systemlog.logMessage(`成功: ${result.message}`);
                 
                 // 重新加载程序列表，更新状态
                 setTimeout(loadPrograms, 500);
             } catch (error) {
                 console.error('启动程序出错:', error);
-                logMessage(`错误: 启动程序失败 - ${error.message}`);
+                systemlog.logMessage(`错误: 启动程序失败 - ${error.message}`);
                 alert(`启动失败: ${error.message}`);
             }
         }
@@ -623,7 +625,7 @@
                 if (!response.ok) throw new Error('停止失败');
                 
                 const result = await response.json();
-                logMessage(`成功: ${result.message}`);
+                systemlog.logMessage(`成功: ${result.message}`);
                 
                 // 重新加载程序列表，更新状态
                 setTimeout(loadPrograms, 500);
@@ -631,7 +633,7 @@
                 return true;
             } catch (error) {
                 console.error('停止程序出错:', error);
-                logMessage(`错误: 停止程序失败 - ${error.message}`);
+                systemlog.logMessage(`错误: 停止程序失败 - ${error.message}`);
                 alert(`停止失败: ${error.message}`);
                 return false;
             }
@@ -640,7 +642,7 @@
         // 重启程序
         async function restartProgram(name) {
             try {
-                logMessage(`正在重启程序: ${name}`);
+                systemlog.logMessage(`正在重启程序: ${name}`);
                 
                 // 先停止程序
                 const stopSuccess = await stopProgram(name);
@@ -662,61 +664,23 @@
                         if (!response.ok) throw new Error('重启启动失败');
                         
                         const result = await response.json();
-                        logMessage(`成功: 程序 ${name} 重启完成`);
+                        systemlog.logMessage(`成功: 程序 ${name} 重启完成`);
                         
                         // 重新加载程序列表，更新状态
                         setTimeout(loadPrograms, 500);
                     } catch (error) {
                         console.error('重启启动程序出错:', error);
-                        logMessage(`错误: 重启启动程序失败 - ${error.message}`);
+                        systemlog.logMessage(`错误: 重启启动程序失败 - ${error.message}`);
                         alert(`重启失败: ${error.message}`);
                     }
                 }, 1000);
             } catch (error) {
                 console.error('重启程序出错:', error);
-                logMessage(`错误: 重启程序失败 - ${error.message}`);
+                systemlog.logMessage(`错误: 重启程序失败 - ${error.message}`);
                 alert(`重启失败: ${error.message}`);
             }
         }
         
-        
-        
-        
-        // 记录日志消息
-        function logMessage(message) {
-            const logWindow = document.getElementById('log-window');
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = document.createElement('div');
-            
-            // 添加时间戳
-            logEntry.classList.add('mb-1', 'flex');
-            
-            // 根据消息内容添加不同的样式
-            let messageClass = 'flex-1';
-            if (message.includes('错误:')) {
-                messageClass += ' text-danger';
-            } else if (message.includes('成功:')) {
-                messageClass += ' text-success';
-            } else if (message.includes('警告:')) {
-                messageClass += ' text-warning';
-            }
-            
-            logEntry.innerHTML = `
-                <span class="text-gray-500 mr-2">[${timestamp}]</span>
-                <span class="${messageClass}">${escapeHtml(message)}</span>
-            `;
-            
-            logWindow.appendChild(logEntry);
-            
-            // 自动滚动到底部
-            if (autoscrollLog) {
-                logWindow.scrollTop = logWindow.scrollHeight;
-            }
-        }
-        // 清空日志
-        function clearLog() {
-            document.getElementById('log-window').innerHTML = '<div class="text-gray-500 italic">日志已清空</div>';
-        }
         
         
         

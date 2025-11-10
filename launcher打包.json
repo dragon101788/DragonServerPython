@@ -5,7 +5,7 @@
     "icon_path": "D:/IMPORTANT/python/DragonServer/icon.ico",
     "onefile": true,
     "windowed": true,
-    "uac_admin": true,
+    "uac_admin": false,
     "debug": false,
     "strip": false,
     "noupx": false,
