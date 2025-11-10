@@ -204,49 +204,83 @@ async def do_GET(request: Request, path: str):
     if thumb is not None:
         return ResponseThumb(full_path,size = int(thumb),mimetype=mimetype)
 
+    # 增加连接超时设置
+    CHUNK_SIZE = 1024*1024*2  # 增加块大小以减少IO操作次数，提高大文件传输效率
+    
     range_header = request.headers.get('Range')
     if range_header:
         log(4, f"do_GET {request.username} {path} range_header={range_header}")
-        start, end = range_header.replace('bytes=', '').split('-')
-        start = int(start)
-        end = int(end) if end else file_size - 1
-        length = end - start + 1
+        try:
+            start, end = range_header.replace('bytes=', '').split('-')
+            start = int(start)
+            end = int(end) if end else file_size - 1
+            # 验证范围是否有效
+            if start < 0 or end >= file_size or start > end:
+                raise HTTPException(status_code=416, detail="Range Not Satisfiable")
+            length = end - start + 1
 
-        async def file_generator():
+            async def file_generator():
+                try:
+                    async with aiofiles.open(full_path, 'rb') as f:
+                        await f.seek(start)
+                        remaining = length
+                        while remaining > 0:
+                            chunk_size = min(remaining, CHUNK_SIZE)
+                            chunk = await f.read(chunk_size)
+                            if not chunk:
+                                break
+                            # 在yield时捕获可能的异常，如客户端断开连接
+                            try:
+                                yield chunk
+                            except GeneratorExit:
+                                # 客户端断开连接，优雅地退出生成器
+                                log(3, f"Client disconnected during range file transfer for {path}")
+                                break
+                            remaining -= chunk_size
+                except Exception as e:
+                    log(1, f"Error during range file transfer for {path}: {str(e)}")
+                    # 不抛出异常，避免在日志中显示不必要的错误
+
+            headers = {
+                'Content-Range': f'bytes {start}-{end}/{file_size}',
+                'Accept-Ranges': 'bytes',
+                'Content-Length': str(length),
+                'Content-Type': mimetype or "application/octet-stream",
+                'Connection': 'keep-alive'  # 保持连接活跃
+            }
+            return StreamingResponse(file_generator(), status_code=206, headers=headers)
+        except Exception as e:
+            # 处理解析Range头或其他错误
+            log(2, f"Error processing range header for {path}: {str(e)}")
+            # 出错时返回完整文件而不是失败
+            pass
+    
+    # 无论是否有Range请求或处理Range请求失败，都能返回文件
+    log(4, f"do_GET {request.username} {path} all")
+    async def file_generator():
+        try:
             async with aiofiles.open(full_path, 'rb') as f:
-                await f.seek(start)
-                remaining = length
-                while remaining > 0:
-                    chunk_size = min(remaining, CHUNK_SIZE)
-                    chunk = await f.read(chunk_size)
+                while True:
+                    chunk = await f.read(CHUNK_SIZE)
                     if not chunk:
                         break
-                    yield chunk
-                    remaining -= chunk_size
-
-        headers = {
-            'Content-Range': f'bytes {start}-{end}/{file_size}',
-            'Accept-Ranges': 'bytes',
-            'Content-Length': str(length),
-            'Content-Type': mimetype or "application/octet-stream"
-        }
-        return StreamingResponse(file_generator(), status_code=206, headers=headers)
-    else:
-        log(4, f"do_GET {request.username} {path} all")
-        # 这里也返回 StreamingResponse
-        async def file_generator():
-                async with aiofiles.open(full_path, 'rb') as f:
-                    while True:
-                        chunk = await f.read(CHUNK_SIZE)
-                        if not chunk:
-                            break
+                    # 在yield时捕获可能的异常，如客户端断开连接
+                    try:
                         yield chunk
+                    except GeneratorExit:
+                        # 客户端断开连接，优雅地退出生成器
+                        log(3, f"Client disconnected during full file transfer for {path}")
+                        break
+        except Exception as e:
+            log(1, f"Error during full file transfer for {path}: {str(e)}")
+            # 不抛出异常，避免在日志中显示不必要的错误
 
-        headers = {
-            'Content-Length': str(file_size),
-            'Content-Type': mimetype or "application/octet-stream"
-        }
-        return StreamingResponse(file_generator(),headers=headers, media_type=mimetype or "application/octet-stream")
+    headers = {
+        'Content-Length': str(file_size),
+        'Content-Type': mimetype or "application/octet-stream",
+        'Connection': 'keep-alive'  # 保持连接活跃
+    }
+    return StreamingResponse(file_generator(), headers=headers, media_type=mimetype or "application/octet-stream")
 
 # 处理 MOVE 请求
 @router.api_route("/{path:path}", methods=["MOVE"], include_in_schema=False)

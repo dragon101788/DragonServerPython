@@ -148,23 +148,27 @@ async def check_path(path: str = ""):
     except Exception as e:
         return JSONResponse({"exists": False})
 
-@app.get("/{path:path}")
+@app.api_route("/{path:path}",methods=["GET"])
 async def AccessFiles(request: Request, path: str = ""):
     try:
         if not path:
             path = "index.html"
+        
+        try:
+            return await WebdavService.do_GET(request, path);
+        except Exception as e:
+            for extra_static in server_config["extra_static"]:
+                if os.path.exists(os.path.join(extra_static, path)):
+                    return responseFile(os.path.join(extra_static, path))
+            if os.path.exists(os.path.join(Resource.path.executable, path)):
+                return responseFile(os.path.join(Resource.path.executable, path))
+            elif os.path.exists(os.path.join(Resource.path.src, path)):
+                if path.endswith(".py"):
+                    raise Exception("禁止访问.py文件")
+                return responseFile(os.path.join(Resource.path.src, path))
+            elif os.path.exists(os.path.join(Resource.path.templates, path)):
+                return templates.TemplateResponse(path, {"request": request})
             
-        for extra_static in server_config["extra_static"]:
-            if os.path.exists(os.path.join(extra_static, path)):
-                return responseFile(os.path.join(extra_static, path))
-        if os.path.exists(os.path.join(Resource.path.executable, path)):
-            return responseFile(os.path.join(Resource.path.executable, path))
-        elif os.path.exists(os.path.join(Resource.path.src, path)):
-            if path.endswith(".py"):
-                raise Exception("禁止访问.py文件")
-            return responseFile(os.path.join(Resource.path.src, path))
-        elif os.path.exists(os.path.join(Resource.path.templates, path)):
-            return templates.TemplateResponse(path, {"request": request})
             
         
         raise Exception("文件不存在")
@@ -172,3 +176,5 @@ async def AccessFiles(request: Request, path: str = ""):
         return templates.TemplateResponse("error.html", {"request": request ,"reason" : e.__str__() ,"status_code" : "404"}, status_code=404)
 
 
+
+app.include_router(WebdavService.router)
