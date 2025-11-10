@@ -449,7 +449,11 @@
                                 // 显示日志
                                 systemlog.logMessage(`正在上传升级文件: ${file.name}`);
                                 
-                                stopProgram(currentProgramName);
+                                const stopResult = await stopProgram(currentProgramName);
+                                if (stopResult===false) {
+                                    systemlog.logMessage(`停止程序失败: ${stopResult}`);
+                                    return;
+                                }
                                 // 使用XMLHttpRequest来支持进度监听
                                 const xhr = new XMLHttpRequest();
                                 
@@ -481,6 +485,8 @@
                                         uploadProgressModal.close();
 
                                         startProgram(currentProgramName);
+
+                                        AccountManager.unregister_ws_recv_callback("upgrade_progress");
                                     } else {
                                         try {
                                             const error = JSON.parse(xhr.responseText);
@@ -495,6 +501,8 @@
                                 xhr.addEventListener('error', function() {
                                     console.log('上传发生网络错误');
                                     systemlog.logMessage(`错误: 上传过程中发生网络错误`);
+                                    AccountManager.unregister_ws_recv_callback("upgrade_progress");
+                                    uploadProgressModal.close();
                                 });
                                 
                                 // 发送请求
@@ -502,6 +510,8 @@
                                 xhr.send(formData);
                             } catch (error) {
                                 systemlog.logMessage(`错误: 上传过程中发生错误 - ${error.message}`);
+                                AccountManager.unregister_ws_recv_callback("upgrade_progress");
+                                uploadProgressModal.close();
                             }
                         };
                         
