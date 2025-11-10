@@ -100,11 +100,7 @@ class LauncherServer:
 
 
     def notify_status(self, **kwargs):
-        pass
-        #self.log(f"状态更新: {kwargs}")
-        # self.boardcast_message({
-        #     "type": "status_update"
-        # })
+        account.send_to_all_clients("status_update", kwargs)
 
     def log(self, message: str):
         print(message)

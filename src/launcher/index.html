@@ -193,6 +193,11 @@
             loadPrograms();
             // 绑定事件监听器
             bindEventListeners();
+
+            AccountManager.register_ws_recv_callback("status_update", (data) => {
+                systemlog.logMessage(`状态更新: ${JSON.stringify(data)}`);
+                loadPrograms();
+            });
         }
         // 加载程序列表
         async function loadPrograms() {
