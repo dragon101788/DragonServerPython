@@ -1,18 +1,34 @@
 {
-  "python": {
-    "name": "python",
-    "path": "D:/IMPORTANT/python/win_python312_cuda128/python.exe",
-    "args": "-i",
-    "cwd": "D:/IMPORTANT/python/win_python312_cuda128",
-    "startup_with_windows": false,
-    "try_admin": false
+  "DragonServer8900": {
+    "name": "DragonServer8900",
+    "path": "D:/IMPORTANT/python/DragonServer/DragonServer.exe",
+    "args": "--port 8900 --ssl",
+    "cwd": "D:/IMPORTANT/python/DragonServer",
+    "startup_with_windows": true,
+    "try_admin": true
   },
-  "python2": {
-    "name": "python2",
-    "path": "D:/IMPORTANT/python/win_python312_cuda128/python.exe",
-    "args": "-i 222",
-    "cwd": "D:/IMPORTANT/python/win_python312_cuda128",
-    "startup_with_windows": false,
-    "try_admin": false
+  "DragonServer8800": {
+    "name": "DragonServer8800",
+    "path": "D:/IMPORTANT/python/DragonServer/DragonServer.exe",
+    "args": "--port 8800",
+    "cwd": "D:/IMPORTANT/python/DragonServer",
+    "startup_with_windows": true,
+    "try_admin": true
+  },
+  "DragonServer8901": {
+    "name": "DragonServer8901",
+    "path": "D:/IMPORTANT/python/DragonServer/DragonServer.exe",
+    "args": "--port 8901 --ssl",
+    "cwd": "D:/IMPORTANT/python/DragonServer",
+    "startup_with_windows": true,
+    "try_admin": true
+  },
+  "DragonServer8443": {
+    "name": "DragonServer8443",
+    "path": "D:/IMPORTANT/python/DragonServer/DragonServer.exe",
+    "args": "--ssl --port 8443",
+    "cwd": "D:/IMPORTANT/python/DragonServer",
+    "startup_with_windows": true,
+    "try_admin": true
   }
 }
