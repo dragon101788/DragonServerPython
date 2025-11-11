@@ -8,6 +8,7 @@ import psutil
 import ctypes
 import time
 import json
+import threading
 from typing import Dict, Any, Optional
 
 # 获取可执行文件路径
@@ -30,7 +31,13 @@ class ProcessManager:
         """初始化进程管理器"""
         self.programs = {}
         self.notify_chain = []
+        self.process_status_cache = {}
+        self.monitor_thread = None
+        self.monitor_interval = 1  # 监控间隔（秒）
+        self.running = False
+        
         self.load_config()
+        self.start_process_monitor()
 
     def register_notify(self, callback):
         """注册状态更新回调
@@ -52,6 +59,56 @@ class ProcessManager:
 
     def log(self, message: str):
         print(message)
+        
+    def start_process_monitor(self):
+        """启动进程监控后台线程"""
+        # 如果线程已存在且正在运行，先停止
+        if self.monitor_thread and self.monitor_thread.is_alive():
+            self.running = False
+            self.monitor_thread.join(timeout=2)
+            
+        # 设置运行标志并创建新线程
+        self.running = True
+        self.monitor_thread = threading.Thread(target=self.check_process_status)
+        self.monitor_thread.daemon = True  # 设置为守护线程，主线程结束时自动终止
+        self.monitor_thread.start()
+        self.log("进程监控后台线程已启动")
+        
+    def check_process_status(self):
+        """进程监控循环，持续运行在后台线程中"""
+        while self.running:
+            try:
+                for name in list(self.programs.keys()):
+                    is_running = self.is_program_running(name)
+                    
+                    # 获取之前的状态
+                    previous_status = self.process_status_cache.get(name, None)
+                    
+                    # 如果状态发生变化，发送通知
+                    if previous_status is True and is_running is False:
+                        self.log(f"检测到进程已结束: {name}")
+                        self.notify_status(status="stopped", name=name)
+                    elif previous_status is False and is_running is True:
+                        self.log(f"检测到进程已启动: {name}")
+                        self.notify_status(status="running", name=name)
+                    
+                    # 更新状态缓存
+                    self.process_status_cache[name] = is_running
+            except Exception as e:
+                self.log(f"进程监控循环出错: {str(e)}")
+            
+            time.sleep(self.monitor_interval)
+
+        
+        self.log("进程监控后台线程已停止")
+        
+        
+                
+    def stop_process_monitor(self):
+        """停止进程监控线程"""
+        self.running = False
+        if self.monitor_thread and self.monitor_thread.is_alive():
+            self.monitor_thread.join(timeout=2)
     def is_program_running(self, name: str) -> bool:
         """检查程序是否正在运行
         
