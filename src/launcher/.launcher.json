@@ -2,7 +2,15 @@
   "python": {
     "name": "python",
     "path": "D:/IMPORTANT/python/win_python312_cuda128/python.exe",
-    "args": "",
+    "args": "-i",
+    "cwd": "D:/IMPORTANT/python/win_python312_cuda128",
+    "startup_with_windows": false,
+    "try_admin": false
+  },
+  "python2": {
+    "name": "python2",
+    "path": "D:/IMPORTANT/python/win_python312_cuda128/python.exe",
+    "args": "-i 222",
     "cwd": "D:/IMPORTANT/python/win_python312_cuda128",
     "startup_with_windows": false,
     "try_admin": false

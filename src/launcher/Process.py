@@ -33,7 +33,7 @@ class ProcessManager:
         self.notify_chain = []
         self.process_status_cache = {}
         self.monitor_thread = None
-        self.monitor_interval = 1  # 监控间隔（秒）
+        self.monitor_interval = 5  # 监控间隔（秒）
         self.running = False
         
         self.load_config()
@@ -189,12 +189,18 @@ class ProcessManager:
             return None
         path = self.programs[name]['path']
         name = self.programs[name]['name']
-        for proc in psutil.process_iter(['name', 'exe']):
+        args = self.programs[name].get('args', '')
+        cmdline = f"{os.path.normpath(path)} {args}".strip()
+        cmdline = cmdline.split()
+        for proc in psutil.process_iter(['name', 'exe', 'cmdline']):
             try:
                 proc_info = proc.info
                 if (str.lower(proc_info['name']) == str.lower(name) or 
                     (proc_info['exe'] and os.path.normpath(proc_info['exe']) == os.path.normpath(path))):
-                    return proc
+                    #return proc
+                    proc_info_cmdline = proc_info['cmdline']
+                    if proc_info_cmdline and proc_info_cmdline == cmdline:
+                        return proc
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         
