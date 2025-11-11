@@ -26,7 +26,7 @@ class LogFileHandler(FileSystemEventHandler):
         async def list_log(uws :account.UserWebsocket,body :dict):
             print(body)
             log_files = os.listdir(self.log_dir)
-            uws.put(json.dumps({"tag":"list_log","body":{
+            uws.put(json.dumps({"tag":body.get("callbackId","list_log"),"body":{
                 "log_files":log_files
             }}))
         @account.recv_messages("get_log")

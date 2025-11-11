@@ -17,17 +17,20 @@ export class SystemLog extends HTMLElement {
     }
     
     // 当元素被插入到DOM中时调用
-    connectedCallback() {
+    async connectedCallback() {
         // 渲染组件
         this.render();
         
         // 绑定事件
         this.bindEvents();
         
-        AccountManager.register_ws_recv_callback("list_log", (message) => {
+        try {
+            const message = await AccountManager.Fetch("list_log", {});
             this.logMessage(message);
-        });
-        AccountManager.send_ws_message("list_log");
+        } catch (error) {
+            console.error("获取日志失败:", error);
+            this.logMessage(`错误: 获取日志失败 - ${error.message}`);
+        }
         // 获取日志
         this.getLogs();
         AccountManager.register_ws_recv_callback("system_log", (message) => {

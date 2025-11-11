@@ -292,6 +292,37 @@ export class AccountManager {
             console.error('WebSocket connection is not established.');
         }
     }
+    
+    // 封装WebSocket请求为Promise，简化调用方式
+    static async Fetch(tag, body = {}) {
+        return new Promise((resolve, reject) => {
+            // 生成唯一的回调ID，避免冲突
+            const callbackId = `${tag}_${Date.now()}`;
+            
+            // 设置超时处理
+            const timeoutId = setTimeout(() => {
+                this.unregister_ws_recv_callback(callbackId);
+                reject(new Error(`WebSocket request ${tag} timed out`));
+            }, 30000); // 30秒超时
+            
+            // 注册临时回调函数
+            this.register_ws_recv_callback(callbackId, (message) => {
+                clearTimeout(timeoutId);
+                this.unregister_ws_recv_callback(callbackId);
+                resolve(message);
+            });
+            
+            // 发送消息，使用特殊格式确保服务端知道要回复的callbackId
+            this.send_ws_message(tag, {
+                ...body,
+                callbackId: callbackId
+            }).catch(error => {
+                clearTimeout(timeoutId);
+                this.unregister_ws_recv_callback(callbackId);
+                reject(error);
+            });
+        });
+    }
     static parseJwt(token) {
         //return JSON.parse(atob(this.token.split('.')[1]));
         const base64Url = token.split('.')[1];
