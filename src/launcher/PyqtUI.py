@@ -433,7 +433,7 @@ class LauncherApp(QMainWindow):
         name_layout = QHBoxLayout()
         name_layout.addWidget(QLabel("名称:"))
         name_edit = QLineEdit(name)
-        name_edit.textChanged.connect(lambda: self.process_manager.update_program(name, {'name': name_edit.text()}))
+        name_edit.editingFinished.connect(lambda: self.process_manager.update_program(name, {'name': name_edit.text()}))
         # name_edit.setReadOnly(True)  # 改为可编辑
         name_layout.addWidget(name_edit)
         
@@ -444,7 +444,7 @@ class LauncherApp(QMainWindow):
         path_layout = QHBoxLayout()
         path_layout.addWidget(QLabel("路径:"))
         path_edit = QLineEdit(self.process_manager.programs[name].get('path', ''))
-        path_edit.textChanged.connect(lambda: self.process_manager.update_program(name, {'path': path_edit.text()}))
+        path_edit.editingFinished.connect(lambda: self.process_manager.update_program(name, {'path': path_edit.text()}))
         # path_edit.setReadOnly(True)  # 改为可编辑
         path_edit.setMinimumWidth(300)
         path_layout.addWidget(path_edit)
@@ -461,7 +461,7 @@ class LauncherApp(QMainWindow):
         args_layout.addWidget(QLabel("参数:"))
         args_edit = QLineEdit(self.process_manager.programs[name].get('args', ''))
         # args_edit.setReadOnly(True)  # 改为可编辑
-        args_edit.textChanged.connect(lambda: self.process_manager.update_program(name, {'args': args_edit.text()}))
+        args_edit.editingFinished.connect(lambda: self.process_manager.update_program(name, {'args': args_edit.text()}))
         args_layout.addWidget(args_edit)
         panel_layout.addLayout(args_layout)
         
@@ -471,7 +471,7 @@ class LauncherApp(QMainWindow):
         cwd_edit = QLineEdit(self.process_manager.programs[name].get('cwd', ''))
         # cwd_edit.setReadOnly(True)  # 改为可编辑
         cwd_edit.setMinimumWidth(300)
-        cwd_edit.textChanged.connect(lambda: self.process_manager.update_program(name, {'cwd': cwd_edit.text()}))
+        cwd_edit.editingFinished.connect(lambda: self.process_manager.update_program(name, {'cwd': cwd_edit.text()}))
         cwd_layout.addWidget(cwd_edit)
         
         # 添加浏览按钮
