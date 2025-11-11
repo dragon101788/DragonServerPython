@@ -27,6 +27,8 @@ from src.launcher.Process import ProcessManager
 from src.launcher.Server import LauncherServer
 import Resource 
 
+from datetime import datetime
+
 class LauncherApp(QMainWindow):
     """启动器主应用类"""
     # 添加信号用于处理跨线程调用
@@ -360,7 +362,6 @@ class LauncherApp(QMainWindow):
             
     def log_message(self, message: str):
         """记录日志信息"""
-        from datetime import datetime
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"[{timestamp}] {message}"
         
@@ -432,24 +433,35 @@ class LauncherApp(QMainWindow):
         name_layout = QHBoxLayout()
         name_layout.addWidget(QLabel("名称:"))
         name_edit = QLineEdit(name)
-        name_edit.setReadOnly(True)
+        name_edit.textChanged.connect(lambda: self.process_manager.update_program(name, {'name': name_edit.text()}))
+        # name_edit.setReadOnly(True)  # 改为可编辑
         name_layout.addWidget(name_edit)
+        
+        
         panel_layout.addLayout(name_layout)
         
         # 路径
         path_layout = QHBoxLayout()
         path_layout.addWidget(QLabel("路径:"))
         path_edit = QLineEdit(self.process_manager.programs[name].get('path', ''))
-        path_edit.setReadOnly(True)
+        path_edit.textChanged.connect(lambda: self.process_manager.update_program(name, {'path': path_edit.text()}))
+        # path_edit.setReadOnly(True)  # 改为可编辑
         path_edit.setMinimumWidth(300)
         path_layout.addWidget(path_edit)
+        
+        # 添加浏览按钮
+        browse_path_btn = QPushButton("浏览")
+        browse_path_btn.clicked.connect(lambda: self.browse_file(path_edit))
+        path_layout.addWidget(browse_path_btn)
+        
         panel_layout.addLayout(path_layout)
         
         # 参数
         args_layout = QHBoxLayout()
         args_layout.addWidget(QLabel("参数:"))
         args_edit = QLineEdit(self.process_manager.programs[name].get('args', ''))
-        args_edit.setReadOnly(True)
+        # args_edit.setReadOnly(True)  # 改为可编辑
+        args_edit.textChanged.connect(lambda: self.process_manager.update_program(name, {'args': args_edit.text()}))
         args_layout.addWidget(args_edit)
         panel_layout.addLayout(args_layout)
         
@@ -457,9 +469,16 @@ class LauncherApp(QMainWindow):
         cwd_layout = QHBoxLayout()
         cwd_layout.addWidget(QLabel("工作目录:"))
         cwd_edit = QLineEdit(self.process_manager.programs[name].get('cwd', ''))
-        cwd_edit.setReadOnly(True)
+        # cwd_edit.setReadOnly(True)  # 改为可编辑
         cwd_edit.setMinimumWidth(300)
+        cwd_edit.textChanged.connect(lambda: self.process_manager.update_program(name, {'cwd': cwd_edit.text()}))
         cwd_layout.addWidget(cwd_edit)
+        
+        # 添加浏览按钮
+        browse_cwd_btn = QPushButton("浏览")
+        browse_cwd_btn.clicked.connect(lambda: self.browse_directory(cwd_edit))
+        cwd_layout.addWidget(browse_cwd_btn)
+        
         panel_layout.addLayout(cwd_layout)
         
         # 开机自启
@@ -493,6 +512,7 @@ class LauncherApp(QMainWindow):
         stop_btn = QPushButton("停止程序")
         stop_btn.clicked.connect(lambda: self.stop_program_by_name(name))
         control_layout.addWidget(stop_btn)
+        
         
         panel_layout.addLayout(control_layout)
         
@@ -720,3 +740,17 @@ class LauncherApp(QMainWindow):
         
         # 退出应用
         QApplication.quit()
+
+    def browse_file(self, line_edit):
+        """浏览文件并将选择的文件路径设置到指定的行编辑器中"""
+        file_path, _ = QFileDialog.getOpenFileName(self, "选择文件", line_edit.text())
+        if file_path:
+            line_edit.setText(file_path)
+    
+    def browse_directory(self, line_edit):
+        """浏览目录并将选择的目录路径设置到指定的行编辑器中"""
+        directory = QFileDialog.getExistingDirectory(self, "选择目录", line_edit.text())
+        if directory:
+            line_edit.setText(directory)
+
+    
