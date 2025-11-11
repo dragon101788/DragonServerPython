@@ -3,33 +3,51 @@ from watchdog.events import FileSystemEventHandler
 import Resource
 import os
 import time
-
-
-# 获取日志目录路径
-log_dir = os.path.join(Resource.get_executable_path(), "log")
-
-# 确保日志目录存在
-def ensure_log_directory_exists():
-    if not os.path.exists(log_dir):
-        try:
-            os.makedirs(log_dir)
-            print(f"Created log directory: {log_dir}")
-        except Exception as e:
-            print(f"Failed to create log directory: {e}")
-            return False
-    return True
+import account
+import fastapi
+import json
 
 # 监控log目录
 class LogFileHandler(FileSystemEventHandler):
-    def __init__(self):
+    def __init__(self ,log_dir):
         super().__init__()
+
+        
+        # 获取日志目录路径
+        self.log_dir = log_dir
+        
         self.log_files = {}
         self.observer = Observer()
         self.is_running = False
+        self.setup_router()
+
+    def setup_router(self):
+        @account.recv_messages("list_log")
+        async def list_log(uws :account.UserWebsocket,body :dict):
+            print(body)
+            log_files = os.listdir(self.log_dir)
+            uws.put(json.dumps({"tag":"list_log","body":{
+                "log_files":log_files
+            }}))
+        @account.recv_messages("get_log")
+        async def get_log(uws :account.UserWebsocket,body :dict):
+            print(body)
+            uws.put("helloworld")
+    # 确保日志目录存在
+    def ensure_log_directory_exists(self):
+        if not os.path.exists(self.log_dir):
+            try:
+                os.makedirs(self.log_dir)
+                print(f"Created log directory: {self.log_dir}")
+            except Exception as e:
+                print(f"Failed to create log directory: {e}")
+                return False
+        return True
+
     
-    def start_watching(self):
+    def start(self):
         """开始监控日志目录"""
-        if not ensure_log_directory_exists():
+        if not self.ensure_log_directory_exists():
             print("Cannot start watching: log directory does not exist and could not be created")
             return False
         
@@ -43,7 +61,7 @@ class LogFileHandler(FileSystemEventHandler):
             print(f"Failed to start observer: {e}")
             return False
     
-    def stop_watching(self):
+    def stop(self):
         """停止监控"""
         if self.is_running:
             self.observer.stop()
@@ -71,21 +89,6 @@ class LogFileHandler(FileSystemEventHandler):
 
 
 
-# 如果作为主程序运行
-if __name__ == "__main__":
-    watchdog = create_log_watchdog()
-    if watchdog:
-        try:
-            # 保持程序运行
-            print("Log watchdog is running. Press Ctrl+C to stop.")
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("Shutting down log watchdog...")
-        finally:
-            watchdog.stop_watching()
-    else:
-        print("Failed to create log watchdog")
 
 # 导出实例供其他模块使用
-log_watchdog = LogFileHandler()
+#log_watchdog = LogFileHandler(os.path.join(Resource.get_executable_path(), "log"))

@@ -259,10 +259,11 @@ export class AccountManager {
             this.ws_connection.onopen = (event) => {
                 console.log('WebSocket connection opened:', event);
             };
-            //等待连接成功
-            while (this.ws_connection.readyState !== WebSocket.OPEN) {
-                await new Promise(resolve => setTimeout(resolve, 100)); // 等待 100 毫秒
-            }
+            
+        }
+        //等待连接成功
+        while (this.ws_connection.readyState !== WebSocket.OPEN) {
+            await new Promise(resolve => setTimeout(resolve, 100)); // 等待 100 毫秒
         }
     }
     static register_ws_recv_callback(tag, callback) {
@@ -279,11 +280,12 @@ export class AccountManager {
             this.ws_recv_callback[tag] = undefined;
         }
     }
-    static send_ws_message(tag, body) {
+    static async send_ws_message(tag, body = undefined) {
         const jsonData = { tag: tag, body: body };
-        this.send_ws_message_raw(JSON.stringify(jsonData));
+        await this.send_ws_message_raw(JSON.stringify(jsonData));
     }
-    static send_ws_message_raw(msg) {
+    static async send_ws_message_raw(msg) {
+        await this.connectWebsocket();
         if (this.ws_connection && this.ws_connection.readyState === WebSocket.OPEN) {
             this.ws_connection.send(msg);
         } else {

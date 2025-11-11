@@ -23,13 +23,16 @@ export class SystemLog extends HTMLElement {
         
         // 绑定事件
         this.bindEvents();
-
         
-            // 获取日志
-            this.getLogs();
-            AccountManager.register_ws_recv_callback("system_log", (message) => {
-                this.logMessage(message);
-            });
+        AccountManager.register_ws_recv_callback("list_log", (message) => {
+            this.logMessage(message);
+        });
+        AccountManager.send_ws_message("list_log");
+        // 获取日志
+        this.getLogs();
+        AccountManager.register_ws_recv_callback("system_log", (message) => {
+            this.logMessage(message);
+        });
     }
     disconnectedCallback() {
         // 注销WebSocket接收回调

@@ -538,12 +538,13 @@ class UserWebsocket():
                     recv_json = json.loads(client_message)
                     if "tag" in recv_json:
                         tag = recv_json["tag"]
-                        if tag in recv_messages_pool and "body" in recv_json:
-                            await recv_messages_pool[tag](active_connections[websocket.username],recv_json["body"])
+                        if tag in recv_messages_pool:
+                            await recv_messages_pool[tag](self,recv_json.get("body",None))
                 except json.JSONDecodeError as e:
+                    console.log(f"Error decoding JSON: {e}")
                     pass
                 for recv in recv_all_messages_pool:
-                    await recv(active_connections[websocket.username],client_message)
+                    await recv(self,client_message)
                 #print(f"Received message from {websocket.username}: {client_message}")
                 # 这里可以添加处理客户端消息的逻辑
             except WebSocketDisconnect:
