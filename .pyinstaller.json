@@ -4,7 +4,7 @@
     "output_name": "DragonServer",
     "icon_path": "D:/IMPORTANT/python/DragonServer/icon.ico",
     "onefile": true,
-    "windowed": false,
+    "windowed": true,
     "uac_admin": true,
     "debug": false,
     "strip": false,

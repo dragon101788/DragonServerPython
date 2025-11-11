@@ -40,8 +40,10 @@ log_file = open(log_path, "w", encoding="utf-8")
 def stdout_put(text):
     log_file.write(text)
     log_file.flush()
-    original_stdout.write(text)
-    original_stdout.flush()
+
+    if original_stdout and original_stdout.isatty():
+        original_stdout.write(text)
+        original_stdout.flush()
 
 # 创建自定义的日志处理类
 class LogHandler:
@@ -54,6 +56,8 @@ class LogHandler:
         pass
     def isatty(self):
         # 返回False表示这不是一个终端设备
+        if original_stdout and original_stdout.isatty():
+            return True
         return False
 
 original_stdout = sys.stdout
