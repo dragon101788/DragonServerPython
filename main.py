@@ -1,3 +1,4 @@
+from nt import mkdir
 import src.webdav.WebdavService as WebdavService
 import src.WebServer as WebServer
 import uvicorn
@@ -5,8 +6,39 @@ import Resource
 import logging
 import asyncio
 import sys
+import os
+import time
 import argparse
+from datetime import datetime
 
+start_time = datetime.now().strftime("%y%m%d%H%M%S")
+log_path = f"{Resource.get_executable_path()}/log/{start_time}.txt"
+os.makedirs(os.path.dirname(log_path), exist_ok=True)
+log_file = open(log_path, "w", encoding="utf-8")
+
+def stdout_put(text):
+    log_file.write(text)
+    log_file.flush()
+    original_stdout.write(text)
+    original_stdout.flush()
+
+# 创建自定义的日志处理类
+class LogHandler:
+    def __init__(self,callback):
+        self.callback = callback
+
+    def write(self, text):
+        self.callback(text)
+    def flush(self):
+        pass
+    def isatty(self):
+        # 返回False表示这不是一个终端设备
+        return False
+
+original_stdout = sys.stdout
+original_stderr = sys.stderr
+sys.stdout = LogHandler(stdout_put)
+sys.stderr = LogHandler(stdout_put)
 
 if __name__ == "__main__":
     # 创建命令行参数解析器
@@ -44,5 +76,17 @@ if __name__ == "__main__":
     if args.keyfile:
         config.ssl_keyfile = args.keyfile
     
+
+    
+    print("version:"+Resource.version.version)
+    print("build_date:"+Resource.version.build_date)
+    
+    print(Resource.debug_path)
+    print("port:"+str(config.port))
+    print("log_level:"+str(config.log_level))
+    print("ssl_certfile:"+str(config.ssl_certfile))
+    print("ssl_keyfile:"+str(config.ssl_keyfile))
+
+
     server = uvicorn.Server(config)
     server.run()
