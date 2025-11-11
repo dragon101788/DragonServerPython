@@ -248,13 +248,8 @@ class LauncherApp(QMainWindow):
         
         # 显示窗口
         self.show()
-    
-    # load_config方法已移至ProcessManager类
-        
         # 更新程序表格
         self.update_program_table()
-    
-    # save_config方法已移至ProcessManager类
     
     def update_program_table(self):
         """更新程序列表表格"""
@@ -269,9 +264,7 @@ class LauncherApp(QMainWindow):
             # 开机启动复选框
             startup_checkbox = QCheckBox()
             startup_checkbox.setChecked(program.get('startup_with_windows', False))
-            startup_checkbox.stateChanged.connect(
-                lambda state, name=name: self.toggle_program_startup(name, state != 0)
-            )
+            startup_checkbox.stateChanged.connect(lambda state, name = name :self.toggle_program_startup(name))
             self.program_table.setCellWidget(row_position, 1, startup_checkbox)
             
             # 运行状态
@@ -378,14 +371,12 @@ class LauncherApp(QMainWindow):
             self.server.websocket_log_callback(message)
     
     
-    def toggle_program_startup(self, name: str, enabled: bool):
+    def toggle_program_startup(self, name: str):
         """切换程序的开机自启动状态"""
         if name in self.process_manager.programs:
-            self.process_manager.update_program(name, {'startup_with_windows': enabled})
+            checked = self.process_manager.programs[name].get('startup_with_windows', False)
+            self.process_manager.update_program(name, {'startup_with_windows': not checked})
             
-            
-            status = "启用" if enabled else "禁用"
-            print(f"{status}程序 '{self.process_manager.programs[name]['name']}' 的开机自启动")
     
     def show_context_menu(self, position):
         """显示右键菜单"""
@@ -484,7 +475,7 @@ class LauncherApp(QMainWindow):
         # 开机自启
         startup_checkbox = QCheckBox("开机自启动")
         startup_checkbox.setChecked(self.process_manager.programs[name].get('startup_with_windows', False))
-        startup_checkbox.stateChanged.connect(self.toggle_program_startup)
+        startup_checkbox.stateChanged.connect(self.toggle_bootup)
         panel_layout.addWidget(startup_checkbox)
         
         # 管理员权限
@@ -567,7 +558,7 @@ class LauncherApp(QMainWindow):
         time.sleep(0.5)
         self.update_program_status()
     
-    def toggle_program_startup(self):
+    def toggle_bootup(self):
         """切换程序开机自启动"""
         checked = not self.process_manager.programs[self.current_select].get('startup_with_windows', False)
         status = "启用" if checked else "禁用"
