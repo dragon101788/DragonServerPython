@@ -9,7 +9,28 @@ import sys
 import os
 import time
 import argparse
+import pystray
+import threading
+import random
+
 from datetime import datetime
+
+def setup_tray(name,icon,menu):
+
+        tray_menu = []
+        for k,item in menu.items():
+            meit = pystray.MenuItem(k,item)
+            tray_menu.append(meit)
+        
+        systray = pystray.Icon(
+            name,
+            icon,
+            name,
+            menu=pystray.Menu( *tray_menu),
+        )
+
+        # 立即在独立线程中启动托盘图标
+        threading.Thread(target=systray.run, daemon=True).start()
 
 start_time = datetime.now().strftime("%y%m%d%H%M%S")
 log_path = f"{Resource.get_executable_path()}/log/{start_time}.txt"
@@ -40,6 +61,9 @@ original_stderr = sys.stderr
 sys.stdout = LogHandler(stdout_put)
 sys.stderr = LogHandler(stdout_put)
 
+
+
+
 if __name__ == "__main__":
     # 创建命令行参数解析器
     parser = argparse.ArgumentParser(description='DragonServer配置')
@@ -53,7 +77,6 @@ if __name__ == "__main__":
     
     # 解析参数
     args = parser.parse_args()
-    
     # 创建配置
     config = uvicorn.Config(WebServer.app, host="0.0.0.0", port=8900, log_level="error")
     
@@ -87,6 +110,23 @@ if __name__ == "__main__":
     print("ssl_certfile:"+str(config.ssl_certfile))
     print("ssl_keyfile:"+str(config.ssl_keyfile))
 
-
+    
     server = uvicorn.Server(config)
+
+    def exit_app():
+        server.shutdown()
+        log_file.close()
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+        # 使用os._exit代替sys.exit，确保能从任何线程退出整个进程
+        os._exit(0)
+    hue = random.randint(0,360)
+    setup_tray(f"DragonServer{str(config.port)}",
+        Resource.DragonImg(hue=hue),{
+        f"端口:{config.port}":lambda: print(f"端口:{config.port}"),
+        f"SSL:{'开启' if config.ssl_certfile and config.ssl_keyfile else '关闭'}" :lambda: print("SSL"),
+        f"版本:{Resource.version.version}":lambda: print(f"版本:{Resource.version.version}"),
+        f"构建日期:{Resource.version.build_date}":lambda: print(f"构建日期:{Resource.version.build_date}"),
+        "退出": exit_app,
+    })
     server.run()
