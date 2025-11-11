@@ -28,6 +28,7 @@ from src.launcher.Server import LauncherServer
 import Resource 
 
 from datetime import datetime
+from src.launcher.LogWatchdog import log_watchdog
 
 class LauncherApp(QMainWindow):
     """启动器主应用类"""
@@ -121,6 +122,8 @@ class LauncherApp(QMainWindow):
         
         # 默认启动到托盘，隐藏主窗口
         self.hide()
+        
+        log_watchdog.start_watching()
     
     def init_ui(self):
         """初始化用户界面"""

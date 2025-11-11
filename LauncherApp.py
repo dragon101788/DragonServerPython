@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt
 # 导入重构后的launcher模块
 from src.launcher.PyqtUI import LauncherApp
 
+
 def main():
     """主函数"""
     # 确保中文显示正常
@@ -24,7 +25,6 @@ def main():
     
     # 创建并显示主窗口
     launcher = LauncherApp()
-    
     # 进入事件循环
     sys.exit(app.exec_())
 
