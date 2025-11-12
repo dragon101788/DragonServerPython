@@ -26,6 +26,8 @@ import Resource
 import timestamp
 import threading 
 
+from starlette.websockets import WebSocketState , WebSocketDisconnect
+
 DEFALUT_ADMIN = "dragon"
 DEFALUT_ADMIN_PASSWORD = "881017"
 
@@ -491,9 +493,9 @@ async def delete_user(request :Request, data: dict):
 
 
 class UserWebsocket():
-    def __init__(self,socket):
+    def __init__(self,socket: WebSocket):
         try:
-            self.WebSocket = socket;
+            self.ws = socket;
             self.queue = asyncio.Queue();
             
             # 启动发送和接收消息的异步任务
@@ -511,8 +513,8 @@ class UserWebsocket():
         try:
             self.send_task.cancel()
             self.recv_task.cancel()
-            if self.WebSocket is not None:
-                    self.WebSocket.close();
+            if self.ws is not None:
+                    self.ws.close();
         except RuntimeError as e:
             pass
         return None;
@@ -522,18 +524,20 @@ class UserWebsocket():
         while True:
             message = await self.get()
             try:
-                await self.WebSocket.send_text(message)
+                await self.ws.send_text(message)
             except WebSocketDisconnect:
+                self.ws.close();
+                self.ws = None;
                 break
             except Exception as e:
-                #print(f"Error sending message to client: {e}")
+                print(f"Error sending message to client: {e}")
                 break
 
     async def recv_messages_task(self):
         while True:
             try:
                 # 接收客户端发送的消息
-                client_message = await self.WebSocket.receive_text()
+                client_message = await self.ws.receive_text()
                 try:
                     recv_json = json.loads(client_message)
                     if "tag" in recv_json:
@@ -548,6 +552,8 @@ class UserWebsocket():
                 #print(f"Received message from {websocket.username}: {client_message}")
                 # 这里可以添加处理客户端消息的逻辑
             except WebSocketDisconnect:
+                self.ws.close();
+                self.ws = None;
                 break
             except Exception as e:
                 print(f"Error receiving message from client: {e}")
@@ -556,10 +562,14 @@ class UserWebsocket():
     async def wait_finish(self):
         # 等待任务完成
         await asyncio.gather(self.send_task, self.recv_task)
+
+    def is_connected(self):
+        return self.ws != None and self.ws.client_state == WebSocketState.CONNECTED and self.ws.application_state == WebSocketState.CONNECTED
     def get(self):
         return self.queue.get()
     def put(self,message):
-        self.queue.put_nowait(message)
+        if self.is_connected():
+            self.queue.put_nowait(message)
 
 active_connections = {}
 recv_messages_pool = {} 

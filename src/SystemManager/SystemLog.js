@@ -24,13 +24,23 @@ export class SystemLog extends HTMLElement {
         // 绑定事件
         this.bindEvents();
         
-        try {
-            const message = await AccountManager.Fetch("list_log", {});
-            this.logMessage(message);
-        } catch (error) {
-            console.error("获取日志失败:", error);
-            this.logMessage(`错误: 获取日志失败 - ${error.message}`);
-        }
+        // try {
+        //     const message = await AccountManager.Fetch("list_log", {});
+        //     this.logMessage(message);
+        // } catch (error) {
+        //     console.error("获取日志失败:", error);
+        //     this.logMessage(`错误: 获取日志失败 - ${error.message}`);
+        // }
+
+        AccountManager.Interact("deal_with_log", {
+            "log_file": "DragonServer8900"
+        }, (message) => {
+            message.forEach( (log) => {
+                    this.logMessage(log);
+                }
+            )
+        });
+
         // 获取日志
         this.getLogs();
         AccountManager.register_ws_recv_callback("system_log", (message) => {

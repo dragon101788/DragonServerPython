@@ -323,6 +323,28 @@ export class AccountManager {
             });
         });
     }
+
+    static async Interact(tag, body = {},callback = undefined) {
+        return new Promise((resolve, reject) => {
+            // 生成唯一的回调ID，避免冲突
+            const callbackId = `${tag}_${Date.now()}`;
+            // 注册临时回调函数
+            this.register_ws_recv_callback(callbackId, (message) => {
+                if (callback) {
+                    callback(message);
+                }
+            })
+            
+            // 发送消息，使用特殊格式确保服务端知道要回复的callbackId
+            this.send_ws_message(tag, {
+                ...body,
+                callbackId: callbackId
+            }).catch(error => {
+                this.unregister_ws_recv_callback(callbackId);
+                reject(error);
+            });
+        });
+    }
     static parseJwt(token) {
         //return JSON.parse(atob(this.token.split('.')[1]));
         const base64Url = token.split('.')[1];
