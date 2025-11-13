@@ -68,6 +68,8 @@ ACCESS_TOKEN_EXPIRE_ONEMONTH = ACCESS_TOKEN_EXPIRE_ONEDAY*30
 ACCESS_TOKEN_EXPIRE_ONEYEAR = ACCESS_TOKEN_EXPIRE_ONEDAY*365
 ACCESS_TOKEN_EXPIRE_NEVER = ACCESS_TOKEN_EXPIRE_ONEYEAR*100 # 100年
 
+
+
 # 验证 JWT Token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/verify")
 
@@ -515,6 +517,7 @@ class UserWebsocket():
             self.recv_task.cancel()
             if self.ws is not None:
                     self.ws.close();
+                    self.ws = None;
         except RuntimeError as e:
             pass
         return None;
@@ -526,7 +529,7 @@ class UserWebsocket():
             try:
                 await self.ws.send_text(message)
             except WebSocketDisconnect:
-                self.ws.close();
+                await self.ws.close();
                 self.ws = None;
                 break
             except Exception as e:
@@ -552,7 +555,6 @@ class UserWebsocket():
                 #print(f"Received message from {websocket.username}: {client_message}")
                 # 这里可以添加处理客户端消息的逻辑
             except WebSocketDisconnect:
-                self.ws.close();
                 self.ws = None;
                 break
             except Exception as e:
@@ -641,12 +643,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
     await active_connections[websocket.username].wait_finish();
 
-history_log = []
-@account_router.get("/api/get_history_log")
-async def get_history_log(request: Request):
-    await verfiy_by_request(request);
-    return JSONResponse(content=json.dumps(history_log))
-
 # 检查账户目录是否存在，不存在则创建
 if not os.path.exists(ACCOUNT_DIR):
     os.makedirs(ACCOUNT_DIR)
@@ -654,3 +650,34 @@ if not os.path.exists(ACCOUNT_DIR):
 if not os.path.exists(os.path.join(ACCOUNT_DIR, DEFALUT_ADMIN,"profile.json")):
     create_user(DEFALUT_ADMIN,DEFALUT_ADMIN_PASSWORD,role=["Admin","SuperAdmin"])
 
+
+from src.redirect_stdout import redirect_stdout
+
+log_uwss = []
+history_log = []
+
+def account_log(msg):
+    if msg.strip() == "":
+        return
+    if msg == "\n":
+        return
+    history_log.append(msg)
+    for uws in log_uwss:
+        if uws.is_connected():
+            uws.put(json.dumps({"tag":uws.callbackId,"body":msg.split("\n")}))
+        else:
+            if uws in log_uwss:
+                log_uwss.remove(uws)
+            
+
+redirect_stdout.register_callback(account_log)
+
+@recv_messages("deal_with_log")
+async def deal_with_log(uws :UserWebsocket,body :dict):
+    callbackId = body.get("callbackId","deal_with_log")
+    
+    uws.put(json.dumps({"tag":callbackId,"body":history_log}))
+
+    if uws not in log_uwss:
+        uws.callbackId = callbackId
+        log_uwss.append(uws)

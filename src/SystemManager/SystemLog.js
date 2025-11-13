@@ -41,8 +41,6 @@ export class SystemLog extends HTMLElement {
             )
         });
 
-        // 获取日志
-        this.getLogs();
         AccountManager.register_ws_recv_callback("system_log", (message) => {
             this.logMessage(message);
         });
@@ -174,25 +172,6 @@ export class SystemLog extends HTMLElement {
     
     
     
-    // 公开方法
-    async getLogs() {
-        try {
-            const response = await fetch('/api/get_history_log');
-            if (!response.ok) throw new Error('获取日志失败');
-            const data = await response.json();
-            const logs = JSON.parse(data);
-            
-            // 检查返回的数据格式
-            if (Array.isArray(logs)) {
-                logs.forEach(log => this.logMessage(log));
-            } else if (typeof logs === 'object' && logs.logs) {
-                logs.logs.forEach(log => this.logMessage(log));
-            }
-        } catch (error) {
-            console.error('获取日志出错:', error);
-            this.logMessage(`错误: 获取日志失败 - ${error.message}`);
-        }
-    }
     
     logMessage(message) {
         const logEntry = document.createElement('div');

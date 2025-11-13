@@ -51,7 +51,8 @@ class RedirectStdout:
             self.log_file.close()
 
     def register_callback(self, callback):
-        self.callback.append(callback)
+        if callback not in self.callback:
+            self.callback.append(callback)
 
     def unregister_callback(self, callback):
         if callback in self.callback:
