@@ -12,13 +12,12 @@ import argparse
 import pystray
 import threading
 import random
-from src.redirect_stdout import RedirectStdout
+from src.redirect_stdout import redirect_stdout
 
 from datetime import datetime
 
 class UvicornServer:
     def __init__(self):
-        self.redirect_stdout = RedirectStdout()
         self.config = uvicorn.Config(WebServer.app, host="0.0.0.0", port=8900, log_level="error")
         
         self.log_file = None
@@ -73,7 +72,7 @@ class UvicornServer:
         start_time = datetime.now().strftime("%y%m%d%H%M%S")
         log_file_path = os.path.join(Resource.get_executable_path(), "log",f"DragonServer{self.config.port}"+"_"+f"{start_time}.txt")
         os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
-        self.redirect_stdout.set_log_file(log_file_path)
+        redirect_stdout.set_log_file(log_file_path)
         
         
     def run(self):
