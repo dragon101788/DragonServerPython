@@ -20,7 +20,7 @@ import base64
 import json
 import shutil
 
-import src.account as account 
+from src.account import account_router ,verfiy_by_request
 import Resource
 class ProgramInfo(BaseModel):
     """程序信息数据模型"""
@@ -125,11 +125,12 @@ class LauncherServer:
         )
         
         
+        self.fastapi_app.include_router(account_router)
        
         # 获取所有程序列表
         @self.fastapi_app.get("/api/programs", response_model=List[ProgramInfo])
         async def get_programs(request: Request):
-            await account.verfiy_by_request(request)
+            await verfiy_by_request(request)
                 
             programs = []
             for name, program in self.process_manager.programs.items():
@@ -148,7 +149,7 @@ class LauncherServer:
         # 获取单个程序信息
         @self.fastapi_app.get("/api/programs/{program_name}", response_model=ProgramInfo)
         async def get_program(request: Request, program_name: str):
-            await account.verfiy_by_request(request)
+            await verfiy_by_request(request)
                 
             if(program_name in self.process_manager.programs):
                 program = self.process_manager.programs[program_name]
@@ -166,7 +167,7 @@ class LauncherServer:
         # 启动程序
         @self.fastapi_app.post("/api/programs/start")
         async def start_program(request: Request, action: ProgramAction):
-            await account.verfiy_by_request(request)
+            await verfiy_by_request(request)
             
             result = self.process_manager.start_process_by_name(action.name)
             if result:
@@ -177,7 +178,7 @@ class LauncherServer:
         # 停止程序
         @self.fastapi_app.post("/api/programs/stop")
         async def stop_program(request: Request, action: ProgramAction):
-            await account.verfiy_by_request(request)
+            await verfiy_by_request(request)
             
             result = self.process_manager.stop_process_by_name(action.name,3)
             if result:
@@ -190,7 +191,7 @@ class LauncherServer:
         # 获取服务状态
         @self.fastapi_app.get("/api/status")
         async def get_status(request: Request):
-            await account.verfiy_by_request(request)
+            await verfiy_by_request(request)
                 
             status = {
                 "service": "running",
@@ -202,7 +203,7 @@ class LauncherServer:
         # 添加程序
         @self.fastapi_app.post("/api/programs/add")
         async def add_program(request: Request, program: ProgramInfo):
-            await account.verfiy_by_request(request)
+            await verfiy_by_request(request)
                 
             try:
                 # 将ProgramInfo转换为字典格式
@@ -218,7 +219,7 @@ class LauncherServer:
         # 删除程序
         @self.fastapi_app.post("/api/programs/remove")
         async def remove_program(request: Request, action: ProgramAction):
-            await account.verfiy_by_request(request)
+            await verfiy_by_request(request)
                 
             try:
                 # 检查程序是否存在
@@ -233,7 +234,7 @@ class LauncherServer:
         # 更新程序
         @self.fastapi_app.post("/api/programs/update/{program_name}")
         async def update_program(request: Request, program_name: str, updates: ProgramUpdate):
-            await account.verfiy_by_request(request)
+            await verfiy_by_request(request)
                 
             try:
                 # 检查程序是否存在
@@ -270,7 +271,7 @@ class LauncherServer:
         # 升级程序 - 上传文件
         @self.fastapi_app.post("/api/programs/upgrade")
         async def upgrade_program(request: Request, file: UploadFile = File(...), program_name: str = Form(...)):
-            await account.verfiy_by_request(request)
+            await verfiy_by_request(request)
                 
             try:
                 # 检查程序是否存在
@@ -318,7 +319,6 @@ class LauncherServer:
                 self.log(f"升级程序失败: {str(e)}")
                 return {"status": "error", "message": f"升级程序失败: {str(e)}"}
 
-        self.fastapi_app.include_router(account.account_router)
 
         @self.fastapi_app.get("/{path:path}")
         async def AccessFiles(request: Request, path: str = ""):
@@ -348,14 +348,6 @@ class LauncherServer:
                 return templates.TemplateResponse("error.html", {"request": request ,"reason" : e.__str__() ,"status_code" : "404"}, status_code=404)
 
 
-
-    def websocket_log_callback(self, message: str):
-        """通过WebSocket广播日志消息给所有连接的客户端"""
-        account.history_log.append(message)
-        # 只保留最近的100条日志
-        account.history_log = account.history_log[-100:]
-
-        return account.send_to_all_clients("system_log",message)
     def run_fastapi_server(self):
         """在单独的线程中运行FastAPI服务"""
         try:

@@ -28,7 +28,7 @@
     "path": "D:/IMPORTANT/python/DragonServer/DragonServer.exe",
     "args": "--ssl --port 8443",
     "cwd": "D:/IMPORTANT/python/DragonServer",
-    "startup_with_windows": true,
+    "startup_with_windows": false,
     "try_admin": true
   }
 }

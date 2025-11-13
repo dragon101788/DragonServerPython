@@ -26,40 +26,15 @@ from PyQt5.QtGui import QIcon, QFont, QPixmap
 from src.launcher.Process import ProcessManager
 from src.launcher.Server import LauncherServer
 import Resource 
+from src.redirect_stdout import redirect_stdout
 
 from datetime import datetime
-from src.launcher.LogWatchdog import log_watchdog
 
 class LauncherApp(QMainWindow):
     """启动器主应用类"""
     # 添加信号用于处理跨线程调用
     status_update_signal = pyqtSignal(dict)
-    def redirect_output(self, stdout_put, stderr_put=None):
-        
-        if self.original_stdout is not None and self.original_stderr is not None:
-            return
-        # 创建自定义的日志处理类
-        class LogHandler:
-            def __init__(self,callback):
-                self.callback = callback
-
-            def write(self, text):
-                if text == "\n":
-                    return
-                if text.endswith("\n"):
-                    text = text[:-1]
-                
-                self.callback(text)
-            def flush(self):
-                pass
-        
-        if stderr_put is None:
-            stderr_put = stdout_put
-        self.original_stdout = sys.stdout
-        self.original_stderr = sys.stderr
-        sys.stdout = LogHandler(stdout_put)
-        sys.stderr = LogHandler(stderr_put)
-
+    
     def __init__(self):
         """初始化启动器应用"""
         # 检查是否已有实例在运行
@@ -107,7 +82,8 @@ class LauncherApp(QMainWindow):
         # 初始化UI
         self.init_ui()
         
-        self.redirect_output(self.log_message)
+        redirect_stdout.set_log_file(f"{Resource.get_executable_path()}/log/launcher{datetime.now().strftime('%Y%m%d%H%M%S')}.log")
+        redirect_stdout.register_callback(self.log_message)
         # 初始化系统托盘
         self.init_tray_icon()
         
@@ -123,7 +99,6 @@ class LauncherApp(QMainWindow):
         # 默认启动到托盘，隐藏主窗口
         self.hide()
         
-        log_watchdog.start_watching()
     
     def init_ui(self):
         """初始化用户界面"""
@@ -357,6 +332,9 @@ class LauncherApp(QMainWindow):
             print(f"更新程序状态时出错: {str(e)}")
             
     def log_message(self, message: str):
+
+        if message.strip() == "":
+            return;
         """记录日志信息"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"[{timestamp}] {message}"
@@ -368,10 +346,8 @@ class LauncherApp(QMainWindow):
         self.log_text.verticalScrollBar().setValue(self.log_text.verticalScrollBar().maximum())
         
         # 更新状态栏
-        self.status_text.setText(message)
+        #self.status_text.setText(message)
 
-        if self.server:
-            self.server.websocket_log_callback(message)
     
     
     def toggle_program_startup(self, name: str):
