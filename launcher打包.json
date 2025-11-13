@@ -11,7 +11,7 @@
     "noupx": false,
     "clean": true,
     "clean_spec": true,
-    "version_suffix": true,
+    "version_suffix": false,
     "python_path": "python",
     "resources": [
         [
