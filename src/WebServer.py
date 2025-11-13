@@ -14,7 +14,6 @@ from src.server_config import *
 import timestamp   
 from ChatAI import chat_router
 import mimetypes    
-from src.LogWatchdog import LogFileHandler
 
 from account import account_router
 from src.chatroom.chatroom import chatroom_app
@@ -51,8 +50,6 @@ app.include_router(WebdavServiceAPI.router)
 app.mount("/WEBDAV", WebdavService.app)
 app.include_router(SystemManager.router)
 app.include_router(ffmpeg.router)
-log_file_handler = LogFileHandler(os.path.join(Resource.get_executable_path(), "log"))
-log_file_handler.start()
 
 
 @app.get("/api/version")

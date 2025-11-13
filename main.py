@@ -37,10 +37,6 @@ class UvicornServer:
     def __del__(self):
         if self.log_file:
             self.log_file.close()
-    def write_log(self, text):
-        if self.log_file:
-            self.log_file.write(text)
-            self.log_file.flush()
     def config_by_args(self):
         # 创建命令行参数解析器
         parser = argparse.ArgumentParser(description='DragonServer配置')
@@ -51,7 +47,6 @@ class UvicornServer:
         parser.add_argument('--ssl', action='store_true', help='启用SSL')
         parser.add_argument('--certfile', type=str, help='SSL证书文件路径')
         parser.add_argument('--keyfile', type=str, help='SSL密钥文件路径')
-        parser.add_argument('--logfile', type=str, default=None, help='日志文件路径')
 
         # 解析参数
         self.args = parser.parse_args()
@@ -74,19 +69,12 @@ class UvicornServer:
         if self.args.keyfile:
             self.config.ssl_keyfile = self.args.keyfile
 
-        log_file_path = parser.parse_args().logfile
-        if log_file_path:
-            os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
-            self.log_file = open(log_file_path, "w", encoding="utf-8")
-            self.redirect_stdout.register_callback(self.write_log)
-        else:
-            start_time = datetime.now().strftime("%y%m%d%H%M%S")
-            log_file_path = os.path.join(Resource.get_executable_path(), "log",f"DragonServer{self.config.port}",f"{start_time}.txt")
-            os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
-            self.log_file = open(log_file_path, "w", encoding="utf-8")
-            self.redirect_stdout.register_callback(self.write_log)
         
-        self.redirect_stdout.register_callback(self.redirect_stdout.original_write)
+        start_time = datetime.now().strftime("%y%m%d%H%M%S")
+        log_file_path = os.path.join(Resource.get_executable_path(), "log",f"DragonServer{self.config.port}"+"_"+f"{start_time}.txt")
+        os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+        self.redirect_stdout.set_log_file(log_file_path)
+        
         
     def run(self):
         self.server.run()
