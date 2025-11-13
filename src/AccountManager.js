@@ -198,7 +198,11 @@ export class AccountManager {
         return undefined;
     }
     static async init() {
-        
+        if (AccountManager.connection !== undefined && AccountManager.token !== undefined){
+            console.log(`has ready init: ${AccountManager.token}`);
+            return AccountManager.token;
+        }
+
         const maths = {
             "urlParam": AccountManager.VerifyByUrlParams,
             "cookie": AccountManager.VerifyByCookie,
@@ -217,7 +221,7 @@ export class AccountManager {
             }
         }
 
-        this.connectWebsocket();
+        await this.connectWebsocket();
         return this.token;
     }
     static async connectWebsocket(){

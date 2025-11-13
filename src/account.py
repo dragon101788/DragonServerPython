@@ -494,10 +494,17 @@ async def delete_user(request :Request, data: dict):
         raise HTTPException(status_code=500, detail=f"删除用户失败: {str(e)}")
 
 
+import uuid
+
+# 配置参数
+MAX_CONNECTIONS_PER_USER = 10  # 每个用户的最大连接数
+
 class UserWebsocket():
-    def __init__(self,socket: WebSocket):
+    def __init__(self,socket: WebSocket, username: str):
         try:
             self.ws = socket;
+            self.username = username;  # 保存用户名
+            self.session_id = str(uuid.uuid4())[:8]  # 生成唯一会话ID
             self.queue = asyncio.Queue();
             
             # 启动发送和接收消息的异步任务
@@ -505,36 +512,52 @@ class UserWebsocket():
             self.recv_task = asyncio.create_task(self.recv_messages_task())
 
         except WebSocketDisconnect:
-            print(f"{websocket.username} disconnected from WebSocket.")
+            print(f"{username} disconnected from WebSocket.")
         except Exception as e:
             print(f"Error handling WebSocket connection: {e}")
         
-
-    def __del__(self):
-        
+    async def cleanup(self):
+        """异步清理资源"""
         try:
             self.send_task.cancel()
             self.recv_task.cancel()
-            if self.ws is not None:
-                    self.ws.close();
-                    self.ws = None;
+            if self.ws is not None and self.is_connected():
+                await self.ws.close()
+                self.ws = None
+            # 从active_connections中移除
+            if self.username in active_connections and self.session_id in active_connections[self.username]:
+                del active_connections[self.username][self.session_id]
+                print(f"{self.username} (session {self.session_id}) removed from active_connections")
+                # 如果该用户没有任何连接了，清理用户名键
+                if not active_connections[self.username]:
+                    del active_connections[self.username]
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+    
+    def __del__(self):
+        # 不要在__del__中调用异步方法，使用同步方式进行基本清理
+        try:
+            self.send_task.cancel()
+            self.recv_task.cancel()
         except RuntimeError as e:
             pass
-        return None;
+        # 异步close操作应在cleanup方法中完成
 
         
     async def send_messages_task(self):
         while True:
-            message = await self.get()
             try:
+                message = await self.get()
+                if not self.is_connected():
+                    break
                 await self.ws.send_text(message)
             except WebSocketDisconnect:
-                await self.ws.close();
-                self.ws = None;
                 break
             except Exception as e:
                 print(f"Error sending message to client: {e}")
                 break
+        # 连接断开时清理资源
+        await self.cleanup()
 
     async def recv_messages_task(self):
         while True:
@@ -548,22 +571,27 @@ class UserWebsocket():
                         if tag in recv_messages_pool:
                             await recv_messages_pool[tag](self,recv_json.get("body",None))
                 except json.JSONDecodeError as e:
-                    console.log(f"Error decoding JSON: {e}")
+                    print(f"Error decoding JSON: {e}")
                     pass
                 for recv in recv_all_messages_pool:
                     await recv(self,client_message)
-                #print(f"Received message from {websocket.username}: {client_message}")
+                #print(f"Received message from {self.username}: {client_message}")
                 # 这里可以添加处理客户端消息的逻辑
             except WebSocketDisconnect:
-                self.ws = None;
                 break
             except Exception as e:
                 print(f"Error receiving message from client: {e}")
                 break
+        # 连接断开时清理资源
+        await self.cleanup()
 
     async def wait_finish(self):
         # 等待任务完成
-        await asyncio.gather(self.send_task, self.recv_task)
+        try:
+            await asyncio.gather(self.send_task, self.recv_task)
+        except asyncio.CancelledError:
+            # 任务被取消时正常处理
+            pass
 
     def is_connected(self):
         return self.ws != None and self.ws.client_state == WebSocketState.CONNECTED and self.ws.application_state == WebSocketState.CONNECTED
@@ -573,7 +601,7 @@ class UserWebsocket():
         if self.is_connected():
             self.queue.put_nowait(message)
 
-active_connections = {}
+active_connections = {}  # 嵌套字典: {username: {session_id: UserWebsocket实例}}
 recv_messages_pool = {} 
 recv_all_messages_pool = [];
 
@@ -590,21 +618,35 @@ except RuntimeError:
 
 def send_to_all_clients_raw(msg):
     active_connections_copy = active_connections.copy()
-    for k,v in active_connections_copy.items():
-        v.put(msg)
+    for username, sessions in active_connections_copy.items():
+        for session_id, user_ws in sessions.items():
+            user_ws.put(msg)
 
 def send_to_all_clients(tag,body):
     msg = json.dumps({"tag":tag,"body":body})
     send_to_all_clients_raw(msg)
 
 def send_to_clients(username: str, message: str):
-    #遍历active_connections，发送消息
+    # 向指定用户的所有连接发送消息
     async def send():
         try:
-            active_connections[username].put(message);
+            if username in active_connections:
+                sessions_copy = active_connections[username].copy()
+                for session_id, user_ws in sessions_copy.items():
+                    user_ws.put(message)
         except Exception as e:
             print(f"Error sending message to client: {e}")
-            active_connections.pop(username)
+
+    asyncio.run_coroutine_threadsafe(send, main_loop)
+
+def send_to_specific_session(username: str, session_id: str, message: str):
+    # 向指定用户的特定会话发送消息
+    async def send():
+        try:
+            if username in active_connections and session_id in active_connections[username]:
+                active_connections[username][session_id].put(message)
+        except Exception as e:
+            print(f"Error sending message to specific session: {e}")
 
     asyncio.run_coroutine_threadsafe(send, main_loop)
 
@@ -622,28 +664,212 @@ def recv_messages(tag):
 @recv_messages("*")
 async def deal_with_all(uws :UserWebsocket,body :dict):
     #print(body)
-    # uws.put(json.dumps({"tag":"test","body":{
-    #     "message":"test",
-    #     "username" :"wang"
-    # }}))
-    #uws.put("helloworld")
     pass
+
+# 连接管理消息处理函数
+@recv_messages("connection_management")
+async def handle_connection_management(uws: UserWebsocket, body: dict):
+    """
+    处理连接管理相关的消息，包括：
+    - list_connections: 列出用户的所有连接
+    - disconnect_session: 断开特定会话
+    - disconnect_other_sessions: 断开除当前会话外的所有会话
+    """
+    action = body.get("action")
+    
+    if action == "list_connections":
+        # 列出用户的所有连接
+        connections_info = []
+        if uws.username in active_connections:
+            for session_id, session_ws in active_connections[uws.username].items():
+                connections_info.append({
+                    "session_id": session_id,
+                    "is_current": session_id == uws.session_id,
+                    "connected_at": "(timestamp)",  # 可以添加时间戳功能
+                })
+        
+        await uws.ws.send_text(json.dumps({
+            "tag": "connection_list",
+            "body": {
+                "connections": connections_info,
+                "total": len(connections_info)
+            }
+        }))
+        
+    elif action == "disconnect_session":
+        # 断开特定会话
+        target_session_id = body.get("session_id")
+        if target_session_id and uws.username in active_connections and target_session_id in active_connections[uws.username]:
+            target_ws = active_connections[uws.username][target_session_id]
+            
+            # 通知目标会话即将断开
+            await target_ws.ws.send_text(json.dumps({
+                "tag": "session_disconnected",
+                "body": {
+                    "reason": "被用户从其他会话断开",
+                    "session_id": target_session_id
+                }
+            }))
+            
+            # 清理目标会话
+            await target_ws.cleanup()
+            
+            # 通知当前会话断开成功
+            await uws.ws.send_text(json.dumps({
+                "tag": "operation_result",
+                "body": {
+                    "success": True,
+                    "message": f"成功断开会话 {target_session_id}",
+                    "action": action
+                }
+            }))
+        else:
+            await uws.ws.send_text(json.dumps({
+                "tag": "operation_result",
+                "body": {
+                    "success": False,
+                    "message": "找不到指定的会话",
+                    "action": action
+                }
+            }))
+            
+    elif action == "disconnect_other_sessions":
+        # 断开除当前会话外的所有会话
+        disconnected_count = 0
+        if uws.username in active_connections:
+            sessions_to_disconnect = []
+            
+            # 收集所有要断开的会话
+            for session_id, session_ws in active_connections[uws.username].items():
+                if session_id != uws.session_id:
+                    sessions_to_disconnect.append(session_ws)
+            
+            # 断开所有其他会话
+            for session_ws in sessions_to_disconnect:
+                # 通知会话即将断开
+                try:
+                    await session_ws.ws.send_text(json.dumps({
+                        "tag": "session_disconnected",
+                        "body": {
+                            "reason": "用户在新位置登录，此会话已断开",
+                            "session_id": session_ws.session_id
+                        }
+                    }))
+                except:
+                    pass
+                
+                # 清理会话
+                await session_ws.cleanup()
+                disconnected_count += 1
+            
+            # 通知当前会话操作结果
+            await uws.ws.send_text(json.dumps({
+                "tag": "operation_result",
+                "body": {
+                    "success": True,
+                    "message": f"成功断开 {disconnected_count} 个其他会话",
+                    "action": action,
+                    "disconnected_count": disconnected_count
+                }
+            }))
+    else:
+        await uws.ws.send_text(json.dumps({
+            "tag": "error",
+            "body": {
+                "message": f"未知的连接管理操作: {action}"
+            }
+        }))
 
 
 @account_router.websocket("/api/account_websocket")
 async def websocket_endpoint(websocket: WebSocket):
     """
     WebSocket 端点，用于接收日志信息和处理客户端发送的消息。
+    支持同一用户的多个WebSocket连接（如iframe场景）
     """
-    await verfiy_by_request(websocket);
+    user_ws = None
+    try:
+        await verfiy_by_request(websocket)
+        
+        # 检查用户连接数限制
+        current_connections = len(active_connections.get(websocket.username, {}))
+        if current_connections >= MAX_CONNECTIONS_PER_USER:
+            await websocket.accept()
+            await websocket.send_text(json.dumps({
+                "tag": "connection_error",
+                "body": {
+                    "message": f"连接数已达上限 ({MAX_CONNECTIONS_PER_USER})",
+                    "error_code": "MAX_CONNECTIONS_REACHED"
+                }
+            }))
+            await websocket.close(code=1008, reason="连接数已达上限")
+            print(f"Connection refused for {websocket.username}: max connections reached")
+            return
+        
+        await websocket.accept()
+        
+        # 创建用户WebSocket实例
+        user_ws = UserWebsocket(websocket, websocket.username)
+        
+        # 将WebSocket连接添加到活跃连接嵌套字典中
+        if websocket.username not in active_connections:
+            active_connections[websocket.username] = {}
+        active_connections[websocket.username][user_ws.session_id] = user_ws
+        
+        print(f"{websocket.username} (session {user_ws.session_id}) connected to WebSocket. Total connections for user: {len(active_connections[websocket.username])}")
+
+        # 使用try-finally确保即使出现异常也能正确清理
+        try:
+            # 发送会话信息给客户端
+            await websocket.send_text(json.dumps({
+                "tag": "session_info",
+                "body": {
+                    "username": websocket.username,
+                    "session_id": user_ws.session_id,
+                    "message": f"已连接，会话ID: {user_ws.session_id}"
+                }
+            }))
+            
+            await user_ws.wait_finish()
+        finally:
+            # 清理工作已在cleanup方法中完成
+            pass
+    except Exception as e:
+        print(f"Error in WebSocket endpoint: {e}")
+        # 尝试关闭连接并清理
+        try:
+            if user_ws is not None:
+                await user_ws.cleanup()
+            elif websocket.client_state == WebSocketState.CONNECTING or websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.close()
+        except:
+            pass
+
+# 添加健康检查接口
+@account_router.get("/api/websocket_health")
+async def websocket_health_check(request: Request):
+    """
+    WebSocket连接健康检查接口，返回当前连接状态统计信息
+    """
+    await verfiy_by_request(request)
     
-    await websocket.accept()
-    print(f"{websocket.username} connected to WebSocket.")
-
-    # 将 WebSocket 连接及其消息队列添加到活跃连接字典中
-    active_connections[websocket.username] = UserWebsocket(websocket)
-
-    await active_connections[websocket.username].wait_finish();
+    # 收集连接统计信息
+    total_users = len(active_connections)
+    total_connections = 0
+    user_connections = {}
+    
+    for username, sessions in active_connections.items():
+        connection_count = len(sessions)
+        total_connections += connection_count
+        user_connections[username] = connection_count
+    
+    return {
+        "status": "healthy",
+        "total_users": total_users,
+        "total_connections": total_connections,
+        "max_connections_per_user": MAX_CONNECTIONS_PER_USER,
+        "user_connections": user_connections
+    }
 
 # 检查账户目录是否存在，不存在则创建
 if not os.path.exists(ACCOUNT_DIR):
