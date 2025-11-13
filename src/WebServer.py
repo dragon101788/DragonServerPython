@@ -157,7 +157,7 @@ async def AccessFiles(request: Request, path: str = ""):
         
         try:
             return await WebdavService.do_GET(request, path);
-        except Exception as e:
+        except HTTPException as e:
             for extra_static in server_config["extra_static"]:
                 if os.path.exists(os.path.join(extra_static, path)):
                     return responseFile(os.path.join(extra_static, path))
@@ -170,11 +170,13 @@ async def AccessFiles(request: Request, path: str = ""):
             elif os.path.exists(os.path.join(Resource.path.templates, path)):
                 return templates.TemplateResponse(path, {"request": request})
             
-            
-        
-        raise Exception("文件不存在")
-    except Exception as e:
-        return templates.TemplateResponse("error.html", {"request": request ,"reason" : e.__str__() ,"status_code" : "404"}, status_code=404)
+            raise e
+    except HTTPException as e:
+        user_agent = request.headers.get("User-Agent","")
+        if "Mozilla" in user_agent:
+            return templates.TemplateResponse("error.html", {"request": request ,"reason" : e.__str__() ,"status_code" : str(e.status_code)}, status_code=e.status_code)
+        else:
+            raise e
 
 
 
