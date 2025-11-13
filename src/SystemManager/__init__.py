@@ -97,8 +97,6 @@ class SystemMonitor(threading.Thread):  # 继承 threading.Thread
             # 打印系统信息
             account.send_to_all_clients("system_info", self.info)              
             time.sleep(1)  # 每秒更新一次
-            #print(f"system info: {self.info}")
-            print("...")
         self.is_running = False
 
     def stop(self):
