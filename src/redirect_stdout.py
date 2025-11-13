@@ -59,8 +59,9 @@ class RedirectStdout:
             self.callback.remove(callback)
 
     def original_write(self, text):
-        self.original_stdout.write(text)
-        self.original_stdout.flush()
+        if self.original_stdout and self.original_stdout.isatty():
+            self.original_stdout.write(text)
+            self.original_stdout.flush()
 
     def write(self, text):
         for callback in self.callback:
