@@ -9,19 +9,10 @@ import ctypes
 import time
 import json
 import threading
+from src.config import PythonConfig
 from typing import Dict, Any, Optional
+import Resource
 
-# 获取可执行文件路径
-def get_executable_path():
-    import sys
-    if getattr(sys, 'frozen', False):
-        # 如果是打包后的可执行文件
-        return os.path.dirname(sys.executable)
-    else:
-        # 如果是普通的 Python 脚本
-        return os.path.dirname(os.path.abspath(__file__))
-        
-CONFIG_PATH = os.path.join(get_executable_path(), ".launcher.json")
 
 
 class ProcessManager:
@@ -29,14 +20,12 @@ class ProcessManager:
     
     def __init__(self):
         """初始化进程管理器"""
-        self.programs = {}
         self.notify_chain = []
         self.process_status_cache = {}
         self.monitor_thread = None
         self.monitor_interval = 5  # 监控间隔（秒）
         self.running = False
-        
-        self.load_config()
+        self.programs = PythonConfig("config/launcher.py",default_config={})
         self.start_process_monitor()
 
     def register_notify(self, callback):
@@ -359,31 +348,7 @@ class ProcessManager:
             })
         return status_list
         
-    def load_config(self):
-        """加载配置文件"""
-        try:
-            if os.path.exists(CONFIG_PATH):
-                with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-                    self.programs = json.load(f)
-                self.log(f"成功加载配置文件: {CONFIG_PATH}")
-                self.notify_status(status="loaded", name="config")
-            else:
-                self.log(f"配置文件不存在，创建默认配置: {CONFIG_PATH}")
-                self.programs = {}
-                self.save_config()
-        except Exception as e:
-            self.log(f"加载配置文件时出错: {str(e)}")
-            self.programs = {}
-    
-    def save_config(self):
-        """保存配置文件"""
-        try:
-            # 将字典转换回列表格式再保存，保持向后兼容性
-            with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
-                json.dump(self.programs, f, ensure_ascii=False, indent=2)
-            self.log(f"成功保存配置文件: {CONFIG_PATH}")
-        except Exception as e:
-            self.log(f"保存配置文件时出错: {str(e)}")
+   
     
     def add_program(self, program: Dict[str, Any]):
         """添加新程序
@@ -393,7 +358,6 @@ class ProcessManager:
         """
         program_name = program.get('name', f'未命名程序_{len(self.programs)}')
         self.programs[program_name] = program
-        self.save_config()
         self.notify_status(status="added", name=program_name)
     
     def remove_program(self, program_name: str):
@@ -408,7 +372,6 @@ class ProcessManager:
                 self.stop_process_by_name(program_name)
             
             del self.programs[program_name]
-            self.save_config()
             self.notify_status(status="removed", name=program_name)
         except Exception as e:
             self.log(f"删除程序时出错: {str(e)}")
@@ -434,5 +397,4 @@ class ProcessManager:
             else:
                 # 直接更新现有条目
                 self.programs[program_name].update(updates)
-            self.save_config()
             self.notify_status(status="updated", name=program_name)

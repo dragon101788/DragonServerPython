@@ -111,7 +111,14 @@ class ConfigBase(FileSystemEventHandler):
         del self.config[key]
         self.save_to_file(self.config_path)
     
- 
+    def items(self):
+        return self.config.items()
+
+    def values(self):
+        return self.config.values()
+
+    def keys(self):
+        return self.config.keys()
 
     def __delattr__(self, name):
         del self.config[name]
@@ -141,10 +148,10 @@ class PythonConfig(ConfigBase):
         super().__init__(config_path,**kwargs)
     def save_to_file(self, path):
 
-        print(f"ChatAI 创建文件并写入默认配置 {path}")
+        print(f"创建文件并写入默认配置 {path}")
 
         with open(path, 'w', encoding='utf-8') as f:
-            f.write(f"# 这是 ChatAPI 的配置文件\n")
+            f.write(f"# 这是 {os.path.basename(path)} 的配置文件\n")
             f.write(f"config = {repr(self.config)}\n")
 
 

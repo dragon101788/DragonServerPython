@@ -23,3 +23,4 @@ log/*
 /PhotoAlbum_mobile/*
 launcher/.launcher.json
 DragonServer*.exe
+launcher*.exe
