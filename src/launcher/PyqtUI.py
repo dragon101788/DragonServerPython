@@ -353,8 +353,7 @@ class LauncherApp(QMainWindow):
     def toggle_program_startup(self, name: str):
         """切换程序的开机自启动状态"""
         if name in self.process_manager.programs:
-            checked = self.process_manager.programs[name].get('startup_with_windows', False)
-            self.process_manager.update_program(name, {'startup_with_windows': not checked})
+            self.save_config(name)
             
     
     def show_context_menu(self, position):
@@ -382,6 +381,55 @@ class LauncherApp(QMainWindow):
         # 显示菜单
         menu.exec_(self.program_table.mapToGlobal(position))
     
+    def save_config(self, name: str):
+        """保存当前配置"""
+        name_edit = self.property_panel_container.findChild(QLineEdit, "name_edit")
+        path_edit = self.property_panel_container.findChild(QLineEdit, "path_edit")
+        args_edit = self.property_panel_container.findChild(QLineEdit, "args_edit")
+        cwd_edit = self.property_panel_container.findChild(QLineEdit, "cwd_edit")
+        startup_with_windows_check = self.property_panel_container.findChild(QCheckBox, "startup_with_windows_check")
+        try_admin_check = self.property_panel_container.findChild(QCheckBox, "try_admin_check")
+
+        # 确保所有组件都找到了
+        if None in [name_edit, path_edit, args_edit, cwd_edit, startup_with_windows_check, try_admin_check]:
+            print("错误: 找不到一个或多个配置组件")
+            return
+
+        new_name = name_edit.text()
+        new_path = path_edit.text()
+        new_args = args_edit.text()
+        new_cwd = cwd_edit.text()
+        new_startup_with_windows = startup_with_windows_check.isChecked()
+        new_try_admin = try_admin_check.isChecked()
+        
+        # 更新程序配置
+        program = self.process_manager.programs.get(name)
+        if program:
+            # 如果名称改变，需要先删除旧名称的程序，再添加新名称的程序
+            if new_name != name and new_name:
+                del self.process_manager.programs[name]
+                self.current_select = new_name
+                
+            # 更新程序配置
+            program.update({
+                'name': new_name,
+                'path': new_path,
+                'args': new_args,
+                'cwd': new_cwd,
+                'startup_with_windows': new_startup_with_windows,
+                'try_admin': new_try_admin
+            })
+            
+            # 将更新后的程序添加回字典（如果名称改变了）
+            if new_name != name:
+                self.process_manager.programs[new_name] = program
+            
+            
+            # 更新界面
+            self.update_program_table()
+            self.update_program_property_panel()
+            
+            print(f"已保存程序 '{new_name}' 的配置")
     def update_program_property_panel(self):
         name = self.current_select
         
@@ -400,10 +448,10 @@ class LauncherApp(QMainWindow):
         panel_layout = QVBoxLayout(panel_widget)
         
         # 名称
-        name_layout = QHBoxLayout()
+        name_layout = QHBoxLayout(  )
         name_layout.addWidget(QLabel("名称:"))
         name_edit = QLineEdit(name)
-        name_edit.editingFinished.connect(lambda: self.process_manager.update_program(name, {'name': name_edit.text()}))
+        name_edit.setObjectName("name_edit")  # 添加objectName
         # name_edit.setReadOnly(True)  # 改为可编辑
         name_layout.addWidget(name_edit)
         
@@ -414,7 +462,7 @@ class LauncherApp(QMainWindow):
         path_layout = QHBoxLayout()
         path_layout.addWidget(QLabel("路径:"))
         path_edit = QLineEdit(self.process_manager.programs[name].get('path', ''))
-        path_edit.editingFinished.connect(lambda: self.process_manager.update_program(name, {'path': path_edit.text()}))
+        path_edit.setObjectName("path_edit")  # 添加objectName
         # path_edit.setReadOnly(True)  # 改为可编辑
         path_edit.setMinimumWidth(300)
         path_layout.addWidget(path_edit)
@@ -430,8 +478,8 @@ class LauncherApp(QMainWindow):
         args_layout = QHBoxLayout()
         args_layout.addWidget(QLabel("参数:"))
         args_edit = QLineEdit(self.process_manager.programs[name].get('args', ''))
+        args_edit.setObjectName("args_edit")  # 添加objectName
         # args_edit.setReadOnly(True)  # 改为可编辑
-        args_edit.editingFinished.connect(lambda: self.process_manager.update_program(name, {'args': args_edit.text()}))
         args_layout.addWidget(args_edit)
         panel_layout.addLayout(args_layout)
         
@@ -439,9 +487,9 @@ class LauncherApp(QMainWindow):
         cwd_layout = QHBoxLayout()
         cwd_layout.addWidget(QLabel("工作目录:"))
         cwd_edit = QLineEdit(self.process_manager.programs[name].get('cwd', ''))
+        cwd_edit.setObjectName("cwd_edit")  # 添加objectName
         # cwd_edit.setReadOnly(True)  # 改为可编辑
         cwd_edit.setMinimumWidth(300)
-        cwd_edit.editingFinished.connect(lambda: self.process_manager.update_program(name, {'cwd': cwd_edit.text()}))
         cwd_layout.addWidget(cwd_edit)
         
         # 添加浏览按钮
@@ -453,12 +501,14 @@ class LauncherApp(QMainWindow):
         
         # 开机自启
         startup_checkbox = QCheckBox("开机自启动")
+        startup_checkbox.setObjectName("startup_with_windows_check")  # 添加objectName
         startup_checkbox.setChecked(self.process_manager.programs[name].get('startup_with_windows', False))
         startup_checkbox.stateChanged.connect(self.toggle_bootup)
         panel_layout.addWidget(startup_checkbox)
         
         # 管理员权限
         admin_checkbox = QCheckBox("以管理员权限运行")
+        admin_checkbox.setObjectName("try_admin_check")  # 添加objectName
         admin_checkbox.setChecked(self.process_manager.programs[name].get('try_admin', False))
         admin_checkbox.stateChanged.connect(self.on_admin_checkbox_changed)
         panel_layout.addWidget(admin_checkbox)
@@ -483,6 +533,9 @@ class LauncherApp(QMainWindow):
         stop_btn.clicked.connect(lambda: self.stop_program_by_name(name))
         control_layout.addWidget(stop_btn)
         
+        save_btn = QPushButton("保存设置")
+        save_btn.clicked.connect(lambda: self.save_config(name))
+        control_layout.addWidget(save_btn)
         
         panel_layout.addLayout(control_layout)
         
@@ -542,7 +595,7 @@ class LauncherApp(QMainWindow):
         checked = not self.process_manager.programs[self.current_select].get('startup_with_windows', False)
         status = "启用" if checked else "禁用"
         name = self.process_manager.programs[self.current_select]['name']
-        self.process_manager.update_program(self.current_select, {'startup_with_windows': checked })
+        self.save_config(name)
         print(f"{status}程序 '{name}' 的开机自启动")
     
     def on_admin_checkbox_changed(self):
@@ -550,7 +603,7 @@ class LauncherApp(QMainWindow):
         checked = not self.process_manager.programs[self.current_select].get('try_admin', False)
         status = "启用" if checked else "禁用"
         name = self.process_manager.programs[self.current_select]['name']
-        self.process_manager.update_program(self.current_select, {'try_admin': checked })
+        self.save_config(name)
         print(f"{status}程序 '{name}' 的管理员权限")
     
     def check_auto_startup(self) -> bool:
