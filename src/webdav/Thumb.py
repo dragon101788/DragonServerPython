@@ -8,7 +8,7 @@ import shutil
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 import Resource
-import config
+import src.config as config
 
 def get_cache_path(full_path, size):
     """

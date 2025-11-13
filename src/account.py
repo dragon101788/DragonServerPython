@@ -17,7 +17,7 @@ from typing import Optional
 import io
 import asyncio
 from starlette.requests import cookie_parser
-import config
+import src.config as config
 import textwrap
 from fastapi import Security
 from fastapi.security import HTTPBasic, HTTPBasicCredentials

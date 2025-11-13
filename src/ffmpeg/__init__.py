@@ -8,7 +8,7 @@ from queue import Queue
 import shutil
 
 from fastapi.responses import JSONResponse
-import config
+import src.config as config
 import src.account as account
 import json
 from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect ,HTTPException

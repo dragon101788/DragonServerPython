@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import multiprocessing
 import time
-import config
+import src.config as config
 import Resource
 from typing import Any
 

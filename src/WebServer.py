@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from urllib3 import response
 import Resource
-import config
+import src.config as config
 import os
 import time
 import io

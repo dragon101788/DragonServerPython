@@ -23,7 +23,7 @@ import time
 import io
 from fastapi.responses import FileResponse
 from PIL import Image
-import config
+import src.config as config
 
 
 api_config = config.PythonConfig("config/chatAPI.py",default_config={

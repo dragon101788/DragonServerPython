@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, Response
 import os
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Response
 from fastapi import APIRouter, FastAPI, Request, HTTPException
-from config import PythonConfig
+from src.config import PythonConfig
 import src.webdav.WebdavService as WebdavService
 
 

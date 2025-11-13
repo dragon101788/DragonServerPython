@@ -6,7 +6,7 @@ import time
 import psutil
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Response
 from fastapi import APIRouter, FastAPI, Request, HTTPException
-from config import PythonConfig
+from src.config import PythonConfig
 import timestamp
 import asyncio
 from urllib.parse import parse_qs

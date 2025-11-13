@@ -11,7 +11,7 @@ import json
 
 from fastapi import FastAPI, Request
 import httpx
-import config
+import src.config as config
 # 创建路由器
 chat_router = APIRouter()
 

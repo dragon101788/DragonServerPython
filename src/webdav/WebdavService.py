@@ -7,7 +7,7 @@ from urllib.parse import quote ,unquote
 import mimetypes
 import hashlib
 import src.account as account 
-from config import PythonConfig
+from src.config import PythonConfig
 import shutil
 import time
 import io
