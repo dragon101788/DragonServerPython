@@ -618,14 +618,16 @@ def recv_messages(tag):
         return func
     return decorator
 
+#注册全局消息处理函数
 @recv_messages("*")
-async def test(uws :UserWebsocket,body :dict):
-    print(body)
+async def deal_with_all(uws :UserWebsocket,body :dict):
+    #print(body)
     # uws.put(json.dumps({"tag":"test","body":{
     #     "message":"test",
     #     "username" :"wang"
     # }}))
-    uws.put("helloworld")
+    #uws.put("helloworld")
+    pass
 
 
 @account_router.websocket("/api/account_websocket")

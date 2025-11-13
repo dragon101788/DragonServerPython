@@ -237,7 +237,10 @@ class LauncherApp(QMainWindow):
             self.program_table.insertRow(row_position)
             
             # 程序名称
-            self.program_table.setItem(row_position, 0, QTableWidgetItem(name))
+            name_item = QTableWidgetItem(name)
+            name_item.setTextAlignment(Qt.AlignCenter)
+            name_item.setFlags(name_item.flags() & ~Qt.ItemIsEditable)
+            self.program_table.setItem(row_position, 0, name_item)
             
             # 开机启动复选框
             startup_checkbox = QCheckBox()
@@ -248,6 +251,8 @@ class LauncherApp(QMainWindow):
             # 运行状态
             status_item = QTableWidgetItem()
             status_item.setTextAlignment(Qt.AlignCenter)
+            # 设置单元格为只读
+            status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
             if self.process_manager.is_program_running(name):
                 status_item.setText("运行中")
                 status_item.setForeground(Qt.green)
@@ -349,10 +354,13 @@ class LauncherApp(QMainWindow):
         #self.status_text.setText(message)
 
     
-    
+
     def toggle_program_startup(self, name: str):
         """切换程序的开机自启动状态"""
         if name in self.process_manager.programs:
+            startup_with_windows_check = self.property_panel_container.findChild(QCheckBox, "startup_with_windows_check")
+            if startup_with_windows_check:
+                startup_with_windows_check.setChecked(not startup_with_windows_check.isChecked())
             self.save_config(name)
             
     
@@ -574,10 +582,7 @@ class LauncherApp(QMainWindow):
             self.update_program_property_panel()
        
     
-    def on_program_cell_changed(self, row: int, column: int):
-        """当表格单元格内容改变时"""
-        # 由于我们现在使用的是列表而不是表格，这个方法可能不再需要
-        pass
+   
     
     def start_program_by_name(self, name: str):
         """通过名称启动程序"""
