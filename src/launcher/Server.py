@@ -20,7 +20,7 @@ import base64
 import json
 import shutil
 
-from src.account import account_router ,verfiy_by_request
+from src.account import account_router ,verfiy_by_request ,send_to_all_clients
 import Resource
 class ProgramInfo(BaseModel):
     """程序信息数据模型"""
@@ -100,7 +100,7 @@ class LauncherServer:
 
 
     def notify_status(self, **kwargs):
-        account.send_to_all_clients("status_update", kwargs)
+        send_to_all_clients("status_update", kwargs)
 
     def log(self, message: str):
         print(message)
@@ -307,7 +307,7 @@ class LauncherServer:
                         if file_size > 0:
                             progress = (total_written / file_size) * 100
                             print(f"上传进度: {progress:.2f}% ({total_written}/{file_size} 字节)")
-                            account.send_to_all_clients("upgrade_progress",{"progress": progress, "total_written": total_written, "file_size": file_size})
+                            send_to_all_clients("upgrade_progress",{"progress": progress, "total_written": total_written, "file_size": file_size})
                         else:
                             print(f"上传进度: {total_written} 字节已上传")
                 
