@@ -14,7 +14,7 @@ import timestamp
 import textwrap
 import os
 import asyncio
-import account
+import src.account as account
 import requests
 from fastapi.responses import JSONResponse, StreamingResponse
 import Resource

@@ -20,7 +20,7 @@ import base64
 import json
 import shutil
 
-import account 
+import src.account as account 
 import Resource
 class ProgramInfo(BaseModel):
     """程序信息数据模型"""

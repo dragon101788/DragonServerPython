@@ -9,7 +9,7 @@ import shutil
 
 from fastapi.responses import JSONResponse
 import config
-import account
+import src.account as account
 import json
 from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect ,HTTPException
 from urllib.parse import unquote
