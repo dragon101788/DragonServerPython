@@ -162,14 +162,27 @@ export class MasonryVideoItem extends MasonryBaseModal {
                 object-fit: contain;
                 cursor: default;
             }
+            /* 错误提示样式 */
+            #error {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: rgba(255, 0, 0, 0.7);
+                padding: 20px 40px;
+                border-radius: 8px;
+                font-size: 18px;
+                z-index: 1000;
+                display: none;
+            }
         </style>
         <div class="view-modal">
             <div class="view-modal-content">
                 <button class="nav-btn prev-btn">&lt;</button>
                 <button class="close-btn">&times;</button>
+                <div id="error">视频加载失败，请稍后重试</div>
                 <div class="loading-indicator">加载中...</div>
                 <video class="modal-media" controls>
-                    <source src="${MasonryView.getFileUrl(this.item.path)}" type="video/mp4">
                     您的浏览器不支持视频播放。
                 </video>
                 <button class="nav-btn next-btn">&gt;</button>
@@ -182,6 +195,8 @@ export class MasonryVideoItem extends MasonryBaseModal {
         const video = modal.querySelector('video');
         const loadingIndicator = modal.querySelector('.loading-indicator');
         
+        
+
         // 视频加载完成处理
         video.onloadeddata = () => {
             loadingIndicator.style.display = 'none';
@@ -191,11 +206,37 @@ export class MasonryVideoItem extends MasonryBaseModal {
             });
         };
         
+        // 监听错误事件
+        video.addEventListener('error', function() {
+            console.error('视频播放错误:', video.error);
+            document.getElementById('error').style.display = 'block';
+            
+            // 处理不同类型的错误
+            let errorMessage = '未知错误';
+            switch (video.error.code) {
+                case 1:
+                    errorMessage = '用户中止了视频加载';
+                    break;
+                case 2:
+                    errorMessage = '网络错误';
+                    break;
+                case 3:
+                    errorMessage = '解码错误';
+                    break;
+                case 4:
+                    errorMessage = '视频格式不支持';
+                    break;
+            }
+            document.getElementById('error').textContent = `播放错误：${errorMessage}`;
+        });
         // 视频加载失败处理
         video.onerror = () => {
             loadingIndicator.textContent = '视频加载失败';
         };
         
+        video.src = `${MasonryView.getFileUrl(this.item.path)}`;
+        video.type = "video/mp4";
+        video.load();
         // 设置事件监听器
         this.setupEventListeners();
     }
