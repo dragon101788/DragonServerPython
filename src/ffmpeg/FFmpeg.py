@@ -699,207 +699,146 @@ class ffmpeg_create_thumbnail(ffmpeg):
         # 构建命令
         self.cmd = f"{ffmpeg_config['path']} {options_str}"
 
-if __name__ == "__main__":
-    import os
-    import time
-    
-    # 测试文件路径（请根据实际情况修改）
-    test_video_file = "test_video.mp4"  # 替换为实际的测试视频文件路径
-    
-    # 确保测试文件存在
-    if not os.path.exists(test_video_file):
-        print(f"警告：测试文件 '{test_video_file}' 不存在，请修改测试代码中的文件路径。")
-        # 尝试找一个默认的测试文件
-        for root, dirs, files in os.walk("."):
-            for file in files:
-                if file.lower().endswith((".mp4", ".avi", ".mkv", ".rm", ".rmvb")):
-                    test_video_file = os.path.join(root, file)
-                    print(f"找到测试文件：{test_video_file}")
-                    break
-            else:
-                continue
-            break
-    
-    if not os.path.exists(test_video_file):
-        print("未找到可用的视频文件，请手动指定测试文件路径。")
-        exit(1)
-    
-    print("=== FFmpeg功能测试程序 ===")
-    print(f"使用测试文件：{test_video_file}")
-    
-    # 1. 测试ffprobe功能
-    print("\n1. 测试ffprobe功能")
-    try:
-        info = ffprobe(test_video_file)
-        print(str(info))
-        print(f"视频时长: {info.get('format', {}).get('duration', '未知')}")
-        print(f"视频编码: {[s.get('codec_name', '未知') for s in info.get('streams', []) if s.get('codec_type') == 'video']}")
-    except Exception as e:
-        print(f"ffprobe测试失败: {e}")
-    
-    # 2. 测试ffmpeg_transcode功能
-    print("\n2. 测试视频转码功能")
-    try:
-        output_file = os.path.splitext(test_video_file)[0] + "_transcoded.mp4"
-        print(f"转码输出文件: {output_file}")
+
+class ffmpeg_merger_video_list(ffmpeg):
+    """
+    合并视频列表
+    """
+    def __init__(self, **kwargs):
+        """
+        初始化视频合并功能
         
-        transcode_task = ffmpeg_transcode(
-            input_file=test_video_file,
-            output_file=output_file,
-            video_codec="h264",
-            audio_codec="aac",
-            video_bitrate="1M",
-            audio_bitrate="192k"
-        )
+        参数:
+            video_list: 视频文件路径列表（必需）
+            output_file: 输出合并视频路径（必需）
+            video_codec: 视频编码器（可选）
+            audio_codec: 音频编码器（可选）
+            method: 合并方法，'concat'或'filter_complex'（可选，默认'concat'）
+        """
+        super().__init__()
+        options = []
         
-        # 定义进度回调函数
-        def progress_callback(ffmpeg):
-            percent = ffmpeg.progress * 100
-            print(f"转码进度: {percent:.1f}% ", end="\r")
+        # 从kwargs中提取参数
+        video_list = kwargs.get('video_list')
+        output_file = kwargs.get('output_file')
+        video_codec = kwargs.get('video_codec')
+        audio_codec = kwargs.get('audio_codec')
+        method = kwargs.get('method', 'concat')
         
-        transcode_task.progress_callback = progress_callback
-        print("开始转码...")
-        start_time = time.time()
-        success = transcode_task.run()
-        end_time = time.time()
+        # 验证必需参数
+        if not video_list or not output_file:
+            raise ValueError("video_list和output_file是必需参数")
         
-        if success:
-            print(f"\n转码成功！耗时: {end_time - start_time:.2f}秒")
-            if os.path.exists(output_file):
-                print(f"输出文件大小: {os.path.getsize(output_file) / (1024 * 1024):.2f} MB")
-        else:
-            print(f"\n转码失败: {transcode_task.error_message}")
-    except Exception as e:
-        print(f"转码测试失败: {e}")
-    
-    # 3. 测试ffmpeg_extract_image功能
-    print("\n3. 测试视频帧提取功能")
-    try:
-        output_pattern = os.path.splitext(test_video_file)[0] + "_frame_%04d.jpg"
-        print(f"帧输出模式: {output_pattern}")
+        # 确保video_list是列表
+        if not isinstance(video_list, list):
+            raise ValueError("video_list必须是一个列表")
         
-        extract_task = ffmpeg_extract_image(
-            input_file=test_video_file,
-            output_pattern=output_pattern,
-            start_time=10,  # 从第10秒开始
-            duration=5,     # 提取5秒
-            frame_rate=2,   # 每秒提取2帧
-            quality=2       # JPEG质量
-        )
+        # 验证所有视频文件都存在
+        for video_file in video_list:
+            if not os.path.exists(video_file):
+                raise FileNotFoundError(f"视频文件不存在: {video_file}")
         
-        print("开始提取视频帧...")
-        start_time = time.time()
-        success = extract_task.run()
-        end_time = time.time()
+
+        info_list = []
+        # 计算总时长用于进度显示
+        total_duration = 0
+        src_video_codec = None
+        src_audio_codec = None
+
+        for video_file in video_list:
+            try:
+                info = ffprobe(video_file)
+                duration = float(info.get('format', {}).get('duration', 0))
+                total_duration += duration
+                info_list.append(info)
+                # 记录第一个视频的编码器参数
+                stream_info = info.get('streams', [{}])
+                video_streams = [s for s in stream_info if s.get('codec_type') == 'video']
+                audio_streams = [s for s in stream_info if s.get('codec_type') == 'audio']
+                if src_video_codec is None:
+                    src_video_codec = video_streams[0].get('codec_name', 'h264')
+                if src_audio_codec is None:
+                    src_audio_codec = audio_streams[0].get('codec_name', 'aac')
+
+                if video_streams[0].get('codec_name') != src_video_codec or audio_streams[0].get('codec_name') != src_audio_codec:
+                    raise ValueError(f"视频 {video_file} 编码器参数与第一个视频不同")
+            except Exception as e:
+                print(f"获取视频时长失败 {video_file}: {e}")
         
-        if success:
-            print(f"\n视频帧提取成功！耗时: {end_time - start_time:.2f}秒")
-            # 检查生成的文件
-            output_dir = os.path.dirname(test_video_file)
-            base_name = os.path.splitext(os.path.basename(test_video_file))[0]
-            frame_files = [f for f in os.listdir(output_dir) if f.startswith(base_name + "_frame_")]
-            print(f"共提取 {len(frame_files)} 帧图片")
-        else:
-            print(f"\n视频帧提取失败: {extract_task.error_message}")
-    except Exception as e:
-        print(f"视频帧提取测试失败: {e}")
-    
-    # 4. 测试ffmpeg_extract_audio功能
-    print("\n4. 测试音频提取功能")
-    try:
-        output_audio = os.path.splitext(test_video_file)[0] + "_audio.mp3"
-        print(f"音频输出文件: {output_audio}")
+        self.total_duration = total_duration
+        self.input_file = video_list
+        self.output_file = output_file
         
-        audio_task = ffmpeg_extract_audio(
-            input_file=test_video_file,
-            output_file=output_audio,
-            audio_codec="mp3",
-            audio_bitrate="192k"
-        )
-        
-        # 定义进度回调函数
-        def audio_progress_callback(ffmpeg):
-            percent = ffmpeg.progress * 100
-            print(f"音频提取进度: {percent:.1f}%", end="\r")
-        
-        audio_task.progress_callback = audio_progress_callback
-        print("开始提取音频...")
-        start_time = time.time()
-        success = audio_task.run()
-        end_time = time.time()
-        
-        if success:
-            print(f"\n音频提取成功！耗时: {end_time - start_time:.2f}秒")
-            if os.path.exists(output_audio):
-                print(f"输出音频大小: {os.path.getsize(output_audio) / (1024 * 1024):.2f} MB")
-        else:
-            print(f"\n音频提取失败: {audio_task.error_message}")
-    except Exception as e:
-        print(f"音频提取测试失败: {e}")
-    
-    # 5. 测试ffmpeg_create_thumbnail功能
-    print("\n5. 测试缩略图创建功能")
-    try:
-        output_thumbnail = os.path.splitext(test_video_file)[0] + "_thumbnail.jpg"
-        print(f"缩略图输出文件: {output_thumbnail}")
-        
-        thumbnail_task = ffmpeg_create_thumbnail(
-            input_file=test_video_file,
-            output_file=output_thumbnail,
-            position=0.3,  # 在视频30%的位置
-            width=800,     # 宽度800像素
-            quality=2      # JPEG质量
-        )
-        
-        print("开始创建缩略图...")
-        start_time = time.time()
-        success = thumbnail_task.run()
-        end_time = time.time()
-        
-        if success:
-            print(f"缩略图创建成功！耗时: {end_time - start_time:.2f}秒")
-            if os.path.exists(output_thumbnail):
-                print(f"缩略图大小: {os.path.getsize(output_thumbnail) / 1024:.2f} KB")
-        else:
-            print(f"\n缩略图创建失败: {thumbnail_task.error_message}")
-    except Exception as e:
-        print(f"缩略图创建测试失败: {e}")
-    
-    # 6. 测试ffmpeg_merge_audio_video功能（需要先有分离的音频文件）
-    print("\n6. 测试音视频合并功能")
-    try:
-        # 使用前面提取的音频文件
-        audio_file = os.path.splitext(test_video_file)[0] + "_audio.mp3"
-        if not os.path.exists(audio_file):
-            print("跳过音视频合并测试，因为没有找到音频文件")
-        else:
-            output_merged = os.path.splitext(test_video_file)[0] + "_merged.mp4"
-            print(f"合并输出文件: {output_merged}")
+        if method == 'concat' and src_video_codec ==  "h264" and src_audio_codec == "aac":
+            # 使用concat协议（更高效，但要求视频编码参数相同）
+            # 创建临时文件列表
+            temp_list_file = os.path.join(os.path.dirname(output_file), '_temp_file_list.txt')
             
-            merge_task = ffmpeg_merge_audio_video(
-                video_file=test_video_file,
-                audio_file=audio_file,
-                output_file=output_merged
-            )
+            # 写入视频文件列表
+            with open(temp_list_file, 'w', encoding='utf-8') as f:
+                for video_file in video_list:
+                    # Windows路径需要转义反斜杠
+                    file_path = video_file.replace('\\', '\\\\')
+                    f.write(f"file '{file_path}'\n")
             
-            # 定义进度回调函数
-            def merge_progress_callback(ffmpeg):
-                percent = ffmpeg.progress * 100
-                print(f"合并进度: {percent}%", end="\r")
+            # 设置concat选项
+            options_str = f"-f concat -safe 0 -i \"{temp_list_file}\" -c copy"
             
-            merge_task.progress_callback = merge_progress_callback
-            print("开始合并音视频...")
-            start_time = time.time()
-            success = merge_task.run()
-            end_time = time.time()
+            # 构建命令
+            self.cmd = f"{ffmpeg_config['path']} {options_str} -y -progress pipe:1 \"{output_file}\"{ffmpeg_config['ffmpeg_option']}"
             
-            if success:
-                print(f"\n音视频合并成功！耗时: {end_time - start_time:.2f}秒")
-                if os.path.exists(output_merged):
-                    print(f"输出文件大小: {os.path.getsize(output_merged) / (1024 * 1024):.2f} MB")
-            else:
-                print(f"\n音视频合并失败: {merge_task.error_message}")
-    except Exception as e:
-        print(f"音视频合并测试失败: {e}")
+            # 保存临时文件路径以便稍后清理
+            self.temp_list_file = temp_list_file
+        else:
+            # 使用filter_complex concat过滤器（更通用，可以处理不同编码参数的视频）
+            # 添加所有输入文件
+            for video_file in video_list:
+                options.append(f"-i \"{video_file}\"")
+            
+            # 构建filter_complex参数
+            # 为每个输入创建视频和音频流的引用
+            video_inputs = [f'[{i}:v]' for i in range(len(video_list))]
+            audio_inputs = [f'[{i}:a]' for i in range(len(video_list))]
+            
+            # 创建视频concat过滤器
+            video_filter = ''.join(video_inputs) + f'concat=n={len(video_list)}:v=1:a=0[outv]'
+            
+            # 创建音频concat过滤器
+            audio_filter = ''.join(audio_inputs) + f'concat=n={len(video_list)}:v=0:a=1[outa]'
+            
+            # 组合过滤器
+            filter_complex = f'-filter_complex "{video_filter};{audio_filter}" -map "[outv]" -map "[outa]"'
+            
+            # 添加编码器选项
+            codec_options = []
+            
+            codec_options.append("-c:v h264")
+            codec_options.append("-c:a aac")
+            
+            # 合并所有选项
+            options_str = " ".join(options) + f" {filter_complex} " + " ".join(codec_options)
+            
+            # 构建命令
+            self.cmd = f"{ffmpeg_config['path']} {options_str} -y -progress pipe:1 \"{output_file}\"{ffmpeg_config['ffmpeg_option']}"
     
-    print("\n=== 测试完成 ===")
+    def run(self):
+        """
+        执行视频合并操作
+        
+        返回:
+            bool: 操作是否成功
+        """
+        try:
+            # 调用父类的run方法
+            result = super().run()
+            return result
+        finally:
+            # 清理临时文件
+            if hasattr(self, 'temp_list_file') and os.path.exists(self.temp_list_file):
+                try:
+                    os.remove(self.temp_list_file)
+                except Exception as e:
+                    print(f"清理临时文件失败: {e}")
+        
+
+
