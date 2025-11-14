@@ -101,11 +101,13 @@ class ffmpeg():
     """
     class std_err():
         def __init__(self):
-            self.error = ""
+            self.error = []
         def write(self,data):
-            self.error += data
+            self.error.append(data)
         def flush(self):
             pass
+        def __str__(self):
+            return "\n".join(self.error)
     
     def __init__(self):
         """
@@ -217,36 +219,9 @@ class ffmpeg():
                 pass
             
         if hasattr(self, 'progress_callback'):
-            self.progress_callback(self.get_progress_info())
+            self.progress_callback(self)
 
-    def get_progress_info(self):
-        """
-        获取当前进度信息
-        
-        返回:
-            dict: 包含进度相关信息的字典
-        """
-        info = {
-            "status": self.status,
-        }
-        
-        # 添加可选信息
-        if hasattr(self, 'current_time'):
-            info["current_time"] = self.current_time
-        if hasattr(self, 'total_duration'):
-            info["total_duration"] = self.total_duration
-            info["progress_percent"] = round(self.progress * 100, 1)
-            info["progress"] = self.progress
-        if hasattr(self, 'current_fps'):
-            info["fps"] = self.current_fps
-        if hasattr(self, 'current_bitrate'):
-            info["bitrate"] = self.current_bitrate
-        if hasattr(self, 'speed'):
-            info["speed"] = self.speed
-        if hasattr(self, 'current_frame'):
-            info["frame"] = self.current_frame
-        
-        return info
+    
     
     def run(self):
         """
@@ -286,7 +261,7 @@ class ffmpeg():
             return False
         else:
             self.status = "error"
-            self.error_message = self.stderr.error
+            self.error_message = str(self.stderr)
             print(f"ffmpeg执行错误 [代码:{ret}]: {self.error_message}")
             return False
                 
@@ -362,8 +337,14 @@ class ffmpeg_transcode(ffmpeg):
         
         
         info = ffprobe(input_file)
-        src_video_codec = info.get('streams', [{}])[0].get('codec_name', None)
-        src_audio_codec = info.get('streams', [{}])[1].get('codec_name', None)
+        # 智能查找视频流和音频流
+        streams = info.get('streams', [])
+        # 获取第一个视频流的编码
+        video_streams = [s for s in streams if s.get('codec_type') == 'video']
+        src_video_codec = video_streams[0].get('codec_name', None) if video_streams else None
+        # 获取第一个音频流的编码
+        audio_streams = [s for s in streams if s.get('codec_type') == 'audio']
+        src_audio_codec = audio_streams[0].get('codec_name', None) if audio_streams else None
         
         # 提取其他可选参数
         video_codec = kwargs.get('video_codec')
@@ -419,16 +400,506 @@ class ffmpeg_transcode(ffmpeg):
         self.cmd = f"{ffmpeg_config['path']} -i \"{input_file}\" {options_str} -y -progress pipe:1 \"{output_file}\"{ffmpeg_config['ffmpeg_option']}"
         
 
-# 暂未实现
-# class ffmpeg_extract_image(ffmpeg):
-# class ffmpeg_extract_audio(ffmpeg):
-# class ffmpeg_merge_audio_video(ffmpeg):
-# class ffmpeg_create_thumbnail(ffmpeg):
+class ffmpeg_extract_image(ffmpeg):
+    """
+    从视频中提取图片帧
+    """
+    def __init__(self, **kwargs):
+        """
+        初始化视频帧提取功能
+        
+        参数:
+            input_file: 输入视频文件路径（必需）
+            output_pattern: 输出图片路径模式，如 'frame_%04d.jpg'（必需）
+            start_time: 开始时间，格式为秒或 'MM:SS'（可选）
+            duration: 提取时长，单位为秒（可选）
+            frame_rate: 提取帧率，如 1 表示每秒1帧（可选）
+            quality: JPEG质量，0-31，数值越小质量越好（可选）
+        """
+        super().__init__()
+        options = []
+        
+        # 从kwargs中提取参数
+        input_file = kwargs.get('input_file')
+        output_pattern = kwargs.get('output_pattern')
+        
+        # 验证必需参数
+        if not input_file or not output_pattern:
+            raise ValueError("input_file和output_pattern是必需参数")
+        
+        # 提取其他可选参数
+        start_time = kwargs.get('start_time')
+        duration = kwargs.get('duration')
+        frame_rate = kwargs.get('frame_rate')
+        
+        # 添加开始时间选项
+        if start_time:
+            options.append(f"-ss {start_time}")
+        
+        # 添加时长选项
+        if duration:
+            options.append(f"-t {duration}")
+        
+        # 添加帧率选项
+        if frame_rate:
+            options.append(f"-r {frame_rate}")
+        
+        
+        # 合并选项
+        options_str = " ".join(options)
+        
+        # 设置命令
+        self.input_file = input_file
+        self.output_file = output_pattern
+        
+        # 获取视频总时长
+        info = ffprobe(input_file)
+        self.total_duration = float(info.get('format', {}).get('duration', 0))
+        
+        # 构建命令
+        self.cmd = f"{ffmpeg_config['path']} {options_str} -i \"{input_file}\" -y -progress pipe:1 \"{output_pattern}\"{ffmpeg_config['ffmpeg_option']}"
+
+
+class ffmpeg_extract_audio(ffmpeg):
+    """
+    从视频中提取音频
+    """
+    def __init__(self, **kwargs):
+        """
+        初始化音频提取功能
+        
+        参数:
+            input_file: 输入视频文件路径（必需）
+            output_file: 输出音频文件路径（必需）
+            audio_codec: 音频编码器，如 'aac', 'mp3', 'opus' 等（可选）
+            audio_bitrate: 音频比特率，如 '192k'（可选）
+            start_time: 开始时间，格式为秒或 'MM:SS'（可选）
+            duration: 提取时长，单位为秒（可选）
+        """
+        super().__init__()
+        options = []
+        
+        # 从kwargs中提取参数
+        input_file = kwargs.get('input_file')
+        output_file = kwargs.get('output_file')
+        
+        # 验证必需参数
+        if not input_file or not output_file:
+            raise ValueError("input_file和output_file是必需参数")
+        
+        # 提取其他可选参数
+        audio_codec = kwargs.get('audio_codec', 'aac')
+        audio_bitrate = kwargs.get('audio_bitrate')
+        start_time = kwargs.get('start_time')
+        duration = kwargs.get('duration')
+        
+        options.append(f"-i \"{input_file}\"")
+
+        # 添加开始时间选项
+        if start_time:
+            options.append(f"-ss {start_time}")
+        
+        # 添加时长选项
+        if duration:
+            options.append(f"-t {duration}")
+        
+        # 添加音频编码器选项
+        options.append(f"-c:a {audio_codec}")
+        
+        # 添加音频比特率选项
+        if audio_bitrate:
+            options.append(f"-b:a {audio_bitrate}")
+        
+        # 仅提取音频流
+        options.append("-vn")  # 禁用视频
+        
+        # 合并选项
+        options_str = " ".join(options)
+        
+        # 设置命令
+        self.input_file = input_file
+        self.output_file = output_file
+        
+        # 获取视频总时长
+        info = ffprobe(input_file)
+        self.total_duration = float(info.get('format', {}).get('duration', 0))
+        
+        # 构建命令
+        self.cmd = f"{ffmpeg_config['path']} {options_str}  -y -progress pipe:1 \"{output_file}\"{ffmpeg_config['ffmpeg_option']}"
+
+
+class ffmpeg_merge_audio_video(ffmpeg):
+    """
+    合并音频和视频
+    """
+    def __init__(self, **kwargs):
+        """
+        初始化音视频合并功能
+        
+        参数:
+            video_file: 输入视频文件路径（必需）
+            audio_file: 输入音频文件路径（必需）
+            output_file: 输出文件路径（必需）
+            video_codec: 视频编码器，使用 'copy' 表示直接复制流（可选）
+            audio_codec: 音频编码器，使用 'copy' 表示直接复制流（可选）
+            start_time: 开始时间，格式为秒或 'MM:SS'（可选）
+            duration: 合并时长，单位为秒（可选）
+        """
+        super().__init__()
+        options = []
+        
+        # 从kwargs中提取参数
+        video_file = kwargs.get('video_file')
+        audio_file = kwargs.get('audio_file')
+        output_file = kwargs.get('output_file')
+        
+        # 验证必需参数
+        if not video_file or not audio_file or not output_file:
+            raise ValueError("video_file、audio_file和output_file是必需参数")
+        
+        info = ffprobe(video_file)
+        # 智能查找视频流和音频流
+        streams = info.get('streams', [])
+        # 获取第一个视频流的编码
+        video_streams = [s for s in streams if s.get('codec_type') == 'video']
+        src_video_codec = video_streams[0].get('codec_name', None) if video_streams else None
+
+        audio_info = ffprobe(audio_file)
+        # 智能查找音频流
+        audio_streams = audio_info.get('streams', [])
+        # 获取第一个音频流的编码
+        audio_streams = [s for s in audio_streams if s.get('codec_type') == 'audio']
+        src_audio_codec = audio_streams[0].get('codec_name', None) if audio_streams else None
+
+        # 提取其他可选参数
+        video_codec = kwargs.get('video_codec')
+        audio_codec = kwargs.get('audio_codec')
+        start_time = kwargs.get('start_time')
+        duration = kwargs.get('duration')
+        
+        # 添加开始时间选项
+        if start_time:
+            options.append(f"-ss {start_time}")
+        
+        # 添加时长选项
+        if duration:
+            options.append(f"-t {duration}")
+
+        
+        
+        
+        options.append(f"-i \"{video_file}\"")
+        # 输入文件和流指定
+        options.append(f"-i \"{audio_file}\"")
+        
+        # 指定使用的流
+        options.append("-map 0:v:0 -map 1:a:0")
+        
+        # 添加编码器选项
+        # 添加视频编码器选项
+        if video_codec:
+            options.append(f"-c:v {video_codec}")
+        else:
+            if src_video_codec == "h264":
+                options.append("-c:v copy")
+            else:
+                options.append("-c:v h264")
+        
+        # 添加音频编码器选项
+        if audio_codec:
+            options.append(f"-c:a {audio_codec}")
+        else:
+            if src_audio_codec == "aac":
+                options.append("-c:a copy")
+            else:
+                options.append("-c:a aac")
+        
+        # 合并选项
+        options_str = " ".join(options)
+        
+        # 设置命令
+        self.input_file = f"视频: {video_file}, 音频: {audio_file}"
+        self.output_file = output_file
+        
+        # 获取视频总时长（使用视频文件的时长作为参考）
+        self.total_duration = float(info.get('format', {}).get('duration', 0))
+        
+        # 构建命令
+        self.cmd = f"{ffmpeg_config['path']} {options_str} -y -progress pipe:1 \"{output_file}\"{ffmpeg_config['ffmpeg_option']}"
+
+
+class ffmpeg_create_thumbnail(ffmpeg):
+    """
+    创建视频缩略图
+    """
+    def __init__(self, **kwargs):
+        """
+        初始化缩略图创建功能
+        
+        参数:
+            input_file: 输入视频文件路径（必需）
+            output_file: 输出缩略图路径（必需）
+            position: 缩略图位置，0-1之间的小数，表示视频进度位置，默认为配置中的thumb_pos（可选）
+            width: 缩略图宽度，高度会按比例自动调整（可选）
+            quality: JPEG质量，0-31，数值越小质量越好（可选）
+        """
+        super().__init__()
+        options = []
+        
+        # 从kwargs中提取参数
+        input_file = kwargs.get('input_file')
+        output_file = kwargs.get('output_file')
+        
+        # 验证必需参数
+        if not input_file or not output_file:
+            raise ValueError("input_file和output_file是必需参数")
+        
+        # 提取其他可选参数
+        position = kwargs.get('position', ffmpeg_config['thumb_pos'])
+        width = kwargs.get('width')
+        quality = kwargs.get('quality', 2)
+        
+        # 获取视频信息
+        info = ffprobe(input_file)
+        duration = float(info.get('format', {}).get('duration', 0))
+        
+        # 计算缩略图时间点
+        thumbnail_time = duration * position
+        
+        # 添加时间点选项
+        options.append(f"-ss {thumbnail_time}")
+        
+        options.append(f"-i \"{input_file}\"")
+        # 只提取一帧
+        options.append("-vframes 1")
+        
+        # 添加宽度选项
+        if width:
+            options.append(f"-vf scale={width}:-1")
+        
+        # 添加质量选项
+        options.append(f"-q:v {quality}")
+        
+        # # 禁用音频处理
+        # options.append("-vn")
+        
+        options.append(f"{ffmpeg_config['ffmpeg_option']}")
+
+        options.append(f"-y -progress pipe:1  \"{output_file}\"")
+        # 合并选项
+        options_str = " ".join(options)
+        
+        # 设置命令
+        self.input_file = input_file
+        self.output_file = output_file
+        
+        # 设置总时长和当前进度（对于缩略图，我们直接设为100%完成）
+        self.total_duration = 1.0
+        
+        # 构建命令
+        self.cmd = f"{ffmpeg_config['path']} {options_str}"
 
 if __name__ == "__main__":
-
-    print(ffprobe("aa.rm"))
-    # 使用关键字参数调用
-    task = ffmpeg_transcode(input_file="aa.rm", output_file="output.mp4")
-    task.progress_callback = lambda x: print(x.get("progress_percent", 0))
-    task.run()
+    import os
+    import time
+    
+    # 测试文件路径（请根据实际情况修改）
+    test_video_file = "test_video.mp4"  # 替换为实际的测试视频文件路径
+    
+    # 确保测试文件存在
+    if not os.path.exists(test_video_file):
+        print(f"警告：测试文件 '{test_video_file}' 不存在，请修改测试代码中的文件路径。")
+        # 尝试找一个默认的测试文件
+        for root, dirs, files in os.walk("."):
+            for file in files:
+                if file.lower().endswith((".mp4", ".avi", ".mkv", ".rm", ".rmvb")):
+                    test_video_file = os.path.join(root, file)
+                    print(f"找到测试文件：{test_video_file}")
+                    break
+            else:
+                continue
+            break
+    
+    if not os.path.exists(test_video_file):
+        print("未找到可用的视频文件，请手动指定测试文件路径。")
+        exit(1)
+    
+    print("=== FFmpeg功能测试程序 ===")
+    print(f"使用测试文件：{test_video_file}")
+    
+    # 1. 测试ffprobe功能
+    print("\n1. 测试ffprobe功能")
+    try:
+        info = ffprobe(test_video_file)
+        print(str(info))
+        print(f"视频时长: {info.get('format', {}).get('duration', '未知')}")
+        print(f"视频编码: {[s.get('codec_name', '未知') for s in info.get('streams', []) if s.get('codec_type') == 'video']}")
+    except Exception as e:
+        print(f"ffprobe测试失败: {e}")
+    
+    # 2. 测试ffmpeg_transcode功能
+    print("\n2. 测试视频转码功能")
+    try:
+        output_file = os.path.splitext(test_video_file)[0] + "_transcoded.mp4"
+        print(f"转码输出文件: {output_file}")
+        
+        transcode_task = ffmpeg_transcode(
+            input_file=test_video_file,
+            output_file=output_file,
+            video_codec="h264",
+            audio_codec="aac",
+            video_bitrate="1M",
+            audio_bitrate="192k"
+        )
+        
+        # 定义进度回调函数
+        def progress_callback(ffmpeg):
+            percent = ffmpeg.progress * 100
+            print(f"转码进度: {percent:.1f}% ", end="\r")
+        
+        transcode_task.progress_callback = progress_callback
+        print("开始转码...")
+        start_time = time.time()
+        success = transcode_task.run()
+        end_time = time.time()
+        
+        if success:
+            print(f"\n转码成功！耗时: {end_time - start_time:.2f}秒")
+            if os.path.exists(output_file):
+                print(f"输出文件大小: {os.path.getsize(output_file) / (1024 * 1024):.2f} MB")
+        else:
+            print(f"\n转码失败: {transcode_task.error_message}")
+    except Exception as e:
+        print(f"转码测试失败: {e}")
+    
+    # 3. 测试ffmpeg_extract_image功能
+    print("\n3. 测试视频帧提取功能")
+    try:
+        output_pattern = os.path.splitext(test_video_file)[0] + "_frame_%04d.jpg"
+        print(f"帧输出模式: {output_pattern}")
+        
+        extract_task = ffmpeg_extract_image(
+            input_file=test_video_file,
+            output_pattern=output_pattern,
+            start_time=10,  # 从第10秒开始
+            duration=5,     # 提取5秒
+            frame_rate=2,   # 每秒提取2帧
+            quality=2       # JPEG质量
+        )
+        
+        print("开始提取视频帧...")
+        start_time = time.time()
+        success = extract_task.run()
+        end_time = time.time()
+        
+        if success:
+            print(f"\n视频帧提取成功！耗时: {end_time - start_time:.2f}秒")
+            # 检查生成的文件
+            output_dir = os.path.dirname(test_video_file)
+            base_name = os.path.splitext(os.path.basename(test_video_file))[0]
+            frame_files = [f for f in os.listdir(output_dir) if f.startswith(base_name + "_frame_")]
+            print(f"共提取 {len(frame_files)} 帧图片")
+        else:
+            print(f"\n视频帧提取失败: {extract_task.error_message}")
+    except Exception as e:
+        print(f"视频帧提取测试失败: {e}")
+    
+    # 4. 测试ffmpeg_extract_audio功能
+    print("\n4. 测试音频提取功能")
+    try:
+        output_audio = os.path.splitext(test_video_file)[0] + "_audio.mp3"
+        print(f"音频输出文件: {output_audio}")
+        
+        audio_task = ffmpeg_extract_audio(
+            input_file=test_video_file,
+            output_file=output_audio,
+            audio_codec="mp3",
+            audio_bitrate="192k"
+        )
+        
+        # 定义进度回调函数
+        def audio_progress_callback(ffmpeg):
+            percent = ffmpeg.progress * 100
+            print(f"音频提取进度: {percent:.1f}%", end="\r")
+        
+        audio_task.progress_callback = audio_progress_callback
+        print("开始提取音频...")
+        start_time = time.time()
+        success = audio_task.run()
+        end_time = time.time()
+        
+        if success:
+            print(f"\n音频提取成功！耗时: {end_time - start_time:.2f}秒")
+            if os.path.exists(output_audio):
+                print(f"输出音频大小: {os.path.getsize(output_audio) / (1024 * 1024):.2f} MB")
+        else:
+            print(f"\n音频提取失败: {audio_task.error_message}")
+    except Exception as e:
+        print(f"音频提取测试失败: {e}")
+    
+    # 5. 测试ffmpeg_create_thumbnail功能
+    print("\n5. 测试缩略图创建功能")
+    try:
+        output_thumbnail = os.path.splitext(test_video_file)[0] + "_thumbnail.jpg"
+        print(f"缩略图输出文件: {output_thumbnail}")
+        
+        thumbnail_task = ffmpeg_create_thumbnail(
+            input_file=test_video_file,
+            output_file=output_thumbnail,
+            position=0.3,  # 在视频30%的位置
+            width=800,     # 宽度800像素
+            quality=2      # JPEG质量
+        )
+        
+        print("开始创建缩略图...")
+        start_time = time.time()
+        success = thumbnail_task.run()
+        end_time = time.time()
+        
+        if success:
+            print(f"缩略图创建成功！耗时: {end_time - start_time:.2f}秒")
+            if os.path.exists(output_thumbnail):
+                print(f"缩略图大小: {os.path.getsize(output_thumbnail) / 1024:.2f} KB")
+        else:
+            print(f"\n缩略图创建失败: {thumbnail_task.error_message}")
+    except Exception as e:
+        print(f"缩略图创建测试失败: {e}")
+    
+    # 6. 测试ffmpeg_merge_audio_video功能（需要先有分离的音频文件）
+    print("\n6. 测试音视频合并功能")
+    try:
+        # 使用前面提取的音频文件
+        audio_file = os.path.splitext(test_video_file)[0] + "_audio.mp3"
+        if not os.path.exists(audio_file):
+            print("跳过音视频合并测试，因为没有找到音频文件")
+        else:
+            output_merged = os.path.splitext(test_video_file)[0] + "_merged.mp4"
+            print(f"合并输出文件: {output_merged}")
+            
+            merge_task = ffmpeg_merge_audio_video(
+                video_file=test_video_file,
+                audio_file=audio_file,
+                output_file=output_merged
+            )
+            
+            # 定义进度回调函数
+            def merge_progress_callback(ffmpeg):
+                percent = ffmpeg.progress * 100
+                print(f"合并进度: {percent}%", end="\r")
+            
+            merge_task.progress_callback = merge_progress_callback
+            print("开始合并音视频...")
+            start_time = time.time()
+            success = merge_task.run()
+            end_time = time.time()
+            
+            if success:
+                print(f"\n音视频合并成功！耗时: {end_time - start_time:.2f}秒")
+                if os.path.exists(output_merged):
+                    print(f"输出文件大小: {os.path.getsize(output_merged) / (1024 * 1024):.2f} MB")
+            else:
+                print(f"\n音视频合并失败: {merge_task.error_message}")
+    except Exception as e:
+        print(f"音视频合并测试失败: {e}")
+    
+    print("\n=== 测试完成 ===")

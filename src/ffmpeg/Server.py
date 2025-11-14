@@ -27,6 +27,7 @@ ffmpeg_config = config.PythonConfig(f"config/ffmpeg_server.py", default_config={
 
 
 from src.webdav.WebdavService import get_full_path
+from .FFmpeg import ffprobe, ffmpeg, ffmpeg_transcode, ffmpeg_extract_image, ffmpeg_extract_audio, ffmpeg_merge_audio_video, ffmpeg_create_thumbnail
 
 router = APIRouter()
 
@@ -343,6 +344,8 @@ async def ffmpeg_set_config(request: Request, config: dict):
 
 # 使用示例
 if __name__== "__main__":
+    # 服务器启动示例
+    server = Server.get_instance()
     server.start()
     # 添加任务（请根据实际路径修改）
     server.add_task('D:/test/c.mp4')
@@ -359,3 +362,16 @@ if __name__== "__main__":
     except KeyboardInterrupt:
         print("停止服务")
         server.stop()
+
+# 导出所有主要类和函数
+__all__ = [
+    'ffprobe',
+    'ffmpeg', 
+    'ffmpeg_transcode', 
+    'ffmpeg_extract_image', 
+    'ffmpeg_extract_audio', 
+    'ffmpeg_merge_audio_video', 
+    'ffmpeg_create_thumbnail',
+    'Server',
+    'router'
+]
