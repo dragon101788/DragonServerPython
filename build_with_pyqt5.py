@@ -13,8 +13,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap ,QImage
 from PyQt5.QtWidgets import QSystemTrayIcon
-from process import thread_process
-from process import process
+from src.process import process ,thread_process
 from PIL import Image
 
 import Resource

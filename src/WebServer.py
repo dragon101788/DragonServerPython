@@ -49,7 +49,6 @@ app.mount("/chatroom", chatroom_app)
 app.include_router(WebdavServiceAPI.router)
 app.mount("/WEBDAV", WebdavService.app)
 app.include_router(SystemManager.router)
-app.include_router(ffmpeg.router)
 
 
 @app.get("/api/version")
