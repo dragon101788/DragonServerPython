@@ -226,6 +226,9 @@ export class MasonryVideoItem extends MasonryBaseModal {
                 case 4:
                     errorMessage = '视频格式不支持';
                     break;
+                default:
+                    errorMessage = `视频播放错误：${video.error.message} , 错误码：${video.error.code}`;
+                    break;
             }
             document.getElementById('error').textContent = `播放错误：${errorMessage}`;
         });
