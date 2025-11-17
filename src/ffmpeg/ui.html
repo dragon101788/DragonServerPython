@@ -205,7 +205,7 @@
     <script type="module">
         import { AccountManager } from "/AccountManager.js";
         import { VideoModal } from "/BaseModal.js";
-        //VideoModal.open()
+        // VideoModal已正确导入并将在点击已完成任务时使用
         // 初始化账户管理器
         AccountManager.init();
         
@@ -217,6 +217,176 @@
                 console.warn("未知响应:", body);
             }
         });
+        
+        // 创建运行中状态的任务项
+        function CreateRunItem(task) {
+            const taskElement = document.createElement("div");
+            taskElement.className = "task-item";
+            
+            // 设置任务状态样式
+            const statusClass = "status-run";
+            const statusText = "运行中";
+            
+            // 构建任务内容
+            let taskContent = `
+                <div class="task-header">
+                    <div class="task-name" style="color: ${getTaskColor('run')}">${task.name || '未命名任务'}</div>
+                    <div class="task-status ${statusClass}">${statusText}</div>
+                </div>
+            `;
+            
+            // 显示进度条
+            const progressPercent = Math.round((task.progress || 0) * 100);
+            taskContent += `
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${progressPercent}%">
+                        ${progressPercent}%
+                    </div>
+                </div>
+            `;
+            
+            // 显示任务信息
+            taskContent += `
+                <div class="task-info">
+                    <div>输入: ${task.input_vir_path || '未知'}</div>
+                    <div>输出: ${task.output_vir_path || '未知'}</div>
+                </div>
+            `;
+            
+            taskElement.innerHTML = taskContent;
+            return taskElement;
+        }
+        
+        // 创建排队中状态的任务项
+        function CreateQueueItem(task) {
+            const taskElement = document.createElement("div");
+            taskElement.className = "task-item";
+            
+            // 设置任务状态样式
+            const statusClass = "status-queue";
+            const statusText = "排队中";
+            
+            // 构建任务内容
+            let taskContent = `
+                <div class="task-header">
+                    <div class="task-name" style="color: ${getTaskColor('queue')}">${task.name || '未命名任务'}</div>
+                    <div class="task-status ${statusClass}">${statusText}</div>
+                </div>
+            `;
+            
+            // 显示任务信息
+            taskContent += `
+                <div class="task-info">
+                    <div>输入: ${task.input_vir_path || '未知'}</div>
+                    <div>输出: ${task.output_vir_path || '未知'}</div>
+                </div>
+            `;
+            
+            // 添加确认按钮
+            taskContent += `
+                <button class="confirm-btn" onclick="confirmTask('${task.name}')">
+                    已确认
+                </button>
+            `;
+            
+            taskElement.innerHTML = taskContent;
+            return taskElement;
+        }
+        
+        // 创建已完成状态的任务项
+        function CreateDoneItem(task) {
+            const taskElement = document.createElement("div");
+            taskElement.className = "task-item";
+            taskElement.style.cursor = "pointer";
+            
+            // 设置任务状态样式
+            const statusClass = "status-done";
+            const statusText = "已完成";
+            
+            // 构建任务内容
+            let taskContent = `
+                <div class="task-header">
+                    <div class="task-name" style="color: ${getTaskColor('done')}">${task.name || '未命名任务'}</div>
+                    <div class="task-status ${statusClass}">${statusText}</div>
+                </div>
+            `;
+            
+            // 显示任务信息
+            taskContent += `
+                <div class="task-info">
+                    <div>输入: ${task.input_vir_path || '未知'}</div>
+                    <div>输出: ${task.output_vir_path || '未知'}</div>
+                </div>
+            `;
+            
+            // 添加确认按钮
+            taskContent += `
+                <button class="confirm-btn" onclick="confirmTask('${task.name}')">
+                    已确认
+                </button>
+            `;
+            
+            taskElement.innerHTML = taskContent;
+            
+            // 添加点击事件，播放视频
+            taskElement.addEventListener("click", (e) => {
+                // 确保不是点击了确认按钮
+                if (!e.target.closest('.confirm-btn')) {
+                    // 使用输出路径作为视频源
+                    const videoUrl = task.output_vir_path;
+                    const host = window.location.hostname;
+                    const port = window.location.port;
+                    const videoUrlWithHost = `http://${host}:${port}/${videoUrl}`;
+                    
+                    if (videoUrl) {
+                        VideoModal.open({
+                            videoUrl: videoUrlWithHost,
+                        });
+                    } else {
+                        console.warn("无法播放视频：缺少输出路径");
+                    }
+                }
+            });
+            
+            return taskElement;
+        }
+        
+        // 创建错误状态的任务项
+        function CreateErrorItem(task) {
+            const taskElement = document.createElement("div");
+            taskElement.className = "task-item";
+            
+            // 设置任务状态样式
+            const statusClass = "status-error";
+            const statusText = "错误";
+            
+            // 构建任务内容
+            let taskContent = `
+                <div class="task-header">
+                    <div class="task-name" style="color: ${getTaskColor('error')}">${task.name || '未命名任务'}</div>
+                    <div class="task-status ${statusClass}">${statusText}</div>
+                </div>
+            `;
+            
+            // 显示任务信息
+            taskContent += `
+                <div class="task-info">
+                    <div>输入: ${task.input_vir_path || '未知'}</div>
+                    <div>输出: ${task.output_vir_path || '未知'}</div>
+                    ${task.error_message ? `<div class="error-message">错误信息: ${task.error_message}</div>` : ''}
+                </div>
+            `;
+            
+            // 添加确认按钮
+            taskContent += `
+                <button class="confirm-btn" onclick="confirmTask('${task.name}')">
+                    已确认
+                </button>
+            `;
+            
+            taskElement.innerHTML = taskContent;
+            return taskElement;
+        }
         
         // 更新任务列表显示
         function updateTaskList(taskList) {
@@ -235,51 +405,38 @@
             });
             
             taskList.forEach(task => {
-                const taskElement = document.createElement("div");
-                taskElement.className = "task-item";
+                let taskElement;
                 
-                // 设置任务状态样式
-                let statusClass = "status-" + task.status;
-                let statusText = { "run": "运行中", "queue": "排队中", "done": "已完成", "error": "错误" }[task.status];
-                
-                // 构建任务内容
-                let taskContent = `
-                    <div class="task-header">
-                        <div class="task-name" style="color: ${getTaskColor(task.status)}">${task.name || '未命名任务'}</div>
-                        <div class="task-status ${statusClass}">${statusText}</div>
-                    </div>
-                `;
-                
-                // 如果是运行中的任务，显示进度条
-                if (task.status === "run" && task.progress !== undefined) {
-                    const progressPercent = Math.round((task.progress || 0) * 100);
-                    taskContent += `
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progressPercent}%">
-                                ${progressPercent}%
+                // 根据任务状态调用相应的创建函数
+                switch (task.status) {
+                    case "run":
+                        taskElement = CreateRunItem(task);
+                        break;
+                    case "queue":
+                        taskElement = CreateQueueItem(task);
+                        break;
+                    case "done":
+                        taskElement = CreateDoneItem(task);
+                        break;
+                    case "error":
+                        taskElement = CreateErrorItem(task);
+                        break;
+                    default:
+                        // 未知状态的默认处理
+                        taskElement = document.createElement("div");
+                        taskElement.className = "task-item";
+                        taskElement.innerHTML = `
+                            <div class="task-header">
+                                <div class="task-name">${task.name || '未命名任务'}</div>
+                                <div class="task-status status-unknown">未知状态</div>
                             </div>
-                        </div>
-                    `;
+                            <div class="task-info">
+                                <div>输入: ${task.input_vir_path || '未知'}</div>
+                                <div>输出: ${task.output_vir_path || '未知'}</div>
+                            </div>
+                        `;
                 }
                 
-                // 显示任务信息
-                taskContent += `
-                    <div class="task-info">
-                        <div>输入: ${task.input_vir_path || '未知'}</div>
-                        <div>输出: ${task.output_vir_path || '未知'}</div>
-                    </div>
-                `;
-                
-                // 为已完成、排队、错误的任务添加确认按钮
-                if (['done', 'queue', 'error'].includes(task.status)) {
-                    taskContent += `
-                        <button class="confirm-btn" onclick="confirmTask('${task.name}')">
-                            已确认
-                        </button>
-                    `;
-                }
-                
-                taskElement.innerHTML = taskContent;
                 taskListElement.appendChild(taskElement);
             });
         }
