@@ -335,7 +335,17 @@ export class AccountManager {
             // 注册临时回调函数
             this.register_ws_recv_callback(callbackId, (message) => {
                 if (callback) {
-                    callback(message);
+                    try{
+                        const ret = callback(message);
+                        if (ret === "done"){
+                            this.unregister_ws_recv_callback(callbackId);
+                            resolve(message);
+                        }
+                    }catch(e){
+                        this.unregister_ws_recv_callback(callbackId);
+                        reject(e);
+                        return;
+                    }
                 }
             })
             

@@ -4,7 +4,7 @@ import os
 import time
 
 # 测试文件路径（请根据实际情况修改）
-test_video_file = "test_video.mp4"  # 替换为实际的测试视频文件路径
+test_video_file = "account/dragon/webdav/aa.rm"  # 替换为实际的测试视频文件路径
 
 # 确保测试文件存在
 if not os.path.exists(test_video_file):
@@ -247,10 +247,10 @@ if __name__ == "__main__":
 
     print("=== FFmpeg功能测试程序 ===")
     print(f"使用测试文件：{test_video_file}")
-    # test_ffprobe()
-    # test_ffmpeg_transcode()
-    # test_ffmpeg_extract_image()
-    # test_ffmpeg_extract_audio()
-    # test_ffmpeg_create_thumbnail()
-    # test_ffmpeg_merge_audio_video()
+    test_ffprobe()
+    test_ffmpeg_transcode()
+    test_ffmpeg_extract_image()
+    test_ffmpeg_extract_audio()
+    test_ffmpeg_create_thumbnail()
+    test_ffmpeg_merge_audio_video()
     test_ffmpeg_merger_video_list()

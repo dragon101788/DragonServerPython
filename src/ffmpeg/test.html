@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg Test</title>
+</head>
+<script type="module">
+
+    import {AccountManager} from "/AccountManager.js"
+    AccountManager.init()
+    AccountManager.Interact("ffmpeg_transcode",{
+        "input_file":"aa.rm",
+    },(body)=>{
+        if (body.status === "error"){
+            console.error(body.msg)
+        }else if (body.status === "success"){
+            console.log(body)
+        }else if (body.status === "running"){
+            console.log(body)
+        }
+    })
+</script>
+</html>

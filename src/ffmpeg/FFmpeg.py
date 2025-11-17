@@ -1,7 +1,6 @@
-import sys
+
 from unittest import result
 import os
-sys.path.append(os.getcwd())
 from src.process import process
 from datetime import datetime
 from collections import deque
@@ -188,6 +187,9 @@ class ffmpeg():
                 # 如果有总时长信息，计算进度百分比
                 if hasattr(self, 'total_duration') and self.total_duration > 0:
                     self.progress = min(current_time / self.total_duration, 1.0)
+                    
+                    if hasattr(self, 'progress_callback'):
+                        self.progress_callback(self)
                 
                 # 保存当前时间信息
                 self.current_time = current_time
@@ -218,8 +220,6 @@ class ffmpeg():
             except:
                 pass
             
-        if hasattr(self, 'progress_callback'):
-            self.progress_callback(self)
 
     
     

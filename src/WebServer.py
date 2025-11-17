@@ -21,7 +21,7 @@ import  src.SystemManager  as SystemManager
 
 import src.webdav.WebdavService as WebdavService
 import src.webdav.ServerAPI as WebdavServiceAPI
-import src.ffmpeg as ffmpeg
+import src.ffmpeg.Server as FFMPEGServer
 
 app = FastAPI()
 
