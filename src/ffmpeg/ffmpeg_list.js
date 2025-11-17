@@ -1,8 +1,10 @@
 import { AccountManager } from "/AccountManager.js";
 import { VideoModal } from "/BaseModal.js";
 
+AccountManager.init();
+
 // 定义FFmpeg任务列表自定义组件
-class FFmpegListComponent extends HTMLElement {
+export class FFmpegListComponent extends HTMLElement {
     constructor() {
         super();
         
@@ -260,7 +262,7 @@ class FFmpegListComponent extends HTMLElement {
         
         // 添加删除事件监听
         const delBtn = taskElement.querySelector('.del-btn');
-        delBtn.addEventListener('click', () => this._delTask(task.name));
+        delBtn.addEventListener('click', () => this._delTask({ "name": task.name }));
         
         return taskElement;
     }
@@ -314,7 +316,7 @@ class FFmpegListComponent extends HTMLElement {
         const delBtn = taskElement.querySelector('.del-btn');
         delBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // 阻止事件冒泡
-            this._delTask(task.name);
+            this._delTask({ "name": task.name ,del_file:true});
         });
         
         return taskElement;
@@ -357,7 +359,7 @@ class FFmpegListComponent extends HTMLElement {
         
         // 添加已知晓按钮事件
         const confirmBtn = taskElement.querySelector('.confirm-btn');
-        confirmBtn.addEventListener('click', () => this._delTask(task.name));
+        confirmBtn.addEventListener('click', () => this._delTask({ "name": task.name }));
         
         return taskElement;
     }
@@ -391,16 +393,15 @@ class FFmpegListComponent extends HTMLElement {
     }
     
     // 确认并删除任务
-    async _delTask(taskName) {
+    async _delTask(body) {
         try {
-            await AccountManager.Fetch("ffmpeg_del_task_item", { "name": taskName });
+            await AccountManager.Fetch("ffmpeg_del_task_item", body);
             // 删除后不需要额外操作，WebSocket会推送更新
         } catch (error) {
             console.error("删除任务失败:", error);
             alert("删除任务失败，请重试");
         }
     }
-    
     // 播放视频
     _playVideo(task) {
         const videoUrl = task.output_vir_path;

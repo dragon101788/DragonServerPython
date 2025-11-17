@@ -52,7 +52,7 @@ class FFmpegServer():
         for item in self.task_queue.queue:
             if item.name == name:
                 self.task_queue.queue.remove(item)
-
+    
     def is_exist(self,name):
         for item in self.done_task_list:
             if item.get("name") == name:
@@ -75,6 +75,16 @@ class FFmpegServer():
             return_task.append(item.toDict(item))
 
         return return_task
+    def get_dict(self,name):
+        for item in self.done_task_list:
+            if item.get("name") == name:
+                return item
+        if self.current_task is not None and self.current_task.name == name:
+            return self.current_task.toDict(self.current_task)
+        for item in self.task_queue.queue:
+            if item.name == name:
+                return item.toDict(item)
+        return None
     def run(self):
         while True:
             task = self.pop_task()
@@ -115,8 +125,21 @@ def broadcast_update():
 @recv_messages("ffmpeg_del_task_item")
 async def webdav_ffmpeg_del_task_item(uws :UserWebsocket,body :dict):
     callbackId = body.get("callbackId","ffmpeg_del_task_item")
+    info = ffmpeg_server.get_dict(body.get("name"))
+    del_file = body.get("del_file",None)
+    if del_file is not None:
+        if info is not None:
+            output_path = info.get("output_path")
+            if info.get("status") == "done" and os.path.exists(output_path):
+                print(f"del file {output_path}")
+                os.remove(output_path)  
+
     ffmpeg_server.del_task(body.get("name"))
     broadcast_update()
+    uws.put(json.dumps({"tag":callbackId,"body":{"status":"done"}}))
+
+
+
 
 
 @recv_messages("ffmpeg_connect")
@@ -164,8 +187,8 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
             "status":self.status,
             "input_vir_path":input_vir_path,
             "output_vir_path":output_vir_path,
-            "input_path":input_path,
-            "output_path":output_path,
+            "input_path":os.path.join(input_dir,output_name),
+            "output_path":os.path.join(output_dir,input_name),
             "progress":self.progress,
         }
     transcode_task.toDict = toDict
