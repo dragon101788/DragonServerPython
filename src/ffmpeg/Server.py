@@ -77,10 +77,11 @@ class FFmpegServer():
                 if task.progress_callback is None:
                     task.progress_callback = self.progress_callback
                 task.run()
+                
+                task.status = "done"
                 if task.finish_callback is not None:
                     task.finish_callback(task)
                 self.current_task = None
-                task.status = "done"
                 self.done_task(task)
             except Exception as e:
                 task.status = "error"
