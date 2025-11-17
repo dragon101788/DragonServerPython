@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg任务管理</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .task-list {
+            margin-top: 20px;
+        }
+        .task-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            transition: all 0.3s ease;
+        }
+        .task-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .task-name {
+            font-weight: bold;
+            flex: 1;
+        }
+        .task-status {
+            font-size: 14px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            color: white;
+        }
+        .status-run {
+            background-color: #ff9800;
+        }
+        .status-done {
+            background-color: #4caf50;
+        }
+        .status-queue {
+            background-color: #2196f3;
+        }
+        .status-error {
+            background-color: #f44336;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #4caf50;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+        .confirm-btn {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .confirm-btn:hover {
+            background-color: #1976d2;
+        }
+        .task-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+        
+        /* 任务表单样式 */
+        .task-form {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .task-form h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .form-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .form-group label {
+            font-weight: bold;
+            min-width: 100px;
+        }
+        
+        .form-group input[type="text"] {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .transcode-btn {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .transcode-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .transcode-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .status-message {
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+        
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FFmpeg任务管理</h1>
+        
+        <!-- 转码任务添加区域 -->
+        <div class="task-form">
+            <h3>添加转码任务</h3>
+            <div class="form-group">
+                <label for="input_file">输入文件路径：</label>
+                <input type="text" id="input_file" placeholder="请输入要转码的文件路径" value="aa.rm">
+                <button id="transcode_btn" class="transcode-btn">添加转码任务</button>
+            </div>
+            <div id="status_message" class="status-message"></div>
+        </div>
+        
+        <div id="ffmpeg_list" class="task-list">
+            <!-- 任务列表将在这里动态生成 -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { AccountManager } from "/AccountManager.js";
+        import { VideoModal } from "/BaseModal.js";
+        //VideoModal.open()
+        // 初始化账户管理器
+        AccountManager.init();
+        
+        // 连接到FFmpeg服务并监听任务更新
+        AccountManager.Interact("ffmpeg_connect", {}, (body) => {
+            if (body.status === "update_list") {
+                updateTaskList(body.list);
+            } else {
+                console.warn("未知响应:", body);
+            }
+        });
+        
+        // 更新任务列表显示
+        function updateTaskList(taskList) {
+            const taskListElement = document.getElementById("ffmpeg_list");
+            taskListElement.innerHTML = "";
+            
+            if (taskList.length === 0) {
+                taskListElement.innerHTML = "<p style='text-align: center; color: #999; padding: 20px;'>暂无任务</p>";
+                return;
+            }
+            
+            // 按照状态排序：正在运行 > 排队 > 已完成 > 错误
+            taskList.sort((a, b) => {
+                const statusOrder = { "run": 0, "queue": 1, "done": 2, "error": 3 };
+                return statusOrder[a.status] - statusOrder[b.status];
+            });
+            
+            taskList.forEach(task => {
+                const taskElement = document.createElement("div");
+                taskElement.className = "task-item";
+                
+                // 设置任务状态样式
+                let statusClass = "status-" + task.status;
+                let statusText = { "run": "运行中", "queue": "排队中", "done": "已完成", "error": "错误" }[task.status];
+                
+                // 构建任务内容
+                let taskContent = `
+                    <div class="task-header">
+                        <div class="task-name" style="color: ${getTaskColor(task.status)}">${task.name || '未命名任务'}</div>
+                        <div class="task-status ${statusClass}">${statusText}</div>
+                    </div>
+                `;
+                
+                // 如果是运行中的任务，显示进度条
+                if (task.status === "run" && task.progress !== undefined) {
+                    const progressPercent = Math.round((task.progress || 0) * 100);
+                    taskContent += `
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progressPercent}%">
+                                ${progressPercent}%
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 显示任务信息
+                taskContent += `
+                    <div class="task-info">
+                        <div>输入: ${task.input_vir_path || '未知'}</div>
+                        <div>输出: ${task.output_vir_path || '未知'}</div>
+                    </div>
+                `;
+                
+                // 为已完成、排队、错误的任务添加确认按钮
+                if (['done', 'queue', 'error'].includes(task.status)) {
+                    taskContent += `
+                        <button class="confirm-btn" onclick="confirmTask('${task.name}')">
+                            已确认
+                        </button>
+                    `;
+                }
+                
+                taskElement.innerHTML = taskContent;
+                taskListElement.appendChild(taskElement);
+            });
+        }
+        
+        // 获取任务颜色
+        function getTaskColor(status) {
+            const colorMap = { 
+                "run": "#ff9800", 
+                "done": "#4caf50", 
+                "queue": "#000000", 
+                "error": "#f44336" 
+            };
+            return colorMap[status] || "#666";
+        }
+        
+        // 确认并删除任务
+        window.confirmTask = async (taskName) => {
+            try {
+                await AccountManager.Fetch("ffmpeg_del_task_item", { "name": taskName });
+                // 删除后不需要额外操作，WebSocket会推送更新
+            } catch (error) {
+                console.error("删除任务失败:", error);
+                alert("删除任务失败，请重试");
+            }
+        };
+        
+        // 显示状态消息
+        function showStatusMessage(message, type = 'info') {
+            const statusElement = document.getElementById('status_message');
+            statusElement.textContent = message;
+            statusElement.className = 'status-message status-' + type;
+            
+            // 3秒后清除消息
+            if (type !== 'info') {
+                setTimeout(() => {
+                    statusElement.textContent = '';
+                    statusElement.className = 'status-message';
+                }, 3000);
+            }
+        }
+        
+        // 添加转码任务
+        document.getElementById('transcode_btn').addEventListener('click', async () => {
+            const inputFile = document.getElementById('input_file').value.trim();
+            const transcodeBtn = document.getElementById('transcode_btn');
+            
+            if (!inputFile) {
+                showStatusMessage('请输入文件路径', 'error');
+                return;
+            }
+            
+            try {
+                // 禁用按钮，防止重复点击
+                transcodeBtn.disabled = true;
+                showStatusMessage('正在添加转码任务...', 'info');
+                
+                const body = await AccountManager.Fetch('ffmpeg_transcode', { 'input_file': inputFile });
+                
+                if (body.status === 'ok') {
+                    showStatusMessage('转码任务已成功添加', 'success');
+                    document.getElementById('input_file').value = '';
+                } else {
+                    showStatusMessage(body.msg || '添加转码任务失败', 'error');
+                }
+            } catch (error) {
+                console.error('添加转码任务时发生错误:', error);
+                showStatusMessage('添加转码任务时发生错误: ' + error.message, 'error');
+            } finally {
+                // 恢复按钮状态
+                transcodeBtn.disabled = false;
+            }
+        });
+        
+        // 页面加载完成后聚焦到输入框
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('input_file').focus();
+        });
+    </script>
+</body>
+</html>

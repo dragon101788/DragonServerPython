@@ -44,6 +44,15 @@ class FFmpegServer():
         percent = self.progress * 100
         print(f"Task progress: {percent:.1f}% ")
 
+    def del_task(self,name):
+        for item in self.done_task_list:
+            if item.get("name") == name:
+                self.done_task_list.remove(item)
+                break
+        for item in self.task_queue.queue:
+            if item.name == name:
+                self.task_queue.queue.remove(item)
+
     def is_exist(self,name):
         for item in self.done_task_list:
             if item.get("name") == name:
@@ -104,9 +113,10 @@ def broadcast_update():
         }}))
 
 @recv_messages("ffmpeg_del_task_item")
-async def webdav_ffmpeg_disconnect(uws :UserWebsocket,body :dict):
-    callbackId = body.get("callbackId","ffmpeg_disconnect")
-    ffmpeg
+async def webdav_ffmpeg_del_task_item(uws :UserWebsocket,body :dict):
+    callbackId = body.get("callbackId","ffmpeg_del_task_item")
+    ffmpeg_server.del_task(body.get("name"))
+    broadcast_update()
 
 
 @recv_messages("ffmpeg_connect")
