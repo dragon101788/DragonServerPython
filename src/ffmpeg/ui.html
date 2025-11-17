@@ -95,6 +95,18 @@
         .confirm-btn:hover {
             background-color: #1976d2;
         }
+        .del-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .del-btn:hover {
+            background-color: #e53935;
+        }
         .task-info {
             font-size: 14px;
             color: #666;
@@ -284,8 +296,8 @@
             
             // 添加确认按钮
             taskContent += `
-                <button class="confirm-btn" onclick="confirmTask('${task.name}')">
-                    已确认
+                <button class="del-btn" onclick="DelTask('${task.name}')">
+                    删除
                 </button>
             `;
             
@@ -321,30 +333,30 @@
             
             // 添加确认按钮
             taskContent += `
-                <button class="confirm-btn" onclick="confirmTask('${task.name}')">
+                <button class="confirm-btn">
+                    播放验证
+                </button>
+                <button class="del-btn" onclick="DelTask('${task.name}')">
                     已确认
                 </button>
             `;
             
             taskElement.innerHTML = taskContent;
             
-            // 添加点击事件，播放视频
-            taskElement.addEventListener("click", (e) => {
-                // 确保不是点击了确认按钮
-                if (!e.target.closest('.confirm-btn')) {
-                    // 使用输出路径作为视频源
-                    const videoUrl = task.output_vir_path;
-                    const host = window.location.hostname;
-                    const port = window.location.port;
-                    const videoUrlWithHost = `http://${host}:${port}/${videoUrl}`;
-                    
-                    if (videoUrl) {
-                        VideoModal.open({
-                            videoUrl: videoUrlWithHost,
-                        });
-                    } else {
-                        console.warn("无法播放视频：缺少输出路径");
-                    }
+            const confirmBtn = taskElement.querySelector('.confirm-btn');
+            confirmBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止事件冒泡
+                const videoUrl = task.output_vir_path;
+                const host = window.location.hostname;
+                const port = window.location.port;
+                const videoUrlWithHost = `http://${host}:${port}/${videoUrl}`;
+                
+                if (videoUrl) {
+                    VideoModal.open({
+                        videoUrl: videoUrlWithHost,
+                    });
+                } else {
+                    console.warn("无法播放视频：缺少输出路径");
                 }
             });
             
@@ -379,8 +391,8 @@
             
             // 添加确认按钮
             taskContent += `
-                <button class="confirm-btn" onclick="confirmTask('${task.name}')">
-                    已确认
+                <button class="confirm-btn" onclick="DelTask('${task.name}')">
+                    已知晓
                 </button>
             `;
             
@@ -453,7 +465,7 @@
         }
         
         // 确认并删除任务
-        window.confirmTask = async (taskName) => {
+        window.DelTask = async (taskName) => {
             try {
                 await AccountManager.Fetch("ffmpeg_del_task_item", { "name": taskName });
                 // 删除后不需要额外操作，WebSocket会推送更新
