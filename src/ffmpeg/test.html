@@ -9,16 +9,41 @@
 
     import {AccountManager} from "/AccountManager.js"
     AccountManager.init()
-    AccountManager.Interact("ffmpeg_transcode",{
-        "input_file":"aa.rm",
-    },(body)=>{
-        if (body.status === "error"){
-            console.error(body.msg)
-        }else if (body.status === "success"){
-            console.log(body)
-        }else if (body.status === "running"){
-            console.log(body)
+    
+    document.body.innerHTML = ""
+    
+    document.body.innerHTML += `<button id="transcode_btn">Transcode</button>`
+    document.body.innerHTML += `<div id="ffmpeg_list"></div>`
+
+    AccountManager.Interact("ffmpeg_connect",{},(body)=>{
+        const ffmpegConnect = document.getElementById("ffmpeg_list")
+        ffmpegConnect.innerHTML = ""
+        if (body.status === "update_list"){
+            let ffmpeg_list = body.list
+            for (let i = 0; i < ffmpeg_list.length; i++){
+                let item = ffmpeg_list[i]
+                if (item.status === "run"){
+                    ffmpegConnect.innerHTML += `<div style="color:yellow;">${item.name}</div>`
+                }else if (item.status === "done"){
+                    ffmpegConnect.innerHTML += `<div style="color:green;">${item.name}</div>`
+                }else if (item.status === "error"){
+                    ffmpegConnect.innerHTML += `<div style="color:red;">${item.name}</div>`
+                }
+            }
+        }else{
+            console.warn(body)
         }
     })
+
+    
+
+    document.getElementById("transcode_btn").addEventListener("click",async ()=>{
+        let body = await AccountManager.Fetch("ffmpeg_transcode",{"input_file":"aa.rm",})
+        if (body.status === "ok"){
+            console.log(body)
+        }else{
+            alert(body.msg)
+        }
+    })  
 </script>
 </html>

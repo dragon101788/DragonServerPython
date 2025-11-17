@@ -118,13 +118,11 @@ class ffmpeg():
         self.info = {}
         self.buffer = []
         self.stderr = self.std_err()
-        self.status = "idle"  # idle, running, completed, error
         self.progress = 0.0
         self.process = None
         self.error_message = ""
     
     def __str__(self):
-        ret = f"状态: {self.status}\n"
         ret += f"进度: {self.progress * 100:.1f}%\n"
         ret += f"输入文件: {self.input_file}\n"
         ret += f"输出文件: {self.output_file}\n"
@@ -240,7 +238,6 @@ class ffmpeg():
         # 重置状态
         self.buffer = []
         self.stderr = self.std_err()
-        self.status = "running"
         self.progress = 0.0
         self.error_message = ""
         self.error_type = None  # 错误类型分类
@@ -253,14 +250,11 @@ class ffmpeg():
         
         # 检查执行结果
         if ret == 0:
-            self.status = "completed"
             return True
         elif ret == -15 or ret == 137:  # SIGTERM 或 SIGKILL
-            self.status = "stopped"
             self.error_type = "terminated_by_user"
             return False
         else:
-            self.status = "error"
             self.error_message = str(self.stderr)
             print(f"ffmpeg执行错误 [代码:{ret}]: {self.error_message}")
             return False
@@ -273,37 +267,8 @@ class ffmpeg():
         返回:
             bool: 是否成功停止
         """
-        if self.status == "running" and self.process:
-            try:
-                if hasattr(self.process, 'terminate'):
-                    self.process.terminate()
-                elif hasattr(self.process, 'kill'):
-                    self.process.kill()
-                self.status = "stopped"
-                return True
-            except Exception as e:
-                self.error_message = f"停止进程时出错: {str(e)}"
-                self.error_type = "termination_error"
-                print(f"停止进程错误: {e}")
-                return False
-        return False
-    
-    def get_status(self):
-        """
-        获取当前状态信息
-        
-        返回:
-            dict: 包含状态和错误信息的字典
-        """
-        status_info = {
-            "status": self.status,
-            "input_file": self.input_file,
-            "output_file": self.output_file,
-            "error_message": self.error_message,
-            "error_type": self.error_type,
-            "progress": self.progress
-        }
-        return status_info
+        self.process.stop()
+
     
     
     
