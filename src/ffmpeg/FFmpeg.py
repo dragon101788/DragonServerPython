@@ -250,14 +250,14 @@ class ffmpeg():
         
         # 检查执行结果
         if ret == 0:
-            return True
+            return 
         elif ret == -15 or ret == 137:  # SIGTERM 或 SIGKILL
             self.error_type = "terminated_by_user"
-            return False
+            raise Exception("ffmpeg进程被用户终止")
         else:
             self.error_message = str(self.stderr)
             print(f"ffmpeg执行错误 [代码:{ret}]: {self.error_message}")
-            return False
+            raise Exception(f"ffmpeg执行错误 [代码:{ret}]: {self.error_message}")
                 
     
     def stop(self):
