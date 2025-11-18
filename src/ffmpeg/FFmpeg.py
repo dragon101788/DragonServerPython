@@ -5,6 +5,7 @@ from src.process import process
 from datetime import datetime
 from collections import deque
 
+import re
 import json
 
 
@@ -43,7 +44,7 @@ class ffprobe():
     def immediate(self,input_file):
         self.input_file = input_file
 
-        cmd = ffmpeg_config['ffprobe'] + f" -i {self.input_file} -show_format -show_streams -of json"
+        cmd = ffmpeg_config['ffprobe'] + f" -i \"{self.input_file}\" -show_format -show_streams -of json"
         print(cmd)
         self.stderr = self.std_err()
         ffmpeg_process = process(cmd,stdout=self,stderr=self.stderr)
@@ -153,7 +154,6 @@ class ffmpeg():
         1. ffmpeg默认输出格式: frame=  123 fps= 30 q=-1.0 size=   12345kB time=00:00:04.10 bitrate=24567.8kbits/s speed=1.2x
         2. -progress pipe:1格式输出的键值对
         """
-        import re
         
         # 尝试解析-progress格式的输出
         if "out_time_ms" in data or "total_size" in data or "frame" in data:

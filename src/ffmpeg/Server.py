@@ -158,7 +158,8 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
     input_path = get_full_path(uws.ws, input_vir_path)
     input_dir = os.path.dirname(input_path)
     input_name = os.path.basename(input_path)
-    output_path = os.path.join(input_dir, "TranscoderBackup",input_name.replace(".rm", ".mp4"))
+    input_ext = os.path.splitext(input_name)[-1]
+    output_path = os.path.join(input_dir, "TranscoderBackup",input_name.replace(input_ext, ".mp4"))
     output_dir = os.path.dirname(output_path)
     output_name = os.path.basename(output_path)
     output_vir_path = input_vir_path.replace(input_name,output_name)
