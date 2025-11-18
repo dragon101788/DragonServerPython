@@ -1145,7 +1145,7 @@ class VideoModal extends BaseModal {
                     <span class="close">&times;</span>
                     <div class="form-group">
                         <div class="video-container">
-                            <video controls autoplay muted>
+                            <video controls autoplay>
                                 <source src="${videoUrl}" type="video/mp4">
                                 您的浏览器不支持HTML5视频播放。
                             </video>
