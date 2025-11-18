@@ -1,7 +1,7 @@
-import { AccountManager } from "/AccountManager.js";
 import { VideoModal,TextAreaDialog } from "/BaseModal.js";
+import { FFmpeg } from "./FFmpeg.js";
 
-AccountManager.init();
+
 
 // 定义FFmpeg任务列表自定义组件
 export class FFmpegListComponent extends HTMLElement {
@@ -21,7 +21,13 @@ export class FFmpegListComponent extends HTMLElement {
     // 组件连接到DOM时执行
     connectedCallback() {
         // 连接到FFmpeg服务并监听任务更新
-        this._connectToFfmpegService();
+        FFmpeg.connect((body) => {
+            if (body.status === "update_list") {
+                this.updateTaskList(body.list);
+            } else {
+                console.warn("未知响应:", body);
+            }
+        });
     }
     
     // 构建组件结构和样式
@@ -134,16 +140,6 @@ export class FFmpegListComponent extends HTMLElement {
         this.shadowRoot.appendChild(this.taskListElement);
     }
     
-    // 连接到FFmpeg服务
-    _connectToFfmpegService() {
-        AccountManager.Interact("ffmpeg_connect", {}, (body) => {
-            if (body.status === "update_list") {
-                this.updateTaskList(body.list);
-            } else {
-                console.warn("未知响应:", body);
-            }
-        });
-    }
     
     // 更新任务列表
     updateTaskList(taskList) {

@@ -7,24 +7,13 @@
 </style>
 <script type="module">
     import {FFmpegListComponent} from "./ffmpeg_list.js";
-    import { AccountManager } from "/AccountManager.js";
-
-    AccountManager.init();
+    import { FFmpeg } from "./FFmpeg.js";
 
     document.body.innerHTML = `
         <div id="currentFile"></div>
         <ffmpeg-list></ffmpeg-list>
     `;
     
-    async function transcodeFile(path){
-        const body = await AccountManager.Fetch('ffmpeg_transcode', { 'input_file': path });
-                
-        if (body.status === 'ok') {
-            document.getElementById('input_file').value = '';
-        } else {
-            alert(body.msg || '添加转码任务失败');
-        }
-    }
     
 
     const ffmpegList = document.querySelector("ffmpeg-list");
@@ -42,8 +31,8 @@
                 </div>
             `
             const transcodeBtn = document.getElementById("transcodeBtn");
-            transcodeBtn.addEventListener("click", () => {
-                transcodeFile(event.data.path);
+            transcodeBtn.addEventListener("click", async () => {
+                await FFmpeg.transcodeFile(event.data.path);
             });
         }
     });
