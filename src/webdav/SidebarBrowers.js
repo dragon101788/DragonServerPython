@@ -21,8 +21,8 @@ export class SidebarBrowers extends HTMLElement {
     static {
         SidebarBrowers.ExternalContextMenus = {};
     }
-    static registerExternalContextMenu(name, callback) {
-        SidebarBrowers.ExternalContextMenus[name] = callback;
+    static registerExternalContextMenu(name, matcher) {
+        SidebarBrowers.ExternalContextMenus[name] = matcher;
     }
 
     // 监控属性变化
@@ -107,6 +107,15 @@ export class SidebarBrowers extends HTMLElement {
                 }
             }));
         };
+
+        // 合并外部上下文菜单项到当前菜单列表
+        for (const [name, matcher] of Object.entries(SidebarBrowers.ExternalContextMenus)) {
+            const ret = matcher(item)
+            if (typeof ret === 'function') {
+                contextMenuList[name] = ret;
+            }
+        }
+
         ContextMenu.open(x, y, contextMenuList)
     }
 
@@ -169,7 +178,7 @@ export class SidebarBrowers extends HTMLElement {
         
         
         contextMenuList['搜索'] = () => { this.searchFile(this.currentPath) };
-        
+
         // 添加属性查看功能
         contextMenuList['属性'] = () => {
             document.dispatchEvent(new CustomEvent('WebdavProperty', {
@@ -212,9 +221,16 @@ export class SidebarBrowers extends HTMLElement {
             })
             
          };
+        
          
          // 合并外部上下文菜单项到当前菜单列表
-         Object.assign(contextMenuList, SidebarBrowers.ExternalContextMenus);
+         for (const [name, matcher] of Object.entries(SidebarBrowers.ExternalContextMenus)) {
+            const ret = matcher("ButtomBar")
+            if (typeof ret === 'function') {
+                contextMenuList[name] = ret;
+            }
+         }
+         
         ContextMenu.open(x, y, contextMenuList);
     }
     

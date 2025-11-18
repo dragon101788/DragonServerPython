@@ -1,6 +1,8 @@
 import { WebdavAdapter } from '/webdav/WebdavAdapter.js';
 import { AccountManager } from '/AccountManager.js';
 import { CopyToClipboardDialog, ProgressModal } from '/BaseModal.js';
+import { SidebarBrowers } from '/webdav/SidebarBrowers.js';
+import { FFmpeg } from '/ffmpeg/FFmpeg.js';
 
 export class WebVideoPlayer extends HTMLElement {
     static get observedAttributes() {
@@ -309,4 +311,18 @@ WebdavAdapter.register((item) => {
         }else{
             return undefined;
         }
+});
+
+
+SidebarBrowers.registerExternalContextMenu('视频转码', (item) => {
+    if (typeof item === 'object'  && item.contentType.startsWith("video/") ||
+            item.path.endsWith(".flv") ||
+            item.path.endsWith(".rmvb") ||
+            item.path.endsWith(".rm") ) {
+        return () => {
+            const MainDisplay = document.querySelector('.main-display-area');
+            FFmpeg.transcodeFile(item.path);
+            MainDisplay.openWebSite("/ffmpeg/index.html");
+        }
+    }
 });
