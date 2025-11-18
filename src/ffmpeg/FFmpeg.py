@@ -255,8 +255,8 @@ class ffmpeg():
             self.error_type = "terminated_by_user"
             raise Exception("ffmpeg进程被用户终止")
         else:
-            self.error_message = str(self.stderr)
-            print(f"ffmpeg执行错误 [代码:{ret}]: {self.error_message}")
+            self.error_message = "执行代码:" + self.cmd + "\n"
+            self.error_message += str(self.stderr)
             raise Exception(f"ffmpeg执行错误 [代码:{ret}]: {self.error_message}")
                 
     

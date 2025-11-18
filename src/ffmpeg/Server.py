@@ -104,11 +104,12 @@ class FFmpegServer():
                 self.done_task(task)
             except Exception as e:
                 task.status = "error"
-                print(f"Task failed: {e}")
-                self.done_task(task)        
+                print(f"Task failed: {e}") 
                 self.current_task = None
                 if task.error_callback is not None:
                     task.error_callback(task,e)
+                
+                self.done_task(task)       
 
 ffmpeg_server = FFmpegServer()
 connect_list = []
@@ -186,6 +187,7 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
         return {
             "name":self.name,
             "status":self.status,
+            "error_message":getattr(self,"error_message",""),
             "input_vir_path":input_vir_path,
             "output_vir_path":output_vir_path,
             "input_path":os.path.join(input_dir,output_name),
@@ -196,6 +198,8 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
 
 
     def transcode_error_callback(self,error):
+        self.status = "error"
+        self.error_message = str(error)
         broadcast_update()
     transcode_task.error_callback = transcode_error_callback
 

@@ -597,6 +597,12 @@ class TextAreaDialog extends BaseModal {
         }else{
             defaultValue = '';
         }
+
+        let value = this.getAttribute('value');
+        if (value) {
+        }else{
+            value = '';
+        }
         let width = this.getAttribute('width') || '50%';
         let height = this.getAttribute('height') || '50%';
         const isMobile = BaseModal.isMobile();
@@ -614,7 +620,7 @@ class TextAreaDialog extends BaseModal {
                     </div>
                      <div class="form-group">
                         ${message}
-                        <textarea id="textareaField" placeholder="${placeholder}" >${defaultValue}</textarea>
+                        <textarea id="textareaField" placeholder="${placeholder}" >${defaultValue}${value}</textarea>
                     </div>
                     <div class="button-group">
                         <button class="secondary" id="cancelBtn">取消</button>

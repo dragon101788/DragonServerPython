@@ -1,5 +1,5 @@
 import { AccountManager } from "/AccountManager.js";
-import { VideoModal } from "/BaseModal.js";
+import { VideoModal,TextAreaDialog } from "/BaseModal.js";
 
 AccountManager.init();
 
@@ -100,7 +100,7 @@ export class FFmpegListComponent extends HTMLElement {
             .confirm-btn:hover {
                 background-color: #1976d2;
             }
-            .del-btn {
+            .red-btn {
                 background-color: #f44336;
                 color: white;
                 border: none;
@@ -109,7 +109,7 @@ export class FFmpegListComponent extends HTMLElement {
                 cursor: pointer;
                 transition: background-color 0.3s;
             }
-            .del-btn:hover {
+            .red-btn:hover {
                 background-color: #e53935;
             }
             .task-info {
@@ -253,7 +253,7 @@ export class FFmpegListComponent extends HTMLElement {
         
         // 添加删除按钮
         taskContent += `
-            <button class="del-btn">
+            <button class="red-btn">
                 删除
             </button>
         `;
@@ -261,7 +261,7 @@ export class FFmpegListComponent extends HTMLElement {
         taskElement.innerHTML = taskContent;
         
         // 添加删除事件监听
-        const delBtn = taskElement.querySelector('.del-btn');
+        const delBtn = taskElement.querySelector('.red-btn');
         delBtn.addEventListener('click', () => this._delTask({ "name": task.name }));
         
         return taskElement;
@@ -298,7 +298,7 @@ export class FFmpegListComponent extends HTMLElement {
             <button class="confirm-btn">
                 播放验证
             </button>
-            <button class="del-btn">
+            <button class="red-btn">
                 已确认
             </button>
         `;
@@ -313,7 +313,7 @@ export class FFmpegListComponent extends HTMLElement {
         });
         
         // 添加已确认按钮事件
-        const delBtn = taskElement.querySelector('.del-btn');
+        const delBtn = taskElement.querySelector('.red-btn');
         delBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // 阻止事件冒泡
             this._delTask({ "name": task.name ,del_file:true});
@@ -344,12 +344,14 @@ export class FFmpegListComponent extends HTMLElement {
             <div class="task-info">
                 <div>输入: ${task.input_vir_path || '未知'}</div>
                 <div>输出: ${task.output_vir_path || '未知'}</div>
-                ${task.error_message ? `<div class="error-message">错误信息: ${task.error_message}</div>` : ''}
             </div>
         `;
         
         // 添加确认按钮
         taskContent += `
+            <button id="view-error-btn" class="red-btn">
+                查看错误
+            </button>
             <button class="confirm-btn">
                 已知晓
             </button>
@@ -360,6 +362,16 @@ export class FFmpegListComponent extends HTMLElement {
         // 添加已知晓按钮事件
         const confirmBtn = taskElement.querySelector('.confirm-btn');
         confirmBtn.addEventListener('click', () => this._delTask({ "name": task.name }));
+        
+        // 添加查看错误按钮事件
+        const viewErrorBtn = taskElement.querySelector('#view-error-btn');
+        viewErrorBtn.addEventListener('click', () => {
+
+            TextAreaDialog.open({
+                title: "错误信息",
+                value: task.error_message,
+            });
+        });
         
         return taskElement;
     }
