@@ -225,7 +225,7 @@ export class SidebarBrowers extends HTMLElement {
          
          // 合并外部上下文菜单项到当前菜单列表
          for (const [name, matcher] of Object.entries(SidebarBrowers.ExternalContextMenus)) {
-            const ret = matcher("ButtomBar")
+            const ret = matcher(undefined)
             if (typeof ret === 'function') {
                 contextMenuList[name] = ret;
             }

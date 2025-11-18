@@ -315,10 +315,13 @@ WebdavAdapter.register((item) => {
 
 
 SidebarBrowers.registerExternalContextMenu('视频转码', (item) => {
-    if (typeof item === 'object'  && item.contentType.startsWith("video/") ||
+    if (item && (
+            item.contentType.startsWith("video/") ||
             item.path.endsWith(".flv") ||
             item.path.endsWith(".rmvb") ||
-            item.path.endsWith(".rm") ) {
+            item.path.endsWith(".rm") 
+        ) 
+    ) {
         return () => {
             const MainDisplay = document.querySelector('.main-display-area');
             FFmpeg.transcodeFile(item.path);

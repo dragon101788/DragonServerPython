@@ -239,15 +239,14 @@
             document.body.style.cursor = 'default';
         });
 
-        SidebarBrowers.registerExternalContextMenu("---------------",(name) =>  {
-            if (name == "ButtomBar") {
+        SidebarBrowers.registerExternalContextMenu("---------------",(item) =>  {
+            if (item === undefined) {
                 return () => {
-                    console.log(name);
                 }
             }
         })
-        SidebarBrowers.registerExternalContextMenu('转码', (name) => {
-            if (name == "ButtomBar") {
+        SidebarBrowers.registerExternalContextMenu('转码', (item) => {
+            if (item === undefined) {
                 return () => {
                     MainDisplay.openWebSite("/ffmpeg/index.html");
                 }
