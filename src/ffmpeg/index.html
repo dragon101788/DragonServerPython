@@ -20,7 +20,6 @@
         const body = await AccountManager.Fetch('ffmpeg_transcode', { 'input_file': path });
                 
         if (body.status === 'ok') {
-            alert('转码任务已成功添加');
             document.getElementById('input_file').value = '';
         } else {
             alert(body.msg || '添加转码任务失败');
