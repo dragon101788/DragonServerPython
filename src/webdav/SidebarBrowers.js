@@ -210,7 +210,7 @@ export class SidebarBrowers extends HTMLElement {
             
          };
          
-        contextMenuList['搜索'] = () => { this.searchFile(item.path) };
+        contextMenuList['搜索'] = () => { this.searchFile(this.currentPath) };
          // 合并外部上下文菜单项到当前菜单列表
          Object.assign(contextMenuList, SidebarBrowers.ExternalContextMenus);
         ContextMenu.open(x, y, contextMenuList);

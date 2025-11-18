@@ -394,6 +394,14 @@ class InputDialog extends BaseModal {
             this.dispatchEvent(confirmEvent);
             this.close();
         });
+        
+        // 添加回车键响应
+        inputField.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                confirmButton.click();
+            }
+        });
     }
 }
 
