@@ -167,6 +167,9 @@ export class SidebarBrowers extends HTMLElement {
         const path = this.currentPath;
         const item = this.items[path];
         
+        
+        contextMenuList['搜索'] = () => { this.searchFile(this.currentPath) };
+        
         // 添加属性查看功能
         contextMenuList['属性'] = () => {
             document.dispatchEvent(new CustomEvent('WebdavProperty', {
@@ -210,7 +213,6 @@ export class SidebarBrowers extends HTMLElement {
             
          };
          
-        contextMenuList['搜索'] = () => { this.searchFile(this.currentPath) };
          // 合并外部上下文菜单项到当前菜单列表
          Object.assign(contextMenuList, SidebarBrowers.ExternalContextMenus);
         ContextMenu.open(x, y, contextMenuList);
