@@ -209,7 +209,8 @@ export class SidebarBrowers extends HTMLElement {
             })
             
          };
-        
+         
+        contextMenuList['搜索'] = () => { this.searchFile(item.path) };
          // 合并外部上下文菜单项到当前菜单列表
          Object.assign(contextMenuList, SidebarBrowers.ExternalContextMenus);
         ContextMenu.open(x, y, contextMenuList);
@@ -663,6 +664,29 @@ export class SidebarBrowers extends HTMLElement {
         } catch (error) {
             console.error('Load directory error:', error);
             alert('Failed to load directory: ' + error.message);
+        }
+    }
+
+    async searchFile(path) {
+        try {
+            InputDialog.open({
+                title: "搜索文件",
+                message: `模糊搜索文件名称`,
+                defaultValue: ""
+            }).addEventListener('confirm', async (e) => {
+                const name = e.detail.value;
+                const contents = await this.webdavApi.Search(path, `${name}`);
+                this.items = {};
+                for (const item of contents) {
+                    this.items[item.path] = item;
+                }
+                this.flush();
+            })
+
+            
+        } catch (error) {
+            console.error('Search file error:', error);
+            alert('Failed to search file: ' + error.message);
         }
     }
 

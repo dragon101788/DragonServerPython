@@ -30,6 +30,12 @@ export class WebdavApi {
         }
         return await WebdavApi.static_self.getDirectoryContents(path);
     }
+    static async Search(path,search) {
+        if(WebdavApi.static_self === undefined){
+            await WebdavApi.init();
+        }
+        return await WebdavApi.static_self.Search(path,search);
+    }
     static async downloadFile(path, callback) {
         if(WebdavApi.static_self === undefined){
             await WebdavApi.init();
@@ -119,6 +125,38 @@ export class WebdavApi {
                 headers: {
                     'Content-Type': 'application/xml',
                     'Depth': '1',
+                    'Authorization': this.Authorization
+                },
+                body: `<?xml version="1.0" encoding="utf-8" ?>
+                       <D:propfind xmlns:D="DAV:">
+                         <D:allprop/>
+                         <D:limits/>
+                       </D:propfind>`
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} `);
+            }
+
+            const data = await response.text();
+            return this.parseDirectoryListing(data);
+        } catch (error) {
+            console.error('PROPFIND error:', error);
+            throw new Error('Failed to get directory contents: ' + error.message );
+        }
+    }
+
+    async Search(path,search) {
+        try {
+
+            const encodedPath = encodeURIComponent(path);
+            const response = await fetch(this.serverUrl + encodedPath, {
+                method: 'PROPFIND',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/xml',
+                    'Depth': 'infinity',
+                    'Search': search,
                     'Authorization': this.Authorization
                 },
                 body: `<?xml version="1.0" encoding="utf-8" ?>

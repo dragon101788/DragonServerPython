@@ -13,6 +13,7 @@ import time
 import io
 import json
 import os
+from fnmatch import fnmatch
 from xml.etree import ElementTree as ET
 import aiofiles
 
@@ -589,7 +590,7 @@ async def do_PROPFIND(request: Request, path: str):
         raise HTTPException(status_code=400, detail="Invalid Depth header")
 
 
-    
+    Search = request.headers.get("Search", None)
     
     
     user_config = get_user_config(request.username)
@@ -597,8 +598,6 @@ async def do_PROPFIND(request: Request, path: str):
 
     response = PropfindResponse()
     
-    
-
     # 定义需要跳过的系统目录列表
     SKIP_DIRS = ["$RECYCLE.BIN", "System Volume Information" ,"Recovery" , "$WINDOWS.~BT", "$WINDOWS.~WS", "$SysReset"]
 
@@ -624,21 +623,48 @@ async def do_PROPFIND(request: Request, path: str):
                         virtual_path, config["path"],  request)
                     response.add_resource_info(virtual_response)
 
+    async def search_directory(path, full_path, current_depth):
+        if depth == "0" or current_depth > 0 and depth == "1":
+            return
+        if os.path.isdir(full_path):
+            for name in os.listdir(full_path):
+                sub_path = os.path.join(full_path, name)
+                # 检查目录名是否在需要跳过的列表中
+                if name in SKIP_DIRS:
+                    continue
+                sub_webpath = os.path.join(path, name)
+                
+                if fnmatch(name, Search):
+                    node = await PropfindResponse.build_resource_info(sub_webpath, sub_path, request)
+                    print(f"add {sub_webpath}({sub_path})")
+                    response.add_resource_info(node) 
+
+                if depth == "infinity" and os.path.isdir(sub_path):
+                    await search_directory(sub_webpath, sub_path, current_depth + 1)
+
+        if path == "" and "virtual_paths" in user_config:
+            for virtual_path, config in user_config["virtual_paths"].items():
+                if os.path.exists(config["path"]):
+                    await search_directory(virtual_path, config["path"], 0)
+                    
 
     full_path = get_full_path(request, path)
     if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail=f"{path} Not Found")
     
-    log(6,f"{request.username}浏览目录:{full_path}({depth}) ");
+    if Search == None:
+        log(6,f"{request.username}浏览目录:{full_path}({depth}) ");
 
-    node = await PropfindResponse.build_resource_info(path, full_path, request)
+        node = await PropfindResponse.build_resource_info(path, full_path, request)
 
-    response.add_resource_info(node) 
+        response.add_resource_info(node) 
 
-    # 当 Depth 不为 0 且当前路径是目录时，遍历子目录
-    if depth != "0" and os.path.isdir(full_path):
-        await traverse_directory(path, full_path, 0)
-
+        # 当 Depth 不为 0 且当前路径是目录时，遍历子目录
+        if depth != "0" and os.path.isdir(full_path):
+            await traverse_directory(path, full_path, 0)
+    else:
+        log(6,f"{request.username}搜索目录:{full_path}({depth}) Search:{Search}");
+        await search_directory(path, full_path, 0)
    
             
     return Response(content=response.to_string(), media_type="application/xml", status_code=207)
