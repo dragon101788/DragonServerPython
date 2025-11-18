@@ -297,15 +297,7 @@ export class WebVideoPlayer extends HTMLElement {
 
 customElements.define('web-video-player', WebVideoPlayer);
 WebdavAdapter.register((item) => {
-        if (item.contentType === "video/mp4" ||
-            item.contentType ===  "video/x-ms-wmv" ||
-            item.contentType ===  "video/x-msvideo" ||
-            item.contentType ===  "video/avi" ||
-            item.contentType ===  "video/x-matroska" ||
-            item.contentType ===  "video/x-flv" ||
-            item.contentType ===  "video/quicktime" ||
-            item.contentType ===  "video/x-ms-asf" ||
-            item.contentType ===  "video/mpeg" ||
+        if (item.contentType.startsWith("video/") ||
             item.path.endsWith(".flv") ||
             item.path.endsWith(".rmvb") ||
             item.path.endsWith(".rm") 

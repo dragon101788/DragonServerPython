@@ -248,9 +248,9 @@ export class MasonryVideoItem extends MasonryBaseModal {
 MasonryView.register((item)=>{
     if (
         item.contentType.startsWith("video/") 
-        //|| item.path.endsWith(".flv")
-        //|| item.path.endsWith(".rmvb") 
-        //||item.path.endsWith(".rm") 
+        || item.path.endsWith(".flv")
+        || item.path.endsWith(".rmvb") 
+        ||item.path.endsWith(".rm") 
     ){
         return new MasonryVideoItem(item);
     }else{
