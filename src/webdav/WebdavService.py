@@ -72,7 +72,7 @@ def get_full_path(request: Request, webpath: str) -> str:
 
     if user_config.get("virtual_paths") is not None:
         for virtual_path, config in user_config["virtual_paths"].items():
-            if webpath.startswith(virtual_path):
+            if webpath.startswith(virtual_path) or webpath.startswith("/" + virtual_path):
                 if not virtual_path.endswith("/"):
                     virtual_path += "/"
                 real_path = os.path.abspath(os.path.join(config["path"], webpath[len(virtual_path):].lstrip("/")))
