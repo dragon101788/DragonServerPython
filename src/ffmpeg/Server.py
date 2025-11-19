@@ -5,7 +5,7 @@ import threading
 from queue import Queue
 import json
 from src.account import recv_messages,UserWebsocket
-from .FFmpeg import ffmpeg_transcode,ffmpeg_merger_video_list,ffmpeg_create_thumbnail,ffmpeg_merge_audio_video,ffmpeg_extract_audio,ffmpeg_extract_image
+from .FFmpeg import ffprobe,ffmpeg_transcode,ffmpeg_merger_video_list,ffmpeg_create_thumbnail,ffmpeg_merge_audio_video,ffmpeg_extract_audio,ffmpeg_extract_image
 from src.webdav.WebdavService import get_full_path
 
 FFMPEG_TEMP_DIR = "FFmpegBackup"
@@ -145,6 +145,15 @@ async def webdav_ffmpeg_del_task_item(uws :UserWebsocket,body :dict):
     uws.put(json.dumps({"tag":callbackId,"body":{"status":"done"}}))
 
 
+@recv_messages("ffmpeg_get_media_info")
+async def webdav_ffmpeg_get_media_info(uws :UserWebsocket,body :dict):
+    callbackId = body.get("callbackId","ffmpeg_get_media_info")
+    full_path = get_full_path(uws.ws, body.get("path"))
+    info = ffprobe(full_path)
+    if len(info.info) == 0:
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":"File not found"}}))
+        return
+    uws.put(json.dumps({"tag":callbackId,"body":info.info}))
 
 
 

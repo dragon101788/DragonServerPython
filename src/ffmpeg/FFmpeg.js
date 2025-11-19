@@ -20,6 +20,10 @@ export class FFmpeg {
             alert(body.msg || '添加转码任务失败');
         }
     }
+    static async get_media_info(path){
+        const body = await AccountManager.Fetch('ffmpeg_get_media_info', { 'path': path });
+        return body;
+    }
     static async delTask(name) {
         try {
             const body = { "name": name }

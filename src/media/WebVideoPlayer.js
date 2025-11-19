@@ -4,6 +4,35 @@ import { CopyToClipboardDialog, ProgressModal } from '/BaseModal.js';
 import { SidebarBrowers } from '/webdav/SidebarBrowers.js';
 import { FFmpeg } from '/ffmpeg/FFmpeg.js';
 
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// 将秒数转换为小时:分钟:秒格式
+function formatDuration(seconds) {
+    // 确保输入是数字并转换为整数
+    const totalSeconds = Math.floor(parseFloat(seconds));
+    
+    // 计算小时、分钟和秒
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const remainingSeconds = totalSeconds % 60;
+    
+    // 格式化输出，根据是否有小时来决定格式
+    if (hours > 0) {
+        // 小时:分钟:秒 格式，分钟和秒都保持两位数
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    } else {
+        // 分钟:秒 格式，分钟和秒都保持两位数
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+}
+
 export class WebVideoPlayer extends HTMLElement {
     static get observedAttributes() {
         return ['src', 'token', 'path'];
@@ -265,7 +294,74 @@ export class WebVideoPlayer extends HTMLElement {
             this.loadHtmlContent();
         }
     }
-
+    static async createPropertiesPage(item){
+        const info = await FFmpeg.get_media_info(item.path);
+        console.log(info);
+        let ffmpeg_info_html = '';
+        if (info.format && info.format.duration) {
+            const duration = info.format.duration;
+            const formattedDuration = formatDuration(duration);
+            ffmpeg_info_html += `
+                <div class="detail-row">
+                    <span class="detail-label">视频时长:</span>
+                    <span class="detail-value">${formattedDuration}</span>
+                </div>
+            `;
+        }
+        const properties_page = document.createElement('div');
+        properties_page.innerHTML = `
+            <style>
+                .file-details {
+                    padding: 20px;
+                    border: 1px solid #ccc;
+                    border-radius: 5px;
+                    margin-bottom: 20px;
+                }
+                .detail-row {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 10px;
+                }
+                .detail-label {
+                    font-weight: bold;
+                    width: 120px;
+                }
+                .detail-value {
+                    flex: 1;
+                }
+            </style>
+            <div class="file-details">
+                <h2>${item.name}</h2>
+                <div class="detail-row">
+                    <span class="detail-label">路径:</span>
+                    <span class="detail-value">${item.path}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">类型:</span>
+                    <span class="detail-value">${item.contentType}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">大小:</span>
+                    <span class="detail-value">${formatFileSize(item.size)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">创建时间:</span>
+                    <span class="detail-value">${item.created}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">修改时间:</span>
+                    <span class="detail-value">${item.modified}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">只读:</span>
+                    <span class="detail-value">${item.readonly ? '是' : '否'}</span>
+                </div>
+                ${ffmpeg_info_html}
+            </div>
+        `;
+        
+        return properties_page;
+    }
   
     async loadHtmlContent() {
         const src = this.getAttribute('src');
@@ -327,5 +423,17 @@ SidebarBrowers.registerExternalContextMenu('视频转码', (item) => {
             FFmpeg.transcodeFile(item.path);
             MainDisplay.openWebSite("/ffmpeg/index.html");
         }
+    }
+});
+
+WebdavAdapter.registerProperty(async (item) => {
+    if (item.contentType.startsWith("video/") ||
+        item.path.endsWith(".flv") ||
+        item.path.endsWith(".rmvb") ||
+        item.path.endsWith(".rm") 
+    ){
+        return await WebVideoPlayer.createPropertiesPage(item);
+    }else{
+        return undefined;
     }
 });
