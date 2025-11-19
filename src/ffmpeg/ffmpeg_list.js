@@ -155,11 +155,15 @@ export class FFmpegListComponent extends HTMLElement {
     
     // 更新任务列表
     updateTaskList(taskList) {
-        this.tasks = taskList;
-        this.taskListElement.innerHTML = "";
+        // 判断是否需要完全重建任务列表
+        const needsFullUpdate = this._checkIfListNeedsFullUpdate(taskList);
         
+        // 如果任务列表为空，显示空状态
         if (taskList.length === 0) {
-            this.taskListElement.innerHTML = "<div class='empty-message'>暂无任务</div>";
+            if (this.tasks.length > 0) { // 只有当之前有任务时才更新
+                this.taskListElement.innerHTML = "<div class='empty-message'>暂无任务</div>";
+                this.tasks = [];
+            }
             return;
         }
         
@@ -169,29 +173,96 @@ export class FFmpegListComponent extends HTMLElement {
             return statusOrder[a.status] - statusOrder[b.status];
         });
         
-        taskList.forEach(task => {
-            let taskElement;
+        // 只在列表需要完全更新时才重建DOM
+        if (needsFullUpdate) {
+            this.taskListElement.innerHTML = "";
             
-            // 根据任务状态调用相应的创建函数
-            switch (task.status) {
-                case "run":
-                    taskElement = this._createRunItem(task);
-                    break;
-                case "queue":
-                    taskElement = this._createQueueItem(task);
-                    break;
-                case "done":
-                    taskElement = this._createDoneItem(task);
-                    break;
-                case "error":
-                    taskElement = this._createErrorItem(task);
-                    break;
-                default:
-                    // 未知状态的默认处理
-                    taskElement = this._createUnknownItem(task);
+            taskList.forEach(task => {
+                let taskElement;
+                
+                // 根据任务状态调用相应的创建函数
+                switch (task.status) {
+                    case "run":
+                        taskElement = this._createRunItem(task);
+                        break;
+                    case "queue":
+                        taskElement = this._createQueueItem(task);
+                        break;
+                    case "done":
+                        taskElement = this._createDoneItem(task);
+                        break;
+                    case "error":
+                        taskElement = this._createErrorItem(task);
+                        break;
+                    default:
+                        // 未知状态的默认处理
+                        taskElement = this._createUnknownItem(task);
+                }
+                
+                this.taskListElement.appendChild(taskElement);
+            });
+        } else {
+            // 只更新运行中任务的进度条
+            this._updateRunningTaskProgress(taskList);
+        }
+        
+        // 更新任务数据
+        this.tasks = [...taskList];
+    }
+    
+    // 检查任务列表是否需要完全更新
+    _checkIfListNeedsFullUpdate(newTaskList) {
+        // 如果之前没有任务，需要完全更新
+        if (this.tasks.length === 0) {
+            return true;
+        }
+        
+        // 如果任务数量发生变化，需要完全更新
+        if (this.tasks.length !== newTaskList.length) {
+            return true;
+        }
+        
+        // 检查任务状态或任务名称是否发生变化（不包括运行中的任务进度）
+        for (let i = 0; i < newTaskList.length; i++) {
+            const newTask = newTaskList[i];
+            const oldTask = this.tasks.find(t => t.name === newTask.name);
+            
+            // 如果找不到相同名称的任务，需要完全更新
+            if (!oldTask) {
+                return true;
             }
             
-            this.taskListElement.appendChild(taskElement);
+            // 如果任务状态发生变化，需要完全更新
+            if (oldTask.status !== newTask.status) {
+                return true;
+            }
+        }
+        
+        // 其他情况下不需要完全更新DOM
+        return false;
+    }
+    
+    // 更新运行中任务的进度条
+    _updateRunningTaskProgress(taskList) {
+        // 只处理运行中的任务
+        const runningTasks = taskList.filter(task => task.status === 'run');
+        
+        runningTasks.forEach(task => {
+            // 查找对应的任务元素
+            const taskElements = this.taskListElement.querySelectorAll('.task-item');
+            for (const element of taskElements) {
+                const taskNameElement = element.querySelector('.task-name');
+                if (taskNameElement && taskNameElement.textContent === task.name) {
+                    // 更新进度条
+                    const progressFill = element.querySelector('.progress-fill');
+                    if (progressFill) {
+                        const progressPercent = Math.round((task.progress || 0) * 100);
+                        progressFill.style.width = `${progressPercent}%`;
+                        progressFill.textContent = `${progressPercent}%`;
+                    }
+                    break;
+                }
+            }
         });
     }
     
