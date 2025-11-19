@@ -1,6 +1,6 @@
 import { AccountManager } from '/AccountManager.js';
 import { getUserToken } from "/DragonServerAPI.js"
-
+import { cacheManager } from "/CacheManager.js"
 
 export function getParentDir(path){
     const lastSlashIndex = path.substring(0, path.length - 1).lastIndexOf('/');
@@ -47,6 +47,18 @@ export class WebdavApi {
             await WebdavApi.init();
         }
         return await WebdavApi.static_self.deleteFile(path);
+    }
+    static async deleteThumb(path) {
+        if(WebdavApi.static_self === undefined){
+            await WebdavApi.init();
+        }
+        return await WebdavApi.static_self.deleteThumb(path);
+    }
+    static async getThumbnail(path, size = 128) {
+        if(WebdavApi.static_self === undefined){
+            await WebdavApi.init();
+        }
+        return await WebdavApi.static_self.getThumbnail(path, size);
     }
     static async uploadFile(path, data) {
         if(WebdavApi.static_self === undefined){
@@ -417,6 +429,93 @@ export class WebdavApi {
             console.error('Delete error:', error);
             throw new Error('Failed to delete file: ' + error.message);
         }
+    }
+    async deleteThumb(path) {
+        try {
+            const encodedPath = encodeURIComponent(path);
+            const response = await fetch(this.serverUrl + encodedPath, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/xml',
+                    'Depth': '1',
+                    'only_thumb': '1',
+                    'Authorization': this.Authorization
+                },
+                mode: 'cors'
+            });
+
+            
+            const cacheKey = `thumbnail/${path}`;
+            const cacheKeyInfo = `thumbnail/${path}/info`;
+            cacheManager.removeCache(cacheKey);
+            cacheManager.removeCache(cacheKeyInfo);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Delete error:', error);
+            throw new Error('Failed to delete file: ' + error.message);
+        }
+    }
+    async getThumbnail(path,size = 256){
+        const thumbnailUrl = this.serverUrl + encodeURIComponent(path) + "?thumb=" + size;
+        const cacheKey = `thumbnail/${path}`;
+        const cacheKeyInfo = `thumbnail/${path}/info`;
+        
+        // 尝试从缓存获取完整信息
+        let cachedInfo = await cacheManager.getCache(cacheKeyInfo);
+        if (cachedInfo) {
+            try {
+                const parsedInfo = JSON.parse(cachedInfo);
+                // 确保返回的对象具有width、height和toString方法
+                return {
+                    width: parsedInfo.width,
+                    height: parsedInfo.height,
+                    toString: function() { return parsedInfo.dataUrl; },
+                    // 添加隐式转换支持
+                    valueOf: function() { return parsedInfo.dataUrl; }
+                };
+            } catch (e) {
+                console.error('解析缓存信息失败:', e);
+            }
+        }
+
+        const img = new Image();
+        img.src = thumbnailUrl;
+        await new Promise((resolve, reject) => {
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('图片加载失败'));
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        
+        // 缓存DataURL和信息
+        await cacheManager.setCache(cacheKey, dataUrl, 24*60*60*1000);
+        
+        // 创建并缓存完整信息对象
+        const imageInfo = {
+            dataUrl: dataUrl,
+            width: img.width,
+            height: img.height
+        };
+        await cacheManager.setCache(cacheKeyInfo, JSON.stringify(imageInfo), 24*60*60*1000);
+        
+        // 返回具有width、height和toString方法的对象
+        return {
+            width: img.width,
+            height: img.height,
+            toString: function() { return dataUrl; },
+            // 添加隐式转换支持
+            valueOf: function() { return dataUrl; }
+        };
     }
 
     async uploadFile(path, file, onProgress) {

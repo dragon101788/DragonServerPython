@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 import Resource
 import src.config as config
 
+
 def get_cache_path(full_path, size):
     """
     生成缓存文件路径
@@ -87,7 +88,20 @@ def save_cache(full_path, size, data):
     except Exception:
         # 缓存保存失败，静默处理
         pass
-
+def remove_cache(full_path):
+    """
+    删除对应所有尺寸缓存文件
+    
+    Args:
+        full_path: 原始文件的完整路径
+    """
+    cache_dir = os.path.join(Resource.get_executable_path(), 'cache')
+    for size_dir in os.listdir(cache_dir):
+        if size_dir.startswith("thumb"):
+            size = int(size_dir[5:])
+            cache_path = get_cache_path(full_path, size)
+            if os.path.exists(cache_path):
+                os.remove(cache_path)
 def getImageThumb(full_path, size=128):
     """
     生成图片文件的缩略图
@@ -427,6 +441,7 @@ def getFloderThumb(full_path, size=128):
     img_byte_arr.seek(0)
     
     return img_byte_arr
+
 
 def ResponseThumb(full_path, size=128,mimetype=None):
     """

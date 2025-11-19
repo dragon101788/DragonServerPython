@@ -19,7 +19,7 @@ import aiofiles
 
 from PIL import Image
 from src.server_config import *    
-from src.webdav.Thumb import ResponseThumb
+from src.webdav.Thumb import ResponseThumb ,remove_cache
 # 定义 WebDAV 命名空间
 ns = {'D': 'DAV:'}
 
@@ -763,17 +763,25 @@ async def do_DELETE(request: Request, path: str):
 
     full_path = get_full_path(request, path)
     readonly = path_is_readonly(request, path)
+
+    only_thumb = request.headers.get("only_thumb","0")
+    if only_thumb == "1":
+        remove_cache(full_path)
+        return Response(status_code=204)
+
     # 检查是否为只读模式
     if readonly:
         raise HTTPException(status_code=405, detail="Method Not Allowed")
     if not os.path.exists(full_path):
         raise HTTPException(status_code=404, detail="Not Found")
     try:
-        
+
         if os.path.isdir(full_path):
             shutil.rmtree(full_path)
         else:
             os.remove(full_path)
+        remove_cache(full_path, size)
+        
         return Response(status_code=204)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -830,6 +838,9 @@ async def do_PROPPATCH(request: Request, path: str):
         raise HTTPException(status_code=400, detail="Invalid XML format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
 
 
 app.include_router(router)

@@ -151,63 +151,8 @@ export class MasonryView extends HTMLElement {
         return container.clientWidth / this.columnCount;
     }
 
-    async getThumbnail(path){
-        const thumbnailUrl = this.getThumbnailUrl(path);
-        const cacheKey = `thumbnail/${path}`;
-        const cacheKeyInfo = `thumbnail/${path}/info`;
-        
-        // 尝试从缓存获取完整信息
-        let cachedInfo = await cacheManager.getCache(cacheKeyInfo);
-        if (cachedInfo) {
-            try {
-                const parsedInfo = JSON.parse(cachedInfo);
-                // 确保返回的对象具有width、height和toString方法
-                return {
-                    width: parsedInfo.width,
-                    height: parsedInfo.height,
-                    toString: function() { return parsedInfo.dataUrl; },
-                    // 添加隐式转换支持
-                    valueOf: function() { return parsedInfo.dataUrl; }
-                };
-            } catch (e) {
-                console.error('解析缓存信息失败:', e);
-            }
-        }
-
-        const img = new Image();
-        img.src = thumbnailUrl;
-        await new Promise((resolve, reject) => {
-            img.onload = () => resolve(img);
-            img.onerror = () => reject(new Error('图片加载失败'));
-        });
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        const dataUrl = canvas.toDataURL('image/jpeg');
-        
-        // 缓存DataURL和信息
-        await cacheManager.setCache(cacheKey, dataUrl, 24*60*60*1000);
-        
-        // 创建并缓存完整信息对象
-        const imageInfo = {
-            dataUrl: dataUrl,
-            width: img.width,
-            height: img.height
-        };
-        await cacheManager.setCache(cacheKeyInfo, JSON.stringify(imageInfo), 24*60*60*1000);
-        
-        // 返回具有width、height和toString方法的对象
-        return {
-            width: img.width,
-            height: img.height,
-            toString: function() { return dataUrl; },
-            // 添加隐式转换支持
-            valueOf: function() { return dataUrl; }
-        };
-    }
-    getThumbnailUrl(path){
+    
+    getThumbnailSize(path){
         
         const baseWidth = this.getBaseWidth();
         let size = Math.ceil(baseWidth / 256) * 256
@@ -216,10 +161,8 @@ export class MasonryView extends HTMLElement {
         }else if (size > 768) {
             size = 768;
         }
-        console.log(`path:${path},baseWidth:${this.baseWidth},size:${size}`);
-        return MasonryView.getFileUrl(path) + "?thumb=" + size;
+        return size;
     }
-
     async loadWebdavDir(path){
         // 重置状态
         const contents =  await WebdavApi.getDirectoryContents(path);
@@ -291,7 +234,7 @@ export class MasonryView extends HTMLElement {
                         }
                     });
                 } catch (error) {
-                    console.error(`Error loading item ${itemInstance.path}:`, error);
+                    console.error(`Error loading item ${path}:`, error);
                 }
             };
         }

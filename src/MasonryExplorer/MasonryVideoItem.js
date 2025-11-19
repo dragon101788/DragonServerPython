@@ -1,5 +1,6 @@
 import { MasonryView } from '/MasonryExplorer/MasonryView.js';
 import { MasonryBaseModal } from '/MasonryExplorer/MasonryBaseModal.js';
+import { WebdavApi } from '/webdav/WebdavApi.js';
 
 export class MasonryVideoItem extends MasonryBaseModal {
     constructor() {
@@ -13,7 +14,8 @@ export class MasonryVideoItem extends MasonryBaseModal {
         ViewHTML.className = `masonry-item`;
         ViewHTML.dataset.path = this.item.path;
         ViewHTML.dataset.type = this.item.type;
-        const img = await this.father.getThumbnail(this.item.path);
+        const thumbnailSize = this.father.getThumbnailSize(this.item.path);
+        const img = await WebdavApi.getThumbnail(this.item.path,thumbnailSize);
         ViewHTML.innerHTML = /*html*/`
             <style>
                  /* 视频指示器样式 */

@@ -1,6 +1,6 @@
 import { MasonryBaseModal } from '/MasonryExplorer/MasonryBaseModal.js';
 import { MasonryView } from '/MasonryExplorer/MasonryView.js';
-import { cacheManager } from '/CacheManager.js';
+import { WebdavApi } from '/webdav/WebdavApi.js';
 
 export class MasonryDirectoryItem extends MasonryBaseModal {
     constructor() {
@@ -19,7 +19,8 @@ export class MasonryDirectoryItem extends MasonryBaseModal {
         ViewHTML.dataset.type = 'directory';
 
         try {
-            const img = await this.father.getThumbnail(this.item.path);
+            const thumbnailSize = this.father.getThumbnailSize(this.item.path);
+            const img = await WebdavApi.getThumbnail(this.item.path,thumbnailSize);
             ViewHTML.innerHTML = `
                 <img class="item-image" src="${img}" alt="${this.item.name}">
                 <div class="item-name-float">${this.item.name}</div>

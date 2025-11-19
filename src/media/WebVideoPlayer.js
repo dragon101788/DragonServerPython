@@ -1,4 +1,5 @@
 import { WebdavAdapter } from '/webdav/WebdavAdapter.js';
+import { WebdavApi } from '/webdav/WebdavApi.js';
 import { AccountManager } from '/AccountManager.js';
 import { CopyToClipboardDialog, ProgressModal } from '/BaseModal.js';
 import { SidebarBrowers } from '/webdav/SidebarBrowers.js';
@@ -393,6 +394,7 @@ export class WebVideoPlayer extends HTMLElement {
                 </div>
                 ${ffmpeg_info_html}
                 <button id="transcode-btn" class="transcode-btn">加入转码</button>
+                <button id="regenerate-thumb-btn" class="regenerate-thumb-btn">重新生成缩略图</button>
             </div>
         `;
         
@@ -400,6 +402,12 @@ export class WebVideoPlayer extends HTMLElement {
         const transcodeBtn = properties_page.querySelector('.transcode-btn');
         transcodeBtn.addEventListener('click', () => {
             FFmpeg.transcodeFile(item.path);
+        });
+
+        // 为重新生成缩略图按钮添加点击事件
+        const regenerateThumbBtn = properties_page.querySelector('.regenerate-thumb-btn');
+        regenerateThumbBtn.addEventListener('click', () => {
+            WebdavApi.deleteThumb(item.path);
         });
 
         return properties_page;
