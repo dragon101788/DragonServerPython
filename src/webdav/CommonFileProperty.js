@@ -1,4 +1,4 @@
-
+import { WebdavApi } from '/webdav/WebdavApi.js';
 
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
@@ -60,6 +60,7 @@ export async function commonWebdavProperty(item ) {
                 <span class="detail-label">只读:</span>
                 <span class="detail-value">${item.readonly ? '是' : '否'}</span>
             </div>
+            <button id="flush-thumbnail-btn" class="detail-value">刷新缩略图</button>
         </div>
     `;
 
@@ -84,7 +85,12 @@ export async function commonWebdavProperty(item ) {
         });
         properties_page.querySelector('.file-details').appendChild(downloadButton);
     }
-
+    
+    const flushThumbnailBtn = properties_page.querySelector('#flush-thumbnail-btn');
+    flushThumbnailBtn.addEventListener('click', async () => {
+        await WebdavApi.deleteThumb(item.path);
+    });
+    
     return properties_page;
 
 }

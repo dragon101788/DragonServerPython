@@ -199,6 +199,9 @@ export class MasonryBaseModal {
                 await WebdavApi.deleteFile(this.item.path);
                 await this.father.flush();
             }
+            menu['刷新缩略图'] = async () => {
+                await WebdavApi.deleteThumb(this.item.path);
+            }
         }
         
         
