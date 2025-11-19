@@ -106,6 +106,18 @@ export class FFmpegListComponent extends HTMLElement {
             .confirm-btn:hover {
                 background-color: #1976d2;
             }
+            .blue-btn {
+                background-color: #2196f3;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+            .blue-btn:hover {
+                background-color: #1976d2;
+            }
             .red-btn {
                 background-color: #f44336;
                 color: white;
@@ -249,15 +261,15 @@ export class FFmpegListComponent extends HTMLElement {
         
         // 添加删除按钮
         taskContent += `
-            <button class="red-btn">
-                删除
+            <button class="blue-btn">
+                取消任务
             </button>
         `;
         
         taskElement.innerHTML = taskContent;
         
         // 添加删除事件监听
-        const delBtn = taskElement.querySelector('.red-btn');
+        const delBtn = taskElement.querySelector('.blue-btn');
         delBtn.addEventListener('click', () => FFmpeg.delTask(task.name));
         
         return taskElement;

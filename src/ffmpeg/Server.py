@@ -181,14 +181,14 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
         return
     if os.path.exists(output_path):
         os.remove(output_path)
-        
+
     transcode_task = ffmpeg_transcode(
         input_file=input_path,
         output_file=output_path,
-        video_codec="h264",
-        audio_codec="aac",
-        video_bitrate="1M",
-        audio_bitrate="192k"
+        # video_codec="h264",
+        # audio_codec="aac",
+        # video_bitrate="1M",
+        # audio_bitrate="192k"
     )
 
     def toDict(self):
