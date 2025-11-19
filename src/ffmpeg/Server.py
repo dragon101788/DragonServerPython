@@ -54,6 +54,9 @@ class FFmpegServer():
         for item in self.task_queue.queue:
             if item.name == name:
                 self.task_queue.queue.remove(item)
+
+        with open("done_task.json", "w") as f:
+            json.dump(self.done_task_list, f, indent=4)
     
     def is_exist(self,name):
         for item in self.done_task_list:
