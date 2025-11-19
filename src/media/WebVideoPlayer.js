@@ -308,6 +308,41 @@ export class WebVideoPlayer extends HTMLElement {
                 </div>
             `;
         }
+        if (info.format && info.format.filename) {
+            ffmpeg_info_html += `
+                <div class="detail-row">
+                    <span class="detail-label">文件名:</span>
+                    <span class="detail-value">${info.format.filename}</span>
+                </div>
+            `;
+        }
+        if (info.format && info.format.format_name) {
+            ffmpeg_info_html += `
+                <div class="detail-row">
+                    <span class="detail-label">格式:</span>
+                    <span class="detail-value">${info.format.format_name}</span>
+                </div>
+            `;
+        }
+        if (info.format && info.format.size) {
+            ffmpeg_info_html += `
+                <div class="detail-row">
+                    <span class="detail-label">文件大小:</span>
+                    <span class="detail-value">${formatFileSize(info.format.size)}</span>
+                </div>
+            `;
+        }
+        if (info.format && info.format.nb_streams && info.streams) {
+            for (let i = 0; i < info.format.nb_streams; i++) {
+                const stream = info.streams[i];
+                ffmpeg_info_html += `
+                    <div class="detail-row">
+                        <span class="detail-label">流${stream.index}:</span>
+                        <span class="detail-value">${stream.codec_type} - ${stream.codec_name} - ${stream.codec_long_name}</span>
+                    </div>
+                `;
+            }
+        }
         const properties_page = document.createElement('div');
         properties_page.innerHTML = `
             <style>
@@ -357,9 +392,16 @@ export class WebVideoPlayer extends HTMLElement {
                     <span class="detail-value">${item.readonly ? '是' : '否'}</span>
                 </div>
                 ${ffmpeg_info_html}
+                <button id="transcode-btn" class="transcode-btn">加入转码</button>
             </div>
         `;
         
+        // 为转码按钮添加点击事件
+        const transcodeBtn = properties_page.querySelector('.transcode-btn');
+        transcodeBtn.addEventListener('click', () => {
+            FFmpeg.transcodeFile(item.path);
+        });
+
         return properties_page;
     }
   
