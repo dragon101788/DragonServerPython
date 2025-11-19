@@ -53,6 +53,9 @@ export class FFmpegListComponent extends HTMLElement {
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 10px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
             .task-name {
                 font-weight: bold;
@@ -134,6 +137,9 @@ export class FFmpegListComponent extends HTMLElement {
                 font-size: 14px;
                 color: #666;
                 margin-top: 10px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
             .empty-message {
                 text-align: center;
@@ -300,8 +306,17 @@ export class FFmpegListComponent extends HTMLElement {
                 <div>输出: ${task.output_vir_path || '未知'}</div>
             </div>
         `;
-        
+
+
         taskElement.innerHTML = taskContent;
+
+        taskElement.addEventListener('click', () => {
+            TextAreaDialog.open({
+                title: "FFMPEG命令",
+                value: task.cmd,
+            });
+        });
+
         return taskElement;
     }
     
@@ -332,6 +347,7 @@ export class FFmpegListComponent extends HTMLElement {
         
         // 添加删除按钮
         taskContent += `
+            
             <button class="blue-btn">
                 取消任务
             </button>
@@ -343,6 +359,13 @@ export class FFmpegListComponent extends HTMLElement {
         const delBtn = taskElement.querySelector('.blue-btn');
         delBtn.addEventListener('click', () => FFmpeg.delTask(task.name));
         
+        taskElement.addEventListener('click', () => {
+            TextAreaDialog.open({
+                title: "FFMPEG命令",
+                value: task.cmd,
+            });
+        });
+
         return taskElement;
     }
     
@@ -397,6 +420,13 @@ export class FFmpegListComponent extends HTMLElement {
             e.stopPropagation(); // 阻止事件冒泡
             FFmpeg.delTaskWithFile(task.name);
         });
+
+        taskElement.addEventListener('click', () => {
+            TextAreaDialog.open({
+                title: "FFMPEG命令",
+                value: task.cmd,
+            });
+        });
         
         return taskElement;
     }
@@ -426,6 +456,7 @@ export class FFmpegListComponent extends HTMLElement {
             </div>
         `;
         
+        
         // 添加确认按钮
         taskContent += `
             <button id="view-error-btn" class="red-btn">
@@ -442,9 +473,15 @@ export class FFmpegListComponent extends HTMLElement {
         const confirmBtn = taskElement.querySelector('.confirm-btn');
         confirmBtn.addEventListener('click', () => FFmpeg.delTask(task.name));
         
-        // 添加查看错误按钮事件
-        const viewErrorBtn = taskElement.querySelector('#view-error-btn');
-        viewErrorBtn.addEventListener('click', () => {
+        const showCmdBtn = taskElement.querySelector('#show-cmd-btn');
+        showCmdBtn.addEventListener('click', () => {
+            TextAreaDialog.open({
+                title: "FFMPEG命令",
+                value: task.cmd,
+            });
+        });
+        
+        taskElement.addEventListener('click', () => {
 
             TextAreaDialog.open({
                 title: "错误信息",

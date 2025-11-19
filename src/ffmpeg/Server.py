@@ -198,6 +198,7 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
         return {
             "name":self.name,
             "status":self.status,
+            "cmd" :self.cmd,
             "error_message":getattr(self,"error_message",""),
             "input_vir_path":input_vir_path,
             "output_vir_path":output_vir_path,
