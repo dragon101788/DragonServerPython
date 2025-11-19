@@ -605,7 +605,7 @@ export class SidebarBrowers extends HTMLElement {
         html += `<button class="btn btn-primary" id="refresh-btn"><i class="fas fa-sync-alt"></i></button>`;
 
         const item = this.getPathItem(this.currentPath);
-        if (item.readonly !== true ) {
+        if (item && item.readonly !== true ) {
             html += `<button class="btn btn-primary" id="upload-btn"><i class="fas fa-upload"></i></button>`;
         }
 

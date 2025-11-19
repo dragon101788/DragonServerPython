@@ -8,6 +8,8 @@ from src.account import recv_messages,UserWebsocket
 from .FFmpeg import ffmpeg_transcode,ffmpeg_merger_video_list,ffmpeg_create_thumbnail,ffmpeg_merge_audio_video,ffmpeg_extract_audio,ffmpeg_extract_image
 from src.webdav.WebdavService import get_full_path
 
+FFMPEG_TEMP_DIR = "FFmpegBackup"
+
 class FFmpegServer():
     
     def __init__(self):
@@ -160,10 +162,16 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
     input_dir = os.path.dirname(input_path)
     input_name = os.path.basename(input_path)
     input_ext = os.path.splitext(input_name)[-1]
-    output_path = os.path.join(input_dir, "TranscoderBackup",input_name.replace(input_ext, ".mp4"))
+    output_path = os.path.join(input_dir, FFMPEG_TEMP_DIR,input_name.replace(input_ext, ".mp4"))
     output_dir = os.path.dirname(output_path)
     output_name = os.path.basename(output_path)
     output_vir_path = input_vir_path.replace(input_name,output_name)
+
+    
+    #判断input_dir上一级目录是否是FFMPEG_TEMP_DIR目录
+    if FFMPEG_TEMP_DIR in input_dir:
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":f"Transcode input file is in {FFMPEG_TEMP_DIR} directory"}}))
+        return
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
@@ -172,8 +180,8 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
         uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":"Transcode task already exists"}}))
         return
     if os.path.exists(output_path):
-        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":"Transcode output file already exists"}}))
-        return
+        os.remove(output_path)
+        
     transcode_task = ffmpeg_transcode(
         input_file=input_path,
         output_file=output_path,

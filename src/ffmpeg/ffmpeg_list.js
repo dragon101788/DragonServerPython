@@ -258,7 +258,7 @@ export class FFmpegListComponent extends HTMLElement {
         
         // 添加删除事件监听
         const delBtn = taskElement.querySelector('.red-btn');
-        delBtn.addEventListener('click', () => this._delTask({ "name": task.name }));
+        delBtn.addEventListener('click', () => FFmpeg.delTask(task.name));
         
         return taskElement;
     }
@@ -312,7 +312,7 @@ export class FFmpegListComponent extends HTMLElement {
         const delBtn = taskElement.querySelector('.red-btn');
         delBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // 阻止事件冒泡
-            this._delTask({ "name": task.name ,del_file:true});
+            FFmpeg.delTaskWithFile(task.name);
         });
         
         return taskElement;
@@ -357,7 +357,7 @@ export class FFmpegListComponent extends HTMLElement {
         
         // 添加已知晓按钮事件
         const confirmBtn = taskElement.querySelector('.confirm-btn');
-        confirmBtn.addEventListener('click', () => this._delTask({ "name": task.name }));
+        confirmBtn.addEventListener('click', () => FFmpeg.delTask(task.name));
         
         // 添加查看错误按钮事件
         const viewErrorBtn = taskElement.querySelector('#view-error-btn');
@@ -400,16 +400,6 @@ export class FFmpegListComponent extends HTMLElement {
         return colorMap[status] || "#666";
     }
     
-    // 确认并删除任务
-    async _delTask(body) {
-        try {
-            await AccountManager.Fetch("ffmpeg_del_task_item", body);
-            // 删除后不需要额外操作，WebSocket会推送更新
-        } catch (error) {
-            console.error("删除任务失败:", error);
-            alert("删除任务失败，请重试");
-        }
-    }
     // 播放视频
     _playVideo(task) {
         const videoUrl = task.output_vir_path;

@@ -170,7 +170,6 @@
                 
                 if (body.status === 'ok') {
                     showStatusMessage('转码任务已成功添加', 'success');
-                    document.getElementById('input_file').value = '';
                 } else {
                     showStatusMessage(body.msg || '添加转码任务失败', 'error');
                 }
