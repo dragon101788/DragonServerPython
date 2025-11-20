@@ -242,7 +242,11 @@ class BaseModal extends HTMLElement {
     static open(attributes = {}) {
         const modal = new this();
         for (const [key, value] of Object.entries(attributes)) {
-            modal.setAttribute(key, value);
+            if (typeof value === 'string') {
+                modal.setAttribute(key, value);
+            }else{
+                modal[key] = value;
+            }
         }
         
         document.body.appendChild(modal);
@@ -1070,6 +1074,173 @@ class UrlModal extends BaseModal {
 
 customElements.define('url-modal', UrlModal);
 export { UrlModal };
+
+export class HTMLElementModal extends BaseModal {
+    render() {
+        super.render();
+        // 获取宽高属性，如果没有则使用默认值
+        const width = this.getAttribute('width') || (BaseModal.isMobile() ? '95%' : '80%');
+        const height = this.getAttribute('height') || '90vh';
+        const html = /*html*/`
+            <style>
+                .modal-content {
+                    padding: 0px !important;
+                    margin: 0px !important;
+                }
+                .close {
+                    position: absolute;
+                    top: 10px;
+                    right: 15px;
+                    color: #fff;
+                    font-size: 30px;
+                    font-weight: bold;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1001;
+                    transition: all 0.3s ease;
+                }
+                .close:hover,
+                .close:focus {
+                    color: #fff;
+                    background-color: rgba(0, 0, 0, 0.8);
+                    transform: scale(1.1);
+                    text-decoration: none;
+                    cursor: pointer;
+                }
+                .form-group {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    height: 100% !important;
+                }
+                #modalIframe {
+                    width: 100% !important;
+                    height: 100% !important;
+                    border: none !important;
+                }
+            </style>
+            <div class="modal" id="modal">
+                <div class="modal-content" style="width: ${width}; height: ${height}; max-width: none; max-height: none; overflow: hidden;">
+                    <span class="close">&times;</span>
+                    <div class="form-group" id="modalIframeContainer">
+                    </div>
+                </div>
+            </div>
+        `;
+        this.shadowRoot.innerHTML += html;
+        const iframeContainer = this.shadowRoot.querySelector('#modalIframeContainer');
+        iframeContainer.replaceChildren(this.html);
+    }
+    setupEventListeners() {
+        const closeButton = this.shadowRoot.querySelector('.close');
+        const modal = this.shadowRoot.querySelector('.modal');
+
+        closeButton.addEventListener('click', () => this.close());
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                this.close();
+            }
+        });
+    }
+
+    show() {
+        super.show();
+        document.body.style.overflow = 'hidden'; // 防止背景滚动
+    }
+
+    close() {
+        super.close();
+        document.body.style.overflow = 'auto'; // 恢复背景滚动
+    }
+}
+customElements.define('html-modal', HTMLElementModal);
+
+export class HTMLStringModal extends HTMLElementModal {
+    render() {
+        super.render();
+        // 获取宽高属性，如果没有则使用默认值
+        const width = this.getAttribute('width') || (BaseModal.isMobile() ? '95%' : '80%');
+        const height = this.getAttribute('height') || '90vh';
+        const html = /*html*/`
+            <style>
+                .modal-content {
+                    padding: 0px !important;
+                    margin: 0px !important;
+                }
+                .close {
+                    position: absolute;
+                    top: 10px;
+                    right: 15px;
+                    color: #fff;
+                    font-size: 30px;
+                    font-weight: bold;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1001;
+                    transition: all 0.3s ease;
+                }
+                .close:hover,
+                .close:focus {
+                    color: #fff;
+                    background-color: rgba(0, 0, 0, 0.8);
+                    transform: scale(1.1);
+                    text-decoration: none;
+                    cursor: pointer;
+                }
+                .form-group {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    height: 100% !important;
+                }
+                #modalIframe {
+                    width: 100% !important;
+                    height: 100% !important;
+                    border: none !important;
+                }
+            </style>
+            <div class="modal" id="modal">
+                <div class="modal-content" style="width: ${width}; height: ${height}; max-width: none; max-height: none; overflow: hidden;">
+                    <span class="close">&times;</span>
+                    <div class="form-group" id="modalIframeContainer">
+                        <iframe id="modalIframe" src="${this.html}" style="width: 100%; height: 100%; border: none;"></iframe>
+                    </div>
+                </div>
+            </div>
+        `;
+        this.shadowRoot.innerHTML += html;
+    }
+    setupEventListeners() {
+        const closeButton = this.shadowRoot.querySelector('.close');
+        const modal = this.shadowRoot.querySelector('.modal');
+
+        closeButton.addEventListener('click', () => this.close());
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                this.close();
+            }
+        });
+    }
+
+    show() {
+        super.show();
+        document.body.style.overflow = 'hidden'; // 防止背景滚动
+    }
+
+    close() {
+        super.close();
+        document.body.style.overflow = 'auto'; // 恢复背景滚动
+    }
+}
+customElements.define('html-string-modal', HTMLStringModal);
 
 // 视频播放模态框
 class VideoModal extends BaseModal {

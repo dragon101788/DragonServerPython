@@ -1,7 +1,8 @@
 import { ContextMenu } from '/ContextMenu.js';
 import { AccountManager } from '/AccountManager.js';
 import { WebdavApi } from '/webdav/WebdavApi.js'
-import { InputDialog, MessageDialog, FileSelectDialog, CopyToClipboardDialog } from '/BaseModal.js';
+import { InputDialog, MessageDialog, FileSelectDialog, CopyToClipboardDialog, HTMLElementModal } from '/BaseModal.js';
+import { WebdavAdapter } from '/webdav/WebdavAdapter.js';
 
 export class MasonryBaseModal {
     constructor() {
@@ -201,6 +202,14 @@ export class MasonryBaseModal {
             }
             menu['刷新缩略图'] = async () => {
                 await WebdavApi.deleteThumb(this.item.path);
+            }
+            menu['属性'] = async () => {
+                const propertyElement = await WebdavAdapter.getProperty(this.item);
+                HTMLElementModal.open({
+                    html: propertyElement,
+                    width: '80%',
+                    height: '90vh',
+                });
             }
         }
         

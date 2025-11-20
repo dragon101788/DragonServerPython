@@ -45,6 +45,15 @@ export class WebdavAdapter  extends HTMLElement {
     goback(){
         this.shadowRoot.innerHTML = this.gobackElement;
     }
+    static async getProperty(item){
+        for (const property of WebdavAdapter.WebdavProperty){
+            const props = await property(item);
+            if (props){
+                return props;
+            }
+        }
+        return await commonWebdavProperty(item);
+    }
     connectedCallback() {
         this.shadowRoot.innerHTML = `
             <div class="main-display-area">主要显示区域内容</div>
@@ -100,17 +109,7 @@ export class WebdavAdapter  extends HTMLElement {
         this.eventListeners.WebdavProperty = async (event) => {
             
             const {path, item} = event.detail;
-
-            let propertyElement = undefined;
-
-            for (const property of WebdavAdapter.WebdavProperty){
-                propertyElement = await property(item);
-                
-            }
-            
-            if (propertyElement === undefined){
-                propertyElement = await commonWebdavProperty(item);
-            }
+            const propertyElement = await WebdavAdapter.getProperty(item);
             this.shadowRoot.replaceChildren(propertyElement);
         };
         document.addEventListener('WebdavProperty', this.eventListeners.WebdavProperty);

@@ -349,9 +349,6 @@ export class WebVideoPlayer extends HTMLElement {
             <style>
                 .file-details {
                     padding: 20px;
-                    border: 1px solid #ccc;
-                    border-radius: 5px;
-                    margin-bottom: 20px;
                 }
                 .detail-row {
                     display: flex;
