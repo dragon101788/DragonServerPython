@@ -473,13 +473,6 @@ export class FFmpegListComponent extends HTMLElement {
         const confirmBtn = taskElement.querySelector('.confirm-btn');
         confirmBtn.addEventListener('click', () => FFmpeg.delTask(task.name));
         
-        const showCmdBtn = taskElement.querySelector('#show-cmd-btn');
-        showCmdBtn.addEventListener('click', () => {
-            TextAreaDialog.open({
-                title: "FFMPEG命令",
-                value: task.cmd,
-            });
-        });
         
         taskElement.addEventListener('click', () => {
 

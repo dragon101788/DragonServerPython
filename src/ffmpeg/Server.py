@@ -141,8 +141,8 @@ async def webdav_ffmpeg_del_task_item(uws :UserWebsocket,body :dict):
                 os.remove(output_path)  
 
     ffmpeg_server.del_task(body.get("name"))
-    broadcast_update()
     uws.put(json.dumps({"tag":callbackId,"body":{"status":"done"}}))
+    broadcast_update()
 
 
 @recv_messages("ffmpeg_get_media_info")
