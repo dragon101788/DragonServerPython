@@ -18,7 +18,7 @@ chat_router = APIRouter()
 chatapi_config = config.PythonConfig("config/chatAPI.py",default_config={
         "apiBase": "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
         "apiKey": "5d3230ea-6b77-42cf-bc0b-2a686fcba565",
-        "model": "doubao-1-5-pro-256k-250115"
+        "model": "doubao-seed-1-6-251015"
     })
 system_prompt = config.PythonConfig("config/system_prompt.py",default_config={"system_prompt":[
         { "pos" : 2 , "role": "system", "content": "你(assistant)是dragon的助手" },#正数为接近最旧一条,0为最旧

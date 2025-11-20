@@ -69,7 +69,6 @@ class path:
     # 打包资源路径(static)
     src :str = real_path_math("src")
     static :str = real_path_math("src/static")
-    chatroom : str = real_path_math("src/chatroom")
     webdav :str = real_path_math("src/webdav")
     templates :str = real_path_math( "src/templates")
     executable :str = get_executable_path()

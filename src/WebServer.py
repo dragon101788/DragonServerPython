@@ -12,11 +12,10 @@ import time
 import io
 from src.server_config import *    
 import timestamp   
-from ChatAI import chat_router
+from src.AI.Server import chat_router
 import mimetypes    
 
 from src.account import account_router
-from src.chatroom.chatroom import chatroom_app
 import  src.SystemManager  as SystemManager
 
 import src.webdav.WebdavService as WebdavService
@@ -45,7 +44,6 @@ templates = Jinja2Templates(Resource.path.templates)
 
 app.include_router(chat_router)
 app.include_router(account_router)
-app.mount("/chatroom", chatroom_app)
 app.include_router(WebdavServiceAPI.router)
 app.mount("/WEBDAV", WebdavService.app)
 app.include_router(SystemManager.router)
