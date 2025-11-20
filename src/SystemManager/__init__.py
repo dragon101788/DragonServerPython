@@ -18,25 +18,6 @@ from src.server_config import *
 router = APIRouter()
 
 
-async def send_log_to_clients(message: str):
-    """
-    将日志信息发送给所有活跃的 WebSocket 客户端。
-
-    :param message: 要发送的日志信息
-    """
-    for connection, queue in active_connections.copy().items():
-        try:
-            await queue.put(message)
-        except Exception as e:
-            print(f"Exception:Error sending message to client : {e} ")
-            print(f"remove {connection}")
-            if connection in active_connections:
-                del active_connections[connection]
-
-
-# 定义一个全局的事件循环
-
-
 
 
 # 存储所有活跃的 WebSocket 连接

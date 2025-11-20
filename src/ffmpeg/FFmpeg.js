@@ -1,8 +1,8 @@
 import { AccountManager } from "/AccountManager.js";
 
+await AccountManager.init();
 export class FFmpeg {
     static {
-        AccountManager.init();
     }
 
     // 连接到FFmpeg服务
