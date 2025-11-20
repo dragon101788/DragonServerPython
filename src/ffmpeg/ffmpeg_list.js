@@ -357,7 +357,10 @@ export class FFmpegListComponent extends HTMLElement {
         
         // 添加删除事件监听
         const delBtn = taskElement.querySelector('.blue-btn');
-        delBtn.addEventListener('click', () => FFmpeg.delTask(task.name));
+        delBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡
+            FFmpeg.delTask(task.name);
+        });
         
         taskElement.addEventListener('click', () => {
             TextAreaDialog.open({
@@ -471,7 +474,12 @@ export class FFmpegListComponent extends HTMLElement {
         
         // 添加已知晓按钮事件
         const confirmBtn = taskElement.querySelector('.confirm-btn');
-        confirmBtn.addEventListener('click', () => FFmpeg.delTask(task.name));
+        confirmBtn.addEventListener('click', (e) => {
+            //防止点击按钮也触发任务点击事件
+            e.stopPropagation();
+
+            FFmpeg.delTask(task.name);
+        });
         
         
         taskElement.addEventListener('click', () => {
