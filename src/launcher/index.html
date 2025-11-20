@@ -183,6 +183,7 @@
         import { SystemLog } from '/SystemManager/SystemLog.js';
         import { ProgressModal } from '/BaseModal.js';
         import { AccountManager } from '/AccountManager.js';
+        import { ContextMenu } from '/ContextMenu.js';
         
         await AccountManager.init();
 
@@ -267,6 +268,25 @@
             
             // 绑定程序项点击事件
             document.querySelectorAll('.program-item').forEach(item => {
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    const programName = item.getAttribute('data-name');
+                    const program = programs.find(p => p.name === programName);
+                    if (program.running) {
+                        const menu = {
+                            '停止': () => stopProgram(item.getAttribute('data-name')),
+                            '重启': () => restartProgram(item.getAttribute('data-name')),
+                        }
+                        
+                        ContextMenu.open(e.clientX, e.clientY, menu);
+                    } else {
+                        const menu = {
+                            '启动': () => startProgram(item.getAttribute('data-name')),
+                        }
+                        
+                        ContextMenu.open(e.clientX, e.clientY, menu);
+                    }
+                });
                 item.addEventListener('click', (e) => {
                     // 如果点击的是按钮，不触发选中操作
                     if (e.target.closest('button')) return;
