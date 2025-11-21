@@ -55,17 +55,19 @@ async def chat_ai_completions(data: dict):
 
 
     def generate():
-        try:
-            response = requests.post(chatapi_config.apiBase, headers=headers, json=payload, stream=True)
-            for line in response.iter_lines():
-                if line:
-                    line_str = line.decode('utf-8')
-                    if line_str.startswith('data: '):
-                        data_str = line_str[6:]
-                        yield f"data: {data_str}\n\n"
-        except Exception as e:
-            error_data = json.dumps({"error": str(e)})
-            yield f"data: {error_data}\n\n"
+        response = requests.post(chatapi_config.apiBase, headers=headers, json=payload, stream=True)
+        for line in response.iter_lines():
+            if line:
+                line_str = line.decode('utf-8')
+                if line_str.startswith('data: '):
+                    data_str = line_str[6:]
+                    if (data_str == '[DONE]'):
+                        return;
+                    data = json.loads(data_str)
+                    delta = data["choices"][0]["delta"]
+                    content = delta.get("content", None)
+                    if content:
+                        yield content
     return StreamingResponse(generate(), media_type="text/event-stream")
 @chat_router.get("/api/haiguitang")
 async def api_haiguitang():

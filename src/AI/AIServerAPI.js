@@ -37,29 +37,12 @@ export class AIServerAPI {
         let context = '';
         while (true) {
             const {value, done} = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, {stream: true});
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const data = line.slice(6);
-                    if (data === '[DONE]') continue;
-                    try {
-                        const json = JSON.parse(data);
-                        const content = json.choices[0].delta.content;
-                        if (content) {
-                            context += content;
-                            if (onResponse) {
-                                onResponse(content);
-                            }
-                        }
-                    } catch (e) {
-                        console.error('Error parsing JSON:', e);
-                    }
-                }
+            if (done) 
+                break;
+            const line = decoder.decode(value, {stream: true});
+            if (onResponse) {
+                onResponse(line);
+                context += line;
             }
         }
         return context;
