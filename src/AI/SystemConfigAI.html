@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 系统配置</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+                sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin-bottom: 20px;
+            font-size: 22px;
+            font-weight: 500;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+        
+        .tab-container {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 30px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6c757d;
+            background: none;
+            border: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab.active {
+            color: #3498db;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #3498db;
+        }
+        
+        .form-section {
+            display: none;
+        }
+        
+        .form-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+        
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .prompt-list {
+            margin-top: 20px;
+        }
+        
+        .prompt-item {
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .prompt-index {
+            font-weight: 600;
+            color: #3498db;
+            font-size: 16px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .response-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .response-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .response-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .pos-info {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI 系统配置</h1>
+        
+        <div class="tab-container">
+            <button class="tab active" data-section="chatapi">Chat API 配置</button>
+            <button class="tab" data-section="prompt">提示词配置</button>
+        </div>
+        
+        <!-- Chat API 配置部分 -->
+        <div id="chatapi" class="form-section active">
+            <h2>Chat API 配置</h2>
+            <div class="form-group">
+                <label for="apiBase">API 基础地址</label>
+                <input type="text" id="apiBase" placeholder="例如: https://api.example.com/chat/completions">
+            </div>
+            <div class="form-group">
+                <label for="apiKey">API 密钥</label>
+                <input type="text" id="apiKey" placeholder="请输入 API 密钥">
+            </div>
+            <div class="form-group">
+                <label for="model">模型名称</label>
+                <input type="text" id="model" placeholder="例如: gpt-4, doubao-seed-1-6-251015">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" id="saveChatAPI">保存配置</button>
+                <button class="btn btn-secondary" id="resetChatAPI">重置</button>
+            </div>
+            <div id="chatAPIResponse" class="response-message"></div>
+        </div>
+        
+        <!-- 提示词配置部分 -->
+        <div id="prompt" class="form-section">
+            <h2>提示词配置</h2>
+            <div class="form-group">
+                <label for="firstMessage">首次消息</label>
+                <textarea id="firstMessage" placeholder="AI 的首次欢迎消息"></textarea>
+            </div>
+            
+            <h3>系统提示列表</h3>
+            <p>系统提示将按顺序插入到对话中</p>
+            
+            <div class="btn-group">
+                <button class="btn btn-success" id="addPrompt">添加系统提示</button>
+                <button class="btn btn-secondary" id="loadDefaults">加载默认配置</button>
+            </div>
+            
+            <div id="promptList" class="prompt-list"></div>
+            
+            <div class="form-actions">
+                <button class="btn btn-primary" id="savePrompt">保存配置</button>
+                <button class="btn btn-secondary" id="resetPrompt">重置</button>
+            </div>
+            <div id="promptResponse" class="response-message"></div>
+        </div>
+    </div>
+
+    <script>
+        // 扩展 AIServerAPI 以支持 chatapi_config 的获取和设置
+        class AIServerAPI {
+            static async send(messages, onResponse = undefined) {
+                const response = await fetch(`/api/ChatAI/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        messages: messages
+                    })
+                });
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let context = '';
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    const line = decoder.decode(value, {stream: true});
+                    if (onResponse) {
+                        onResponse(line);
+                    }
+                    context += line;
+                }
+                return context;
+            }
+
+            static async get_prompt() {
+                const response = await fetch(`/api/ChatAI/prompt`);
+                return await response.json();
+            }
+
+            static async set_prompt(prompt) {
+                const response = await fetch(`/api/ChatAI/prompt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt
+                    })
+                });
+                return await response.json();
+            }
+
+            static async get_chatapi_config() {
+                const response = await fetch(`/api/ChatAI/chatapi_config`);
+                return await response.json();
+            }
+
+            static async set_chatapi_config(config) {
+                const response = await fetch(`/api/ChatAI/chatapi_config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                return await response.json();
+            }
+        }
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 加载配置数据
+            await loadChatAPIConfig();
+            await loadPromptConfig();
+            
+            // 初始化标签切换
+            initTabs();
+            
+            // 初始化表单事件监听
+            initEventListeners();
+        });
+
+        // 初始化标签切换功能
+        function initTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // 移除所有活动状态
+                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.form-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    // 添加当前活动状态
+                    tab.classList.add('active');
+                    const sectionId = tab.getAttribute('data-section');
+                    document.getElementById(sectionId).classList.add('active');
+                });
+            });
+        }
+
+        // 初始化事件监听
+        function initEventListeners() {
+            // Chat API 配置事件
+            document.getElementById('saveChatAPI').addEventListener('click', saveChatAPIConfig);
+            document.getElementById('resetChatAPI').addEventListener('click', loadChatAPIConfig);
+            
+            // 提示词配置事件
+            document.getElementById('savePrompt').addEventListener('click', savePromptConfig);
+            document.getElementById('resetPrompt').addEventListener('click', loadPromptConfig);
+            document.getElementById('addPrompt').addEventListener('click', addPromptItem);
+            document.getElementById('loadDefaults').addEventListener('click', loadDefaultPrompts);
+        }
+
+        // 加载 Chat API 配置
+        async function loadChatAPIConfig() {
+            try {
+                const config = await AIServerAPI.get_chatapi_config();
+                document.getElementById('apiBase').value = config.apiBase || '';
+                document.getElementById('apiKey').value = config.apiKey || '';
+                document.getElementById('model').value = config.model || '';
+            } catch (error) {
+                showResponse('chatAPIResponse', `加载配置失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 保存 Chat API 配置
+        async function saveChatAPIConfig() {
+            try {
+                const config = {
+                    apiBase: document.getElementById('apiBase').value.trim(),
+                    apiKey: document.getElementById('apiKey').value.trim(),
+                    model: document.getElementById('model').value.trim()
+                };
+                
+                // 简单验证
+                if (!config.apiBase || !config.apiKey || !config.model) {
+                    showResponse('chatAPIResponse', '所有字段都不能为空', 'error');
+                    return;
+                }
+                
+                await AIServerAPI.set_chatapi_config(config);
+                showResponse('chatAPIResponse', '配置保存成功', 'success');
+            } catch (error) {
+                showResponse('chatAPIResponse', `保存配置失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 加载提示词配置
+        async function loadPromptConfig() {
+            try {
+                const prompt = await AIServerAPI.get_prompt();
+                document.getElementById('firstMessage').value = prompt.first_message || '';
+                
+                // 清空并重新添加系统提示
+                const promptList = document.getElementById('promptList');
+                promptList.innerHTML = '';
+                
+                if (prompt.system_prompt && Array.isArray(prompt.system_prompt)) {
+                    prompt.system_prompt.forEach((item, index) => {
+                        addPromptItemToUI(item, index);
+                    });
+                }
+            } catch (error) {
+                showResponse('promptResponse', `加载配置失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 保存提示词配置
+        async function savePromptConfig() {
+            try {
+                const firstMessage = document.getElementById('firstMessage').value.trim();
+                const promptItems = document.querySelectorAll('.prompt-item');
+                
+                const systemPrompts = Array.from(promptItems).map(item => {
+                    return {
+                        pos: parseInt(item.querySelector('.pos-input').value) || 0,
+                        role: item.querySelector('.role-input').value.trim(),
+                        content: item.querySelector('.content-input').value.trim()
+                    };
+                }).filter(prompt => prompt.role && prompt.content);
+                
+                // 简单验证
+                if (!firstMessage) {
+                    showResponse('promptResponse', '首次消息不能为空', 'error');
+                    return;
+                }
+                
+                if (systemPrompts.length === 0) {
+                    showResponse('promptResponse', '至少需要一个系统提示', 'error');
+                    return;
+                }
+                
+                const prompt = {
+                    first_message: firstMessage,
+                    system_prompt: systemPrompts
+                };
+                
+                await AIServerAPI.set_prompt(prompt);
+                showResponse('promptResponse', '配置保存成功', 'success');
+            } catch (error) {
+                showResponse('promptResponse', `保存配置失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 添加提示词项到界面
+        function addPromptItemToUI(item = {}, index) {
+            const promptList = document.getElementById('promptList');
+            const promptItem = document.createElement('div');
+            promptItem.className = 'prompt-item';
+            
+            promptItem.innerHTML = `
+                <div class="prompt-header">
+                    <span class="prompt-index">系统提示 ${index + 1}</span>
+                    <button class="btn btn-danger btn-small delete-prompt">删除</button>
+                </div>
+                <div class="form-group">
+                    <label for="pos-${index}">位置 (pos)</label>
+                    <input type="number" id="pos-${index}" class="pos-input" value="${item.pos || 0}">
+                    <div class="pos-info">正数: 接近最旧消息(0为最旧), 负数: 接近最新消息(-1为最新)</div>
+                </div>
+                <div class="form-group">
+                    <label for="role-${index}">角色 (role)</label>
+                    <input type="text" id="role-${index}" class="role-input" value="${item.role || 'system'}">
+                </div>
+                <div class="form-group">
+                    <label for="content-${index}">内容 (content)</label>
+                    <textarea id="content-${index}" class="content-input">${item.content || ''}</textarea>
+                </div>
+            `;
+            
+            // 添加删除按钮事件
+            promptItem.querySelector('.delete-prompt').addEventListener('click', () => {
+                promptItem.remove();
+                // 更新索引显示
+                updatePromptIndices();
+            });
+            
+            promptList.appendChild(promptItem);
+        }
+
+        // 添加新的提示词项
+        function addPromptItem() {
+            const promptItems = document.querySelectorAll('.prompt-item');
+            const index = promptItems.length;
+            addPromptItemToUI({}, index);
+        }
+
+        // 更新提示词索引显示
+        function updatePromptIndices() {
+            const promptItems = document.querySelectorAll('.prompt-item');
+            promptItems.forEach((item, index) => {
+                item.querySelector('.prompt-index').textContent = `系统提示 ${index + 1}`;
+            });
+        }
+
+        // 加载默认提示词配置
+        function loadDefaultPrompts() {
+            const promptList = document.getElementById('promptList');
+            promptList.innerHTML = '';
+            
+            const defaultPrompts = [
+                { pos: 2, role: 'system', content: '你(assistant)是dragon的助手' },
+                { pos: -4, role: 'system', content: 'dragon是一个技术大神' }
+            ];
+            
+            defaultPrompts.forEach((item, index) => {
+                addPromptItemToUI(item, index);
+            });
+            
+            document.getElementById('firstMessage').value = '你好,有什么可以帮到你?';
+            showResponse('promptResponse', '已加载默认配置', 'success');
+        }
+
+        // 显示响应消息
+        function showResponse(elementId, message, type) {
+            const responseElement = document.getElementById(elementId);
+            responseElement.textContent = message;
+            responseElement.className = `response-message response-${type}`;
+            responseElement.style.display = 'block';
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                responseElement.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

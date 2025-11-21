@@ -12,7 +12,7 @@ import time
 import io
 from src.server_config import *    
 import timestamp   
-from src.AI.Server import chat_router
+from src.AI.Server import router as chat_router
 import mimetypes    
 
 from src.account import account_router

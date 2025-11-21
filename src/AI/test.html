@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="prompt-container"></div>
+    <script type="module">
+        import { AIServerAPI } from "./AIServerAPI.js";
+        //获取提示内容
+        const prompt = await AIServerAPI.get_prompt();
+        for (const [k,v] of Object.entries(prompt)) {
+            document.getElementById("prompt-container").innerHTML += `${k}: ${v}<br>`;
+        }
+        prompt.first_message = "傻逼"
+        await AIServerAPI.set_prompt(prompt);
+    </script>   
+</body>
+</html>
