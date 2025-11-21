@@ -1,5 +1,25 @@
 <!--
 写一个AI助手
-AI接口使用/static/chat-ai.js
-import { ChatAI } from "/static/chat-ai.js";
---
+AI接口使用./ChatAI.js
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="chat-container"></div>
+    <script type="module">
+        import { AIServerAPI } from "./AIServerAPI.js";
+        //流式响应
+        AIServerAPI.send([{ role: "user", content: "你好" }], (content) => {
+            document.getElementById("chat-container").innerHTML += content;
+        });
+        //非流式响应
+        const context = await AIServerAPI.send([{ role: "user", content: "你好" }]);
+        document.getElementById("chat-container").innerHTML = context;
+    </script>
+</body>
+</html>
