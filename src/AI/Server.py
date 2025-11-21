@@ -8,6 +8,7 @@ import requests
 import uvicorn
 import Resource
 import json
+from src.account import verfiy_by_request,get_profile
 
 from fastapi import FastAPI, Request
 import httpx
@@ -76,7 +77,11 @@ async def get_prompt():
     return prompt_config.instance()
 
 @router.post("/api/ChatAI/prompt")
-async def set_prompt(data: dict):
+async def set_prompt(request: Request,data: dict):
+    await verfiy_by_request(request);
+    role = get_profile(request.username).get("role")
+    if "SuperAdmin" not in role:
+        raise HTTPException(status_code=403, detail="Permission denied")
     prompt = data.get("prompt")
     if not prompt:
         raise HTTPException(status_code=400, detail="提示内容不能为空")
@@ -84,11 +89,19 @@ async def set_prompt(data: dict):
     return {"message": "Prompt updated"}
 
 @router.get("/api/ChatAI/chatapi_config")
-async def get_chatapi_config():
+async def get_chatapi_config(request: Request):
+    await verfiy_by_request(request);
+    role = get_profile(request.username).get("role")
+    if "SuperAdmin" not in role:
+        raise HTTPException(status_code=403, detail="Permission denied")
     return chatapi_config.instance()
 
 @router.post("/api/ChatAI/chatapi_config")
-async def set_chatapi_config(data: dict):
+async def set_chatapi_config(request: Request,data: dict):
+    await verfiy_by_request(request);
+    role = get_profile(request.username).get("role")
+    if "SuperAdmin" not in role:
+        raise HTTPException(status_code=403, detail="Permission denied")
     chatapi_config.update(data)
     return {"message": "chatapi_config updated"}
 
