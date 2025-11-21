@@ -31,20 +31,15 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px;
         }
 
         .chat-container {
             width: 100%;
-            max-width: 800px;
             background-color: var(--chat-bg-color);
             border-radius: 16px;
             box-shadow: 0 4px 20px var(--shadow-color);
             display: flex;
             flex-direction: column;
-            height: 90vh;
-            max-height: 800px;
             overflow: hidden;
         }
 
@@ -270,8 +265,8 @@
                 chatContainer.style.maxHeight = 'none';
                 chatContainer.style.borderRadius = '0';
             } else {
-                chatContainer.style.height = '90vh';
-                chatContainer.style.maxHeight = '800px';
+                chatContainer.style.height = '100vh';
+                chatContainer.style.maxHeight = 'none';
                 chatContainer.style.borderRadius = '16px';
             }
         }
