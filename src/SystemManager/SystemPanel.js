@@ -23,14 +23,20 @@ class SystemPanel extends HTMLElement {
     connectedCallback() {
         this.render();
         this.initCharts();
-        this.fetchSystemInfo();
 
-        AccountManager.register_ws_recv_callback("system_info", (message) => {
-            this.updatePanel(message);
+        AccountManager.Interact("get_system_info", {}, (body) => {
+            if (body.type === "system_info_list") {
+                for (let [k, v] of Object.entries(body.data)) {
+                    this.updatePanel(v);
+                }
+            }
+            else if (body.type === "system_info") {
+                this.updatePanel(body.data);
+            }
         });
+
     }
     disconnectedCallback() {
-        AccountManager.unregister_ws_recv_callback("system_info");
     }
 
     disconnectedCallback() {
@@ -285,18 +291,6 @@ class SystemPanel extends HTMLElement {
         });
     }
 
-    async fetchSystemInfo() {
-        try {
-            const response = await fetch('/api/get_system_info');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            this.updatePanel(data);
-        } catch (error) {
-            console.error('获取系统信息失败:', error);
-        }
-    }
 
     updatePanel(data) {
         // 更新指标卡片

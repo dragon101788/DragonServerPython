@@ -1,5 +1,5 @@
 import json
-import src.account as account 
+from src.account import UserWebsocket,recv_messages,verfiy_by_request,get_profile
 from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect
 import os
 import time
@@ -40,6 +40,7 @@ class SystemMonitor(threading.Thread):  # 继承 threading.Thread
             "app_start_time": timestamp.SERVER_START_TIME,
             "app_run_time": 0,
         }
+        self.info_list = []
         self.is_running = False
         self.prev_net_io = psutil.net_io_counters()
         self.prev_time = time.time()
@@ -75,8 +76,10 @@ class SystemMonitor(threading.Thread):  # 继承 threading.Thread
 
             self.prev_net_io = current_net_io
             self.prev_time = current_time
-            # 打印系统信息
-            account.send_to_all_clients("system_info", self.info)              
+
+            self.info_list.append(self.info)
+            if len(self.info_list) > 60:
+                self.info_list.pop(0)
             time.sleep(1)  # 每秒更新一次
         self.is_running = False
 
@@ -87,6 +90,23 @@ system_monitor = SystemMonitor.get_instance()
 system_monitor.start()  # 启动线程
 
 
+def server_reboot():
+    system_monitor.reboot = True;
+
+@recv_messages("get_system_info")
+async def get_system_info_by_client(uws :UserWebsocket,body :dict):
+    callbackId = body.get("callbackId","get_system_info")
+    uws.put(json.dumps({"tag":callbackId,"body":{
+        "type":"system_info_list",
+        "data":system_monitor.info_list
+    }}))
+    while uws.is_connected():
+        await asyncio.sleep(1)
+        uws.put(json.dumps({"tag":callbackId,"body":{
+            "type":"system_info",
+            "data":system_monitor.info
+        }}))
+
 @router.get("/api/get_system_info")
 async def get_system_info(request: Request):
     """
@@ -96,8 +116,8 @@ async def get_system_info(request: Request):
     :return: 包含多项系统指标的 JSON 响应
     :raises HTTPException: 若认证失败或用户无权限，抛出异常
     """
-    await account.verfiy_by_request(request);
-    role = account.get_profile(request.username).get("role")
+    await verfiy_by_request(request);
+    role = get_profile(request.username).get("role")
     if "SuperAdmin" not in role:
         raise HTTPException(status_code=403, detail="Permission denied")
     try:
@@ -109,8 +129,8 @@ async def get_system_info(request: Request):
 
 @router.get("/api/get_extra_static")
 async def get_extra_static(request: Request):
-    await account.verfiy_by_request(request);
-    role = account.get_profile(request.username).get("role")
+    await verfiy_by_request(request);
+    role = get_profile(request.username).get("role")
     if "SuperAdmin" not in role:
         raise HTTPException(status_code=403, detail="Permission denied")
     try:
@@ -121,8 +141,8 @@ async def get_extra_static(request: Request):
 
 @router.post("/api/set_extra_static")
 async def set_extra_static(request: Request):
-    await account.verfiy_by_request(request);
-    role = account.get_profile(request.username).get("role")
+    await verfiy_by_request(request);
+    role = get_profile(request.username).get("role")
     if "SuperAdmin" not in role:
         raise HTTPException(status_code=403, detail="Permission denied")
     try:

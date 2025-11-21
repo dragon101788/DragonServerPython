@@ -547,10 +547,12 @@ class UserWebsocket():
     async def send_messages_task(self):
         while True:
             try:
+                # 异步获取消息
                 message = await self.get()
                 if not self.is_connected():
                     break
-                await self.ws.send_text(message)
+                # 使用 create_task 异步发送消息，不阻塞主循环
+                asyncio.create_task(self._send_message_async(message))
             except WebSocketDisconnect:
                 break
             except Exception as e:
@@ -558,6 +560,14 @@ class UserWebsocket():
                 break
         # 连接断开时清理资源
         await self.cleanup()
+    
+    async def _send_message_async(self, message):
+        """异步发送单个消息的辅助方法"""
+        try:
+            if self.is_connected():
+                await self.ws.send_text(message)
+        except Exception as e:
+            print(f"Error in async message sending: {e}")
 
     async def recv_messages_task(self):
         while True:
@@ -569,12 +579,14 @@ class UserWebsocket():
                     if "tag" in recv_json:
                         tag = recv_json["tag"]
                         if tag in recv_messages_pool:
-                            await recv_messages_pool[tag](self,recv_json.get("body",None))
+                            # 使用 create_task 异步执行回调函数，不阻塞主循环
+                            asyncio.create_task(recv_messages_pool[tag](self,recv_json.get("body",None)))
                 except json.JSONDecodeError as e:
                     print(f"Error decoding JSON: {e}")
                     pass
                 for recv in recv_all_messages_pool:
-                    await recv(self,client_message)
+                    # 同样异步执行所有消息的回调函数
+                    asyncio.create_task(recv(self,client_message))
                 #print(f"Received message from {self.username}: {client_message}")
                 # 这里可以添加处理客户端消息的逻辑
             except WebSocketDisconnect:
@@ -595,8 +607,8 @@ class UserWebsocket():
 
     def is_connected(self):
         return self.ws != None and self.ws.client_state == WebSocketState.CONNECTED and self.ws.application_state == WebSocketState.CONNECTED
-    def get(self):
-        return self.queue.get()
+    async def get(self):
+        return await self.queue.get()
     def put(self,message):
         if self.is_connected():
             self.queue.put_nowait(message)
