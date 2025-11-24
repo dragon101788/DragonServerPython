@@ -8,28 +8,162 @@
     <!-- 引入 Monaco Editor 的 CDN 资源 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.js"></script>
     <style>
-        body,
+        body, 
         html {
             margin: 0;
             padding: 0;
             height: 100%;
             overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* 工具栏样式 */
+        #toolbar-container {
+            background-color: #252526;
+            color: white;
+            padding: 8px 12px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #toolbar-container button {
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        #toolbar-container button:hover {
+            background-color: #1177bb;
+        }
+
+        #toolbar-container button:active {
+            background-color: #0d47a1;
+        }
+
+        #toolbar-container button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
         }
 
         /* 编辑器容器样式 */
         #editor-container {
             width: 100%;
-            height: 100%;
+            height: calc(100% - 38px); /* 减去工具栏高度 */
+        }
+
+        /* 调试容器样式 */
+        #debug-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 300px;
+            background-color: #1e1e1e;
+            border-top: 1px solid #3e3e42;
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        #debug-container.show {
+            display: flex;
+        }
+
+        /* 调试窗口头部 */
+        #debug-header {
+            background-color: #252526;
+            color: white;
+            padding: 8px 12px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+        }
+
+        #debug-header:active {
+            cursor: grabbing;
+        }
+
+        /* 调试窗口控制按钮 */
+        #debug-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .debug-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .debug-btn:hover {
+            background-color: #3e3e42;
+        }
+
+        /* 调试窗口内容 */
+        #debug-content {
+            flex: 1;
+            overflow: auto;
+            padding: 12px;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        /* 调试输出行样式 */
+        .debug-line {
+            margin: 4px 0;
+            padding: 2px 0;
+            border-bottom: 1px solid #2d2d2d;
+        }
+
+        .debug-line.error {
+            color: #f48771;
+        }
+
+        .debug-line.warn {
+            color: #cca700;
+        }
+
+        .debug-line.info {
+            color: #6cb784;
+        }
+
+        /* 调试窗口大小调整手柄 */
+        #debug-resizer {
+            position: absolute;
+            top: -4px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            cursor: ns-resize;
+            background-color: transparent;
         }
     </style>
 </head>
 
 <body>
+    <div id="toolbar-container"></div>
     <div id="editor-container"></div>
+    <div id="debug-container"></div>
 
     <script type="module">
 
         import { WebdavApi } from '/webdav/WebdavApi.js'
+        
         // 配置 Monaco Editor 的路径（指向 CDN）
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
         const searchParams = new URLSearchParams(window.location.search);
@@ -67,8 +201,10 @@
                 console.log('语言类型发生变化:', editor.getModel().getLanguageId());
             });
 
-            //判断文件后缀并设置语言
+            // 判断文件后缀并设置语言
             const fileExtension = src.split('.').pop();
+            let openDebug = false;
+            
             if (fileExtension === 'py') {
                 monaco.editor.setModelLanguage(editor.getModel(), 'python');
             } else if (fileExtension === 'html') {
@@ -77,26 +213,197 @@
                 monaco.editor.setModelLanguage(editor.getModel(), 'css');
             } else if (fileExtension === 'js') {
                 monaco.editor.setModelLanguage(editor.getModel(), 'javascript');
-            } 
+                openDebug = true;
+            }
 
+            // 设置工具栏
+            const toolbarContainer = document.getElementById('toolbar-container');
+            toolbarContainer.innerHTML = `
+                    <button id="run-button">运行</button>
+                `;
+            if (openDebug) {
+                toolbarContainer.style.display = 'flex';
+            } else {
+                toolbarContainer.style.display = 'none';
+            }
+
+            // 初始化调试容器
+            const debugContainer = document.getElementById('debug-container');
+            debugContainer.innerHTML = `
+                <div id="debug-header">
+                    <div>调试控制台</div>
+                    <div id="debug-controls">
+                        <button class="debug-btn" id="clear-debug">清空</button>
+                        <button class="debug-btn" id="close-debug">关闭</button>
+                    </div>
+                </div>
+                <div id="debug-resizer"></div>
+                <div id="debug-content"></div>
+            `;
+
+            // 调试相关功能
+            let isDebugOpen = false;
+            const debugContent = document.getElementById('debug-content');
+            const runButton = document.getElementById('run-button');
+            const closeDebugButton = document.getElementById('close-debug');
+            const clearDebugButton = document.getElementById('clear-debug');
+            const debugResizer = document.getElementById('debug-resizer');
+            const debugHeader = document.getElementById('debug-header');
+
+            // 添加调试日志
+            function addDebugLog(message, type = 'info') {
+                const logLine = document.createElement('div');
+                logLine.className = `debug-line ${type}`;
+                logLine.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                debugContent.appendChild(logLine);
+                debugContent.scrollTop = debugContent.scrollHeight;
+            }
+
+            // 清空调试日志
+            function clearDebugLog() {
+                debugContent.innerHTML = '';
+            }
+
+            // 显示调试窗口
+            function showDebugWindow() {
+                debugContainer.classList.add('show');
+                isDebugOpen = true;
+            }
+
+            // 隐藏调试窗口
+            function hideDebugWindow() {
+                debugContainer.classList.remove('show');
+                isDebugOpen = false;
+            }
+
+            // 运行代码
+            function runCode() {
+                if (!openDebug) return;
+                
+                // 显示调试窗口
+                showDebugWindow();
+                
+                // 清空之前的日志
+                clearDebugLog();
+                
+                // 获取代码内容
+                const code = editor.getValue();
+                
+                addDebugLog('开始运行代码...', 'info');
+                
+                try {
+                    // 创建一个安全的执行环境
+                    const console = {
+                        log: (...args) => addDebugLog(args.join(' '), 'info'),
+                        error: (...args) => addDebugLog(args.join(' '), 'error'),
+                        warn: (...args) => addDebugLog(args.join(' '), 'warn'),
+                        info: (...args) => addDebugLog(args.join(' '), 'info')
+                    };
+                    
+                    // 执行代码
+                    const result = eval(code);
+                    
+                    if (result !== undefined) {
+                        addDebugLog(`返回结果: ${result}`, 'info');
+                    }
+                    
+                    addDebugLog('代码运行完成', 'info');
+                } catch (error) {
+                    addDebugLog(`错误: ${error.message}`, 'error');
+                    addDebugLog(`堆栈信息: ${error.stack}`, 'error');
+                }
+            }
+
+            
+
+            // 窗口大小调整功能
+            let isResizing = false;
+            let startY = 0;
+            let startHeight = 0;
+
+            debugResizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                startY = e.clientY;
+                startHeight = debugContainer.offsetHeight;
+                document.body.style.userSelect = 'none';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                const deltaY = startY - e.clientY;
+                const newHeight = Math.max(100, startHeight + deltaY);
+                debugContainer.style.height = `${newHeight}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.userSelect = '';
+                }
+            });
+
+            // 窗口拖拽功能
+            let isDragging = false;
+            let startDragY = 0;
+            let startContainerY = 0;
+
+            debugHeader.addEventListener('mousedown', (e) => {
+                if (e.target.closest('#debug-controls')) return;
+                
+                isDragging = true;
+                startDragY = e.clientY;
+                startContainerY = debugContainer.getBoundingClientRect().top;
+                document.body.style.userSelect = 'none';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaY = e.clientY - startDragY;
+                const newTop = startContainerY + deltaY;
+                const windowHeight = window.innerHeight;
+                const containerHeight = debugContainer.offsetHeight;
+                
+                // 限制窗口位置，不能超出屏幕
+                const maxTop = windowHeight - containerHeight;
+                const minTop = 0;
+                const clampedTop = Math.max(minTop, Math.min(maxTop, newTop));
+                
+                debugContainer.style.top = `${clampedTop}px`;
+                debugContainer.style.bottom = 'auto';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    document.body.style.userSelect = '';
+                }
+            });
+
+            // 事件监听
+            runButton.addEventListener('click', runCode);
+            closeDebugButton.addEventListener('click', hideDebugWindow);
+            clearDebugButton.addEventListener('click', clearDebugLog);
+
+            // 从Webdav服务器获取文件内容
             const Response = await WebdavApi.fetchFile(src);
             if (Response.ok) {
                 try {
                     const text = await Response.text();
                     editor.setValue(text);
                 } catch (error) {
-                    console.log(error);
+                    addDebugLog(`读取文件失败: ${error.message}`, 'error');
                 }
             }
 
-            //重载Ctrl+S
+            // 重载Ctrl+S
             document.addEventListener('keydown', (event) => {
                 if (event.ctrlKey && event.key === 's') {
                     event.preventDefault();
                     WebdavApi.pushFile(src, editor.getValue());
                 }
             });
-            //monaco.editor.setModelLanguage(editor.getModel(), 'python'); 切换语言类型
         });
     </script>
 
