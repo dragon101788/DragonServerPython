@@ -301,23 +301,13 @@
                 
                 // 清空之前的日志
                 clearDebugLog();
-                
                 // 获取代码内容
-                const code = editor.getValue();
-                
                 addDebugLog('开始运行代码...', 'info');
-                
                 
                 // 创建iframe
                 const iframe = document.getElementById('runcode-iframe');
-                iframe.style.display = 'none';
-                
-                
-                
-                
                 // 设置iframe的src并添加到文档
                 iframe.src = `runcode.html?code_src=${encodeURIComponent(src)}`;
-                document.body.appendChild(iframe);
             }
 
             
