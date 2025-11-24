@@ -159,6 +159,7 @@
     <div id="toolbar-container"></div>
     <div id="editor-container"></div>
     <div id="debug-container"></div>
+    <iframe id="runcode-iframe" style="display: none;"></iframe>
 
     <script type="module">
 
@@ -276,6 +277,21 @@
                 isDebugOpen = false;
             }
 
+            window.addEventListener('message', (event) => {
+                if (event.data.type === 'log') {
+                    addDebugLog(event.data.message, event.data.level);
+                } else if (event.data.type === 'result') {
+                    if (event.data.value !== undefined) {
+                        addDebugLog(`返回结果: ${event.data.value}`, 'info');
+                    }
+                } else if (event.data.type === 'done') {
+                    addDebugLog('代码运行完成', 'info');
+                } else if (event.data.type === 'error') {
+                    addDebugLog(`错误: ${event.data.message}`, 'error');
+                    addDebugLog(`堆栈信息: ${event.data.stack}`, 'error');
+                }
+            });
+
             // 运行代码
             function runCode() {
                 if (!openDebug) return;
@@ -291,27 +307,17 @@
                 
                 addDebugLog('开始运行代码...', 'info');
                 
-                try {
-                    // 创建一个安全的执行环境
-                    const console = {
-                        log: (...args) => addDebugLog(args.join(' '), 'info'),
-                        error: (...args) => addDebugLog(args.join(' '), 'error'),
-                        warn: (...args) => addDebugLog(args.join(' '), 'warn'),
-                        info: (...args) => addDebugLog(args.join(' '), 'info')
-                    };
-                    
-                    // 执行代码
-                    const result = eval(code);
-                    
-                    if (result !== undefined) {
-                        addDebugLog(`返回结果: ${result}`, 'info');
-                    }
-                    
-                    addDebugLog('代码运行完成', 'info');
-                } catch (error) {
-                    addDebugLog(`错误: ${error.message}`, 'error');
-                    addDebugLog(`堆栈信息: ${error.stack}`, 'error');
-                }
+                
+                // 创建iframe
+                const iframe = document.getElementById('runcode-iframe');
+                iframe.style.display = 'none';
+                
+                
+                
+                
+                // 设置iframe的src并添加到文档
+                iframe.src = `runcode.html?code_src=${encodeURIComponent(src)}`;
+                document.body.appendChild(iframe);
             }
 
             

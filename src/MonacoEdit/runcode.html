@@ -1,0 +1,80 @@
+<html>
+    <head>
+        <title>运行代码</title>
+    </head>
+    <body>
+        <script type="module">
+            // 重写console方法，将日志发送到父窗口
+            const originalConsole = {
+                log: console.log,
+                error: console.error,
+                warn: console.warn,
+                info: console.info
+            };
+            
+            console.log = (...args) => {
+                originalConsole.log(...args);
+                window.parent.postMessage({
+                    type: 'log',
+                    message: args.join(' '),
+                    level: 'info'
+                }, '*');
+            };
+            
+            console.error = (...args) => {
+                originalConsole.error(...args);
+                window.parent.postMessage({
+                    type: 'log',
+                    message: args.join(' '),
+                    level: 'error'
+                }, '*');
+            };
+            
+            console.warn = (...args) => {
+                originalConsole.warn(...args);
+                window.parent.postMessage({
+                    type: 'log',
+                    message: args.join(' '),
+                    level: 'warn'
+                }, '*');
+            };
+            
+            console.info = (...args) => {
+                originalConsole.info(...args);
+                window.parent.postMessage({
+                    type: 'log',
+                    message: args.join(' '),
+                    level: 'info'
+                }, '*');
+            };
+            
+            
+            // 执行代码
+            async function executeCode() {
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const code_src = params.get('code_src');
+                    
+                    // 导入并执行代码
+                    const result = await import(code_src);
+                    
+                    
+                    // 发送完成信号
+                    window.parent.postMessage({
+                        type: 'done'
+                    }, '*');
+                } catch (error) {
+                    // 发送错误信息
+                    window.parent.postMessage({
+                        type: 'error',
+                        message: error.message,
+                        stack: error.stack
+                    }, '*');
+                }
+            }
+            
+            // 执行代码
+            executeCode();
+        </script>
+    </body>
+</html>
