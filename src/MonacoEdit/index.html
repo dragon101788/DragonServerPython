@@ -156,9 +156,21 @@
 </head>
 
 <body>
-    <div id="toolbar-container"></div>
+    <div id="toolbar-container">
+        <button id="run-button">运行</button>
+    </div>
     <div id="editor-container"></div>
     <div id="debug-container">
+        <div id="debug-header">
+            <div>调试控制台</div>
+            <div id="debug-controls">
+                <button class="debug-btn" id="clear-debug">清空</button>
+                <button class="debug-btn" id="close-debug">关闭</button>
+            </div>
+        </div>
+        <div id="debug-resizer"></div>
+        <div id="debug-content"></div>
+        <iframe id="runcode-iframe" style="display: none;"></iframe>
     </div>
 
     <script type="module">
@@ -219,9 +231,6 @@
 
             // 设置工具栏
             const toolbarContainer = document.getElementById('toolbar-container');
-            toolbarContainer.innerHTML = `
-                    <button id="run-button">运行</button>
-                `;
             if (openDebug) {
                 toolbarContainer.style.display = 'flex';
             } else {
@@ -230,18 +239,6 @@
 
             // 初始化调试容器
             const debugContainer = document.getElementById('debug-container');
-            debugContainer.innerHTML = `
-                <div id="debug-header">
-                    <div>调试控制台</div>
-                    <div id="debug-controls">
-                        <button class="debug-btn" id="clear-debug">清空</button>
-                        <button class="debug-btn" id="close-debug">关闭</button>
-                    </div>
-                </div>
-                <div id="debug-resizer"></div>
-                <div id="debug-content"></div>
-                <iframe id="runcode-iframe" style="display: none;"></iframe>
-            `;
 
             // 调试相关功能
             let isDebugOpen = false;
