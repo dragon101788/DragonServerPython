@@ -523,7 +523,7 @@ export class FFmpegListComponent extends HTMLElement {
     
     // 播放视频
     _playVideo(task) {
-        const videoUrl = task.output_vir_path;
+        const videoUrl = encodeURIComponent(task.output_vir_path);
         const host = window.location.hostname;
         const port = window.location.port;
         const videoUrlWithHost = `http://${host}:${port}/${videoUrl}`;

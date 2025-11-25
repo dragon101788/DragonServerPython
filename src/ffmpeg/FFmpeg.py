@@ -709,6 +709,8 @@ class ffmpeg_merger_video_list(ffmpeg):
         total_duration = 0
         src_video_codec = None
         src_audio_codec = None
+        src_video_height = None
+        src_video_width = None
 
         for video_file in video_list:
             try:
@@ -724,9 +726,17 @@ class ffmpeg_merger_video_list(ffmpeg):
                     src_video_codec = video_streams[0].get('codec_name', 'h264')
                 if src_audio_codec is None:
                     src_audio_codec = audio_streams[0].get('codec_name', 'aac')
+                if src_video_height is None:
+                    src_video_height = video_streams[0].get('height', 0)
+                if src_video_width is None:
+                    src_video_width = video_streams[0].get('width', 0)
 
                 if video_streams[0].get('codec_name') != src_video_codec or audio_streams[0].get('codec_name') != src_audio_codec:
                     raise ValueError(f"视频 {video_file} 编码器参数与第一个视频不同")
+
+                if video_streams[0].get('height') != src_video_height or video_streams[0].get('width') != src_video_width:
+                    raise ValueError(f"视频 {video_file} 分辨率与第一个视频不同")
+
             except Exception as e:
                 print(f"获取视频时长失败 {video_file}: {e}")
         
@@ -737,7 +747,7 @@ class ffmpeg_merger_video_list(ffmpeg):
         if method == 'concat' and src_video_codec ==  "h264" and src_audio_codec == "aac":
             # 使用concat协议（更高效，但要求视频编码参数相同）
             # 创建临时文件列表
-            temp_list_file = os.path.join(os.path.dirname(output_file), '_temp_file_list.txt')
+            temp_list_file = output_file + f'合并列表.txt'
             
             # 写入视频文件列表
             with open(temp_list_file, 'w', encoding='utf-8') as f:

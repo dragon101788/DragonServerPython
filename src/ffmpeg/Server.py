@@ -7,6 +7,11 @@ import json
 from src.account import recv_messages,UserWebsocket
 from .FFmpeg import ffprobe,ffmpeg_transcode,ffmpeg_merger_video_list,ffmpeg_create_thumbnail,ffmpeg_merge_audio_video,ffmpeg_extract_audio,ffmpeg_extract_image
 from src.webdav.WebdavService import get_full_path
+from datetime import datetime
+import shutil
+import re
+
+
 
 FFMPEG_TEMP_DIR = "FFmpegBackup"
 
@@ -135,10 +140,8 @@ async def webdav_ffmpeg_del_task_item(uws :UserWebsocket,body :dict):
     del_file = body.get("del_file",None)
     if del_file is not None:
         if info is not None:
-            output_path = info.get("output_path")
-            if info.get("status") == "done" and os.path.exists(output_path):
-                print(f"del file {output_path}")
-                os.remove(output_path)  
+            if "del_files" in info and os.path.exists(info["del_files"]):
+                shutil.rmtree(info["del_files"])
 
     ffmpeg_server.del_task(body.get("name"))
     uws.put(json.dumps({"tag":callbackId,"body":{"status":"done"}}))
@@ -208,11 +211,13 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
             "name":self.name,
             "status":self.status,
             "cmd" :self.cmd,
+            "method":"transcode",
             "error_message":getattr(self,"error_message",""),
             "input_vir_path":input_vir_path,
             "output_vir_path":output_vir_path,
             "input_path":os.path.join(input_dir,output_name),
             "output_path":os.path.join(output_dir,input_name),
+            "del_files":os.path.join(output_dir,input_name),
             "progress":self.progress,
         }
     transcode_task.toDict = toDict
@@ -237,6 +242,91 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
         broadcast_update()
 
     transcode_task.finish_callback = transcode_finish_callback
+
     ffmpeg_server.push_task(input_vir_path,transcode_task)
     uws.put(json.dumps({"tag":callbackId,"body":{"status":"ok"}}))
 
+@recv_messages("ffmpeg_merger_video_list")
+async def webdav_ffmpeg_merger_video_list(uws :UserWebsocket,body :dict):
+    callbackId = body.get("callbackId","ffmpeg_merger_video_list")
+    input_vir_path_list = body.get("input_file_list")
+    if(len(input_vir_path_list) <= 1):
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":"input_file_list is empty"}}))
+        return
+    input_path_list = [get_full_path(uws.ws, input_vir_path) for input_vir_path in input_vir_path_list]
+    input_dir = os.path.dirname(input_path_list[0])
+    input_name = os.path.basename(input_path_list[0])
+    input_ext = os.path.splitext(input_name)[-1]
+    #input_path_list取最大公约数
+    output_path = body.get("output_path",None)
+    if output_path is None:
+        #如果input_name是纯数字
+        if os.path.splitext(input_name)[0].isdigit():
+            output_name = datetime.now().strftime("合并%y%m%d%H%M%S")+input_ext
+            output_path = os.path.join(input_dir,FFMPEG_TEMP_DIR,output_name)
+        else:
+            input_names = [os.path.splitext(os.path.basename(input_path))[0] for input_path in input_path_list]
+            common_prefix = os.path.commonprefix(input_names)
+            #去掉 ( _ 等特殊字符
+            common_prefix = re.sub(r'[()_-]', '#', common_prefix)
+            #去掉开头与末尾的空格
+            common_prefix = common_prefix.strip()
+            output_path = os.path.join(input_dir,FFMPEG_TEMP_DIR,common_prefix) + input_ext
+    
+    output_dir = os.path.dirname(output_path)
+    output_name = os.path.basename(output_path)
+    output_vir_path = input_vir_path_list[0].replace(input_name,output_name)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+    if os.path.exists(output_path):
+        os.remove(output_path)
+
+    if ffmpeg_server.is_exist(output_vir_path):
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":"Merger task already exists"}}))
+        return
+
+    
+    merge_taskr = ffmpeg_merger_video_list(
+        video_list=input_path_list,
+        output_file=output_path,
+    )
+
+
+    def toDict(self):
+        return {
+            "name":self.name,
+            "status":self.status,
+            "method":"concat",
+            "cmd" :self.cmd,
+            "error_message":getattr(self,"error_message",""),
+            "input_vir_path_list":input_vir_path_list,
+            "output_vir_path":output_vir_path,
+            "input_path_list":input_path_list,
+            "output_path":output_path,
+            "del_files":os.path.join(output_dir,output_name),
+            "progress":self.progress,
+        }
+    merge_taskr.toDict = toDict
+
+    def merger_error_callback(self,error):
+        self.status = "error"
+        self.error_message = str(error)
+        broadcast_update()
+    merge_taskr.error_callback = merger_error_callback
+    
+    def merger_progress_callback(self):
+        percent = self.progress * 100
+        broadcast_update()
+    merge_taskr.progress_callback = merger_progress_callback
+
+    def merger_finish_callback(self):
+        os.rename(output_path,os.path.join(input_dir,output_name))
+        os.mkdir(os.path.join(output_dir,output_name))
+        for input_path in input_path_list:
+            os.rename(input_path,os.path.join(output_dir,output_name,os.path.basename(input_path)))
+        broadcast_update()
+    merge_taskr.finish_callback = merger_finish_callback
+
+
+    ffmpeg_server.push_task(output_vir_path,merge_taskr)
+    uws.put(json.dumps({"tag":callbackId,"body":{"status":"ok"}}))
