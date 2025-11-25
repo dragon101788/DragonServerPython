@@ -158,8 +158,8 @@
 <body>
     <div id="toolbar-container"></div>
     <div id="editor-container"></div>
-    <div id="debug-container"></div>
-    <iframe id="runcode-iframe" style="display: none;"></iframe>
+    <div id="debug-container">
+    </div>
 
     <script type="module">
 
@@ -240,6 +240,7 @@
                 </div>
                 <div id="debug-resizer"></div>
                 <div id="debug-content"></div>
+                <iframe id="runcode-iframe" style="display: none;"></iframe>
             `;
 
             // 调试相关功能
@@ -305,7 +306,7 @@
                 addDebugLog('开始运行代码...', 'info');
                 
                 // 创建iframe
-                const iframe = document.getElementById('runcode-iframe');
+                const iframe = document.querySelector('#runcode-iframe');
                 // 设置iframe的src并添加到文档
                 iframe.src = `runcode.html?code_src=${encodeURIComponent(src)}`;
             }
