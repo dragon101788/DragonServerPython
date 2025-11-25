@@ -141,7 +141,16 @@ async def webdav_ffmpeg_del_task_item(uws :UserWebsocket,body :dict):
     if del_file is not None:
         if info is not None:
             if "del_files" in info and os.path.exists(info["del_files"]):
-                shutil.rmtree(info["del_files"])
+                if os.path.isdir(info["del_files"]):
+                    shutil.rmtree(info["del_files"])
+                elif os.path.isfile(info["del_files"]):
+                    os.remove(info["del_files"])
+                elif type(info["del_files"]) == list:
+                    for item in info["del_files"]:
+                        if os.path.isfile(item):
+                            os.remove(item)
+                        elif os.path.isdir(item):
+                            shutil.rmtree(item)
 
     ffmpeg_server.del_task(body.get("name"))
     uws.put(json.dumps({"tag":callbackId,"body":{"status":"done"}}))
