@@ -56,6 +56,12 @@
         #editor-container {
             width: 100%;
             height: calc(100% - 38px); /* 减去工具栏高度 */
+            transition: height 0.2s ease;
+        }
+        
+        /* 当调试控制台显示时，编辑器高度需要减去调试控制台的高度 */
+        body.debug-open #editor-container {
+            height: calc(100% - 38px - var(--debug-height, 300px)); /* 减去工具栏高度和调试控制台实际高度 */
         }
 
         /* 调试容器样式 */
@@ -248,6 +254,9 @@
             const clearDebugButton = document.getElementById('clear-debug');
             const debugResizer = document.getElementById('debug-resizer');
             const debugHeader = document.getElementById('debug-header');
+            
+            // 初始化CSS变量（初始值设为默认高度300px）
+            document.documentElement.style.setProperty('--debug-height', '300px');
 
             // 添加调试日志
             function addDebugLog(message, type = 'info') {
@@ -266,13 +275,22 @@
             // 显示调试窗口
             function showDebugWindow() {
                 debugContainer.classList.add('show');
+                // 显示后重新计算并设置正确的高度
+                const actualHeight = debugContainer.offsetHeight;
+                document.documentElement.style.setProperty('--debug-height', `${actualHeight}px`);
+                document.body.classList.add('debug-open');
                 isDebugOpen = true;
+                // 调整编辑器布局
+                editor.layout();
             }
 
             // 隐藏调试窗口
             function hideDebugWindow() {
                 debugContainer.classList.remove('show');
+                document.body.classList.remove('debug-open');
                 isDebugOpen = false;
+                // 调整编辑器布局
+                editor.layout();
             }
 
             window.addEventListener('message', (event) => {
@@ -328,6 +346,12 @@
                 const deltaY = startY - e.clientY;
                 const newHeight = Math.max(100, startHeight + deltaY);
                 debugContainer.style.height = `${newHeight}px`;
+                
+                // 更新CSS变量和编辑器高度
+                document.documentElement.style.setProperty('--debug-height', `${newHeight}px`);
+                
+                // 调整编辑器布局
+                editor.layout();
             });
 
             document.addEventListener('mouseup', () => {
@@ -337,43 +361,8 @@
                 }
             });
 
-            // 窗口拖拽功能
-            let isDragging = false;
-            let startDragY = 0;
-            let startContainerY = 0;
-
-            debugHeader.addEventListener('mousedown', (e) => {
-                if (e.target.closest('#debug-controls')) return;
-                
-                isDragging = true;
-                startDragY = e.clientY;
-                startContainerY = debugContainer.getBoundingClientRect().top;
-                document.body.style.userSelect = 'none';
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                
-                const deltaY = e.clientY - startDragY;
-                const newTop = startContainerY + deltaY;
-                const windowHeight = window.innerHeight;
-                const containerHeight = debugContainer.offsetHeight;
-                
-                // 限制窗口位置，不能超出屏幕
-                const maxTop = windowHeight - containerHeight;
-                const minTop = 0;
-                const clampedTop = Math.max(minTop, Math.min(maxTop, newTop));
-                
-                debugContainer.style.top = `${clampedTop}px`;
-                debugContainer.style.bottom = 'auto';
-            });
-
-            document.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    document.body.style.userSelect = '';
-                }
-            });
+            // 移除窗口拖拽功能，改为固定在底部
+            debugHeader.style.cursor = 'default';
 
             // 事件监听
             runButton.addEventListener('click', runCode);
