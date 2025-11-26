@@ -161,9 +161,9 @@ async def webdav_ffmpeg_del_task_item(uws :UserWebsocket,body :dict):
 async def webdav_ffmpeg_get_media_info(uws :UserWebsocket,body :dict):
     callbackId = body.get("callbackId","ffmpeg_get_media_info")
     full_path = get_full_path(uws.ws, body.get("path"))
-    info = ffprobe(full_path)
+    info = ffprobe(full_path)#这个位置大量执行的时候,会报错,弹出File not found
     if len(info.info) == 0:
-        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":"File not found"}}))
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":info.error}}))
         return
     uws.put(json.dumps({"tag":callbackId,"body":info.info}))
 
