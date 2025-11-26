@@ -52,16 +52,47 @@ class FFmpegServer():
         print(f"Task progress: {percent:.1f}% ")
 
     def del_task(self,name):
-        for item in self.done_task_list:
-            if item.get("name") == name:
-                self.done_task_list.remove(item)
+        # 修复done_task_list的迭代删除问题
+        for i in range(len(self.done_task_list)-1, -1, -1):
+            if self.done_task_list[i].get("name") == name:
+                del self.done_task_list[i]
                 break
-        for item in self.task_queue.queue:
+        
+        # 修复task_queue.queue的迭代删除问题
+        # 创建副本进行迭代，避免deque mutated during iteration错误
+        for item in list(self.task_queue.queue):
             if item.name == name:
                 self.task_queue.queue.remove(item)
 
         with open("done_task.json", "w") as f:
             json.dump(self.done_task_list, f, indent=4)
+    
+    def cancel_task(self,name):
+        """
+        取消指定名称的任务
+        
+        参数:
+            name: 任务名称
+            
+        返回:
+            bool: 是否成功取消
+        """
+        # 1. 检查是否是当前正在执行的任务
+        if self.current_task is not None and self.current_task.name == name:
+            # 调用任务的stop方法停止执行
+            self.current_task.stop()
+            return True
+        
+        # 2. 检查是否是排队中的任务
+        for item in list(self.task_queue.queue):
+            if item.name == name:
+                self.task_queue.queue.remove(item)
+                return True
+        
+        # 3. 对于已完成的任务，我们可以选择删除它
+        # 调用del_task方法处理已完成的任务
+        self.del_task(name)
+        return True
     
     def is_exist(self,name):
         for item in self.done_task_list:
@@ -162,9 +193,10 @@ async def webdav_ffmpeg_get_media_info(uws :UserWebsocket,body :dict):
     callbackId = body.get("callbackId","ffmpeg_get_media_info")
     full_path = get_full_path(uws.ws, body.get("path"))
     try:
-        info = ffprobe(full_path)#这个位置大量执行的时候,会报错,弹出File not found
+        info = ffprobe(full_path)
     except Exception as e:
-        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":str(e) + info.stderr.error}}))
+        print(f"ffprobe运行失败:{e}")
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":str(e)}}))
         return
 
     if len(info.info) == 0:
@@ -172,7 +204,19 @@ async def webdav_ffmpeg_get_media_info(uws :UserWebsocket,body :dict):
         return
     uws.put(json.dumps({"tag":callbackId,"body":info.info}))
 
-
+@recv_messages("ffmpeg_cancel_task")
+async def webdav_ffmpeg_cancel_task(uws :UserWebsocket,body :dict):
+    callbackId = body.get("callbackId","ffmpeg_cancel_task")
+    name = body.get("name")
+    if name is None:
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":"name is None"}}))
+        return
+    if not ffmpeg_server.is_exist(name):
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":"Task not found"}}))
+        return
+    ffmpeg_server.cancel_task(name)
+    uws.put(json.dumps({"tag":callbackId,"body":{"status":"done"}}))
+    broadcast_update()
 
 @recv_messages("ffmpeg_connect")
 async def webdav_ffmpeg_connect(uws :UserWebsocket,body :dict):

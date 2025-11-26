@@ -321,9 +321,22 @@ export class FFmpegListComponent extends HTMLElement {
         
         // 显示任务信息
         taskContent += this.showDetail(task);
-
+        
+        // 添加取消按钮
+        taskContent += `
+            <button class="red-btn">
+                取消任务
+            </button>
+        `;
 
         taskElement.innerHTML = taskContent;
+
+        // 添加取消按钮事件
+        const cancelBtn = taskElement.querySelector('.red-btn');
+        cancelBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡
+            FFmpeg.cancelTask(task.name);
+        });
 
         taskElement.addEventListener('click', () => {
             TextAreaDialog.open({
@@ -355,7 +368,7 @@ export class FFmpegListComponent extends HTMLElement {
         // 显示任务信息
         taskContent += this.showDetail(task);
         
-        // 添加删除按钮
+        // 添加取消按钮
         taskContent += `
             
             <button class="blue-btn">
@@ -365,11 +378,11 @@ export class FFmpegListComponent extends HTMLElement {
         
         taskElement.innerHTML = taskContent;
         
-        // 添加删除事件监听
-        const delBtn = taskElement.querySelector('.blue-btn');
-        delBtn.addEventListener('click', (e) => {
+        // 添加取消事件监听
+        const cancelBtn = taskElement.querySelector('.blue-btn');
+        cancelBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // 阻止事件冒泡
-            FFmpeg.delTask(task.name);
+            FFmpeg.cancelTask(task.name);
         });
         
         taskElement.addEventListener('click', () => {

@@ -59,5 +59,16 @@ export class FFmpeg {
             alert("删除任务失败，请重试");
         }
     }
+    
+    static async cancelTask(name) {
+        try {
+            const body = { "name": name }
+            await AccountManager.Fetch("ffmpeg_cancel_task", body);
+            // 取消后不需要额外操作，WebSocket会推送更新
+        } catch (error) {
+            console.error("取消任务失败:", error);
+            alert("取消任务失败，请重试");
+        }
+    }
 
 }

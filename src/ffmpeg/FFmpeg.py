@@ -60,7 +60,7 @@ class ffprobe():
                     raise Exception(f"ffprobe运行成功,但返回空数据\n" + f"错误信息: {self.stderr.error}\n")
             except Exception as e:
                 if self.try_count <= 0:
-                    raise e
+                    raise Exception(f"ffprobe运行失败,{self.try_count}次尝试后仍未成功\n" + f"错误信息: {self.stderr.error}\n")
                 self.try_count -= 1
             else:
                 break
@@ -739,10 +739,14 @@ class ffmpeg_merger_video_list(ffmpeg):
                 else:
                     # 检查是否所有视频编码器相同
                     if current_video_codec != src_video_codec or current_audio_codec != src_audio_codec:
+                        # 打印不同编码器的视频信息
+                        print(f"视频 {video_file} 编码器为 {current_video_codec}/{current_audio_codec}，与其他视频不同")
                         all_same_codec = False
                     
                     # 检查是否所有视频分辨率相同
                     if current_height != max_video_height or current_width != max_video_width:
+                        # 打印不同分辨率的视频信息
+                        print(f"视频 {video_file} 分辨率为 {current_width}x{current_height}，与其他视频不同")
                         all_same_resolution = False
                     
                     # 更新最大分辨率
@@ -822,7 +826,13 @@ class ffmpeg_merger_video_list(ffmpeg):
                 # scale=iw*min(output_width/iw,output_height/ih):ih*min(output_width/iw,output_height/ih)
                 # pad=output_width:output_height:(output_width-iw*min(output_width/iw,output_height/ih))/2:(output_height-ih*min(output_width/iw,output_height/ih))/2:black
                 # 这种方式会保持原始宽高比，同时将视频缩放到能填满输出分辨率的最大尺寸，黑边最小化
-                video_filter = f'[{i}:v]scale=iw*min({output_width}/iw\,{output_height}/ih):ih*min({output_width}/iw\,{output_height}/ih),pad={output_width}:{output_height}:({output_width}-iw*min({output_width}/iw\,{output_height}/ih))/2:({output_height}-ih*min({output_width}/iw\,{output_height}/ih))/2:black,setsar=1:1[{i}:scaled]'
+                video_filter = (f'[{i}:v]'  # 输入视频流
+                                f'scale=iw*min({output_width}/iw\\,{output_height}/ih):ih*min({output_width}/iw\\,{output_height}/ih),'  # 保持宽高比缩放
+                                f'pad={output_width}:{output_height}:'  # 填充到输出分辨率
+                                f'({output_width}-iw*min({output_width}/iw\\,{output_height}/ih))/2:'  # 水平居中
+                                f'({output_height}-ih*min({output_width}/iw\\,{output_height}/ih))/2:black,'  # 垂直居中，黑边填充
+                                f'setsar=1:1'  # 统一采样宽高比
+                                f'[{i}:scaled]')  # 输出标记
                 video_filters.append(video_filter)
                 scaled_video_labels.append(f'[{i}:scaled]')
             
