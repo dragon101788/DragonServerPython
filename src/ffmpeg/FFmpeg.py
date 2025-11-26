@@ -707,33 +707,49 @@ class ffmpeg_merger_video_list(ffmpeg):
         total_duration = 0
         src_video_codec = None
         src_audio_codec = None
-        src_video_height = None
-        src_video_width = None
+        max_video_height = 0
+        max_video_width = 0
+        all_same_resolution = True
+        all_same_codec = True
 
-        for video_file in video_list:
+        # 第一次遍历：获取所有视频信息，计算最大分辨率，检查是否所有视频参数相同
+        for i, video_file in enumerate(video_list):
             try:
                 info = ffprobe(video_file)
                 duration = float(info.get('format', {}).get('duration', 0))
                 total_duration += duration
                 info_list.append(info)
-                # 记录第一个视频的编码器参数
+                
+                # 获取视频流和音频流信息
                 stream_info = info.get('streams', [{}])
                 video_streams = [s for s in stream_info if s.get('codec_type') == 'video']
                 audio_streams = [s for s in stream_info if s.get('codec_type') == 'audio']
-                if src_video_codec is None:
-                    src_video_codec = video_streams[0].get('codec_name', 'h264')
-                if src_audio_codec is None:
-                    src_audio_codec = audio_streams[0].get('codec_name', 'aac')
-                if src_video_height is None:
-                    src_video_height = video_streams[0].get('height', 0)
-                if src_video_width is None:
-                    src_video_width = video_streams[0].get('width', 0)
-
-                if video_streams[0].get('codec_name') != src_video_codec or audio_streams[0].get('codec_name') != src_audio_codec:
-                    raise ValueError(f"视频 {video_file} 编码器参数与第一个视频不同")
-
-                if video_streams[0].get('height') != src_video_height or video_streams[0].get('width') != src_video_width:
-                    raise ValueError(f"视频 {video_file} 分辨率与第一个视频不同")
+                
+                current_video_codec = video_streams[0].get('codec_name', 'h264')
+                current_audio_codec = audio_streams[0].get('codec_name', 'aac')
+                current_height = video_streams[0].get('height', 0)
+                current_width = video_streams[0].get('width', 0)
+                
+                # 记录第一个视频的编码器参数
+                if i == 0:
+                    src_video_codec = current_video_codec
+                    src_audio_codec = current_audio_codec
+                    max_video_height = current_height
+                    max_video_width = current_width
+                else:
+                    # 检查是否所有视频编码器相同
+                    if current_video_codec != src_video_codec or current_audio_codec != src_audio_codec:
+                        all_same_codec = False
+                    
+                    # 检查是否所有视频分辨率相同
+                    if current_height != max_video_height or current_width != max_video_width:
+                        all_same_resolution = False
+                    
+                    # 更新最大分辨率
+                    if current_width > max_video_width:
+                        max_video_width = current_width
+                    if current_height > max_video_height:
+                        max_video_height = current_height
 
             except Exception as e:
                 print(f"获取视频时长失败 {video_file}: {e}")
@@ -742,8 +758,8 @@ class ffmpeg_merger_video_list(ffmpeg):
         self.input_file = video_list
         self.output_file = output_file
         
-        if method == 'concat' and src_video_codec ==  "h264" and src_audio_codec == "aac":
-            # 使用concat协议（更高效，但要求视频编码参数相同）
+        if method == 'concat' and all_same_resolution and all_same_codec and src_video_codec == "h264" and src_audio_codec == "aac":
+            # 使用concat协议（更高效，要求视频编码参数和分辨率都相同）
             # 创建临时文件列表
             temp_list_file = output_file + f'合并列表.txt'
             
@@ -763,24 +779,66 @@ class ffmpeg_merger_video_list(ffmpeg):
             # 保存临时文件路径以便稍后清理
             self.temp_list_file = temp_list_file
         else:
-            # 使用filter_complex concat过滤器（更通用，可以处理不同编码参数的视频）
+            # 使用filter_complex concat过滤器（更通用，可以处理不同编码参数和分辨率的视频）
             # 添加所有输入文件
             for video_file in video_list:
                 options.append(f"-i \"{video_file}\"")
             
+            # 计算输出分辨率：保持原始宽高比，最小化黑边
+            # 1. 收集所有视频的宽高比
+            video_aspects = []
+            for info in info_list:
+                stream_info = info.get('streams', [{}])
+                video_streams = [s for s in stream_info if s.get('codec_type') == 'video']
+                if video_streams:
+                    width = video_streams[0].get('width', 0)
+                    height = video_streams[0].get('height', 0)
+                    if width and height:
+                        aspect = width / height
+                        video_aspects.append(aspect)
+            
+            # 2. 选择最常见的宽高比，或者使用最大视频的宽高比作为输出宽高比
+            if video_aspects:
+                # 使用最大视频的宽高比作为输出宽高比
+                max_video_aspect = max_video_width / max_video_height
+                
+                # 3. 计算输出分辨率
+                # 为了最小化黑边，我们选择一个能让所有视频尽可能填满画面的分辨率
+                # 基于最大视频的尺寸和宽高比
+                output_width = max_video_width
+                output_height = max_video_height
+            else:
+                # 默认使用最大宽高
+                output_width = max_video_width
+                output_height = max_video_height
+            
             # 构建filter_complex参数
-            # 为每个输入创建视频和音频流的引用
-            video_inputs = [f'[{i}:v]' for i in range(len(video_list))]
+            # 为每个输入创建视频流的引用，并添加scale和pad滤镜以统一分辨率
+            video_filters = []
+            scaled_video_labels = []
+            
+            for i in range(len(video_list)):
+                # 为每个视频添加scale和pad滤镜，调整到输出分辨率并填充黑边
+                # scale=iw*min(output_width/iw,output_height/ih):ih*min(output_width/iw,output_height/ih)
+                # pad=output_width:output_height:(output_width-iw*min(output_width/iw,output_height/ih))/2:(output_height-ih*min(output_width/iw,output_height/ih))/2:black
+                # 这种方式会保持原始宽高比，同时将视频缩放到能填满输出分辨率的最大尺寸，黑边最小化
+                video_filter = f'[{i}:v]scale=iw*min({output_width}/iw\,{output_height}/ih):ih*min({output_width}/iw\,{output_height}/ih),pad={output_width}:{output_height}:({output_width}-iw*min({output_width}/iw\,{output_height}/ih))/2:({output_height}-ih*min({output_width}/iw\,{output_height}/ih))/2:black,setsar=1:1[{i}:scaled]'
+                video_filters.append(video_filter)
+                scaled_video_labels.append(f'[{i}:scaled]')
+            
+            # 创建音频流的引用
             audio_inputs = [f'[{i}:a]' for i in range(len(video_list))]
             
             # 创建视频concat过滤器
-            video_filter = ''.join(video_inputs) + f'concat=n={len(video_list)}:v=1:a=0[outv]'
+            video_concat_filter = ''.join(scaled_video_labels) + f'concat=n={len(video_list)}:v=1:a=0[outv]'
+            video_filters.append(video_concat_filter)
             
             # 创建音频concat过滤器
             audio_filter = ''.join(audio_inputs) + f'concat=n={len(video_list)}:v=0:a=1[outa]'
+            video_filters.append(audio_filter)
             
-            # 组合过滤器
-            filter_complex = f'-filter_complex "{video_filter};{audio_filter}" -map "[outv]" -map "[outa]"'
+            # 组合所有过滤器
+            filter_complex = f'-filter_complex \"{";".join(video_filters)}\" -map "[outv]" -map "[outa]"'
             
             # 添加编码器选项
             codec_options = []
@@ -813,5 +871,8 @@ class ffmpeg_merger_video_list(ffmpeg):
                 except Exception as e:
                     print(f"清理临时文件失败: {e}")
         
+
+
+
 
 
