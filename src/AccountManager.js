@@ -307,7 +307,7 @@ export class AccountManager {
             const timeoutId = setTimeout(() => {
                 this.unregister_ws_recv_callback(callbackId);
                 reject(new Error(`WebSocket request ${tag} timed out`));
-            }, 30000); // 30秒超时
+            }, 120000); 
             
             // 注册临时回调函数
             this.register_ws_recv_callback(callbackId, (message) => {

@@ -43,14 +43,27 @@ class ffprobe():
         
     def immediate(self,input_file):
         self.input_file = input_file
-
-        cmd = ffmpeg_config['ffprobe'] + f" -i \"{self.input_file}\" -show_format -show_streams -of json"
-        print(cmd)
-        self.stderr = self.std_err()
-        ffmpeg_process = process(cmd,stdout=self,stderr=self.stderr)
-        ffmpeg_process.run()
-        # 确保在返回前调用flush来解析数据
-        self.flush()
+        self.try_count = 3
+        while True:
+            try:
+                self.buffer.clear()
+                cmd = ffmpeg_config['ffprobe'] + f" -i \"{self.input_file}\" -show_format -show_streams -of json"
+                print(cmd)
+                self.stderr = self.std_err()
+                ffmpeg_process = process(cmd,stdout=self,stderr=self.stderr)
+                result = ffmpeg_process.run()
+                if result != 0:
+                    raise Exception(f"ffprobe运行失败,返回值: {result}\n" + f"错误信息: {self.stderr.error}\n")
+                # 确保在返回前调用flush来解析数据
+                self.flush()
+                if len(self.info) == 0:
+                    raise Exception(f"ffprobe运行成功,但返回空数据\n" + f"错误信息: {self.stderr.error}\n")
+            except Exception as e:
+                if self.try_count <= 0:
+                    raise e
+                self.try_count -= 1
+            else:
+                break
     def __str__(self):
         ret = ""
         ret += f'文件时长: {self.info.get("format",{}).get("duration","未知")}\n'
@@ -66,27 +79,12 @@ class ffprobe():
         self.buffer.append(data)
 
     def flush(self):
-        # 尝试解析收集到的所有数据
-        try:
-            # 合并缓冲区内容并尝试解析JSON
-            full_output = ''.join(self.buffer)
-            # 过滤掉可能的非JSON输出（如错误信息），只保留有效的JSON部分
-            # 尝试从输出中提取JSON内容
-            if full_output.strip():
-                self.info = json.loads(full_output)
-        except json.JSONDecodeError as e:
-            print(f"解析ffprobe输出失败: {e}")
-            # 尝试找到有效的JSON部分
-            try:
-                # 简单方法：查找第一个{和最后一个}之间的内容
-                start = full_output.find('{')
-                end = full_output.rfind('}') + 1
-                if start != -1 and end != 0:
-                    json_str = full_output[start:end]
-                    self.info = json.loads(json_str)
-            except Exception as e2:
-                print(f"二次解析也失败: {e2}")
-                print(f"原始输出: {full_output}")
+        # 合并缓冲区内容并尝试解析JSON
+        full_output = ''.join(self.buffer)
+        # 过滤掉可能的非JSON输出（如错误信息），只保留有效的JSON部分
+        # 尝试从输出中提取JSON内容
+        if full_output.strip():
+            self.info = json.loads(full_output)
     def isatty(self):
         return False
     def __getitem__(self,key):

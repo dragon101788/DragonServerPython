@@ -271,7 +271,27 @@ export class FFmpegListComponent extends HTMLElement {
             }
         });
     }
-    
+    showDetail( task){
+        // 显示任务信息
+        let detail = ` <div class="task-info">`;
+        // 检查是否有输入文件列表（用于合并任务）
+        if(task.input_vir_path_list){
+            detail += `<div>输入文件列表:</div>`;
+            for(let input_vir_path of task.input_vir_path_list){
+                detail += `<div>${input_vir_path}</div>`;
+            }
+        } 
+        if(task.input_vir_path){
+            // 普通转码任务，直接显示输入输出路径
+            detail += `<div>输入: ${task.input_vir_path || '未知'}</div>`;
+        }
+        if(task.output_vir_path){
+            // 普通转码任务，直接显示输入输出路径
+            detail += `<div>输出: ${task.output_vir_path || '未知'}</div>`;
+        }
+        detail += `</div>`;
+        return detail;
+    }
     // 创建运行中状态的任务项
     _createRunItem(task) {
         const taskElement = document.createElement("div");
@@ -300,12 +320,7 @@ export class FFmpegListComponent extends HTMLElement {
         `;
         
         // 显示任务信息
-        taskContent += `
-            <div class="task-info">
-                <div>输入: ${task.input_vir_path || '未知'}</div>
-                <div>输出: ${task.output_vir_path || '未知'}</div>
-            </div>
-        `;
+        taskContent += this.showDetail(task);
 
 
         taskElement.innerHTML = taskContent;
@@ -338,12 +353,7 @@ export class FFmpegListComponent extends HTMLElement {
         `;
         
         // 显示任务信息
-        taskContent += `
-            <div class="task-info">
-                <div>输入: ${task.input_vir_path || '未知'}</div>
-                <div>输出: ${task.output_vir_path || '未知'}</div>
-            </div>
-        `;
+        taskContent += this.showDetail(task);
         
         // 添加删除按钮
         taskContent += `
@@ -371,6 +381,8 @@ export class FFmpegListComponent extends HTMLElement {
 
         return taskElement;
     }
+
+    
     
     // 创建已完成状态的任务项
     _createDoneItem(task) {
@@ -390,13 +402,7 @@ export class FFmpegListComponent extends HTMLElement {
             </div>
         `;
         
-        // 显示任务信息
-        taskContent += `
-            <div class="task-info">
-                <div>输入: ${task.input_vir_path || '未知'}</div>
-                <div>输出: ${task.output_vir_path || '未知'}</div>
-            </div>
-        `;
+        taskContent += this.showDetail(task);
         
         // 添加按钮
         taskContent += `
@@ -452,12 +458,7 @@ export class FFmpegListComponent extends HTMLElement {
         `;
         
         // 显示任务信息
-        taskContent += `
-            <div class="task-info">
-                <div>输入: ${task.input_vir_path || '未知'}</div>
-                <div>输出: ${task.output_vir_path || '未知'}</div>
-            </div>
-        `;
+        taskContent += this.showDetail(task);
         
         
         // 添加确认按钮
@@ -502,11 +503,11 @@ export class FFmpegListComponent extends HTMLElement {
                 <div class="task-name">${task.name || '未命名任务'}</div>
                 <div class="task-status status-unknown">未知状态</div>
             </div>
-            <div class="task-info">
-                <div>输入: ${task.input_vir_path || '未知'}</div>
-                <div>输出: ${task.output_vir_path || '未知'}</div>
-            </div>
         `;
+        
+        // 显示任务信息
+        taskContent += this.showDetail(task);
+        
         return taskElement;
     }
     

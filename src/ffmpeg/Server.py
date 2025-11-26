@@ -161,9 +161,14 @@ async def webdav_ffmpeg_del_task_item(uws :UserWebsocket,body :dict):
 async def webdav_ffmpeg_get_media_info(uws :UserWebsocket,body :dict):
     callbackId = body.get("callbackId","ffmpeg_get_media_info")
     full_path = get_full_path(uws.ws, body.get("path"))
-    info = ffprobe(full_path)#这个位置大量执行的时候,会报错,弹出File not found
+    try:
+        info = ffprobe(full_path)#这个位置大量执行的时候,会报错,弹出File not found
+    except Exception as e:
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":str(e) + info.stderr.error}}))
+        return
+
     if len(info.info) == 0:
-        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":info.error}}))
+        uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":info.stderr.error}}))
         return
     uws.put(json.dumps({"tag":callbackId,"body":info.info}))
 
@@ -271,7 +276,7 @@ async def webdav_ffmpeg_merger_video_list(uws :UserWebsocket,body :dict):
     if output_path is None:
         #如果input_name是纯数字
         if os.path.splitext(input_name)[0].isdigit():
-            output_name = datetime.now().strftime("合并%y%m%d%H%M%S")+input_ext
+            output_name = datetime.now().strftime("合并%Y%m%d%H%M%S%f")+input_ext
             output_path = os.path.join(input_dir,FFMPEG_TEMP_DIR,output_name)
         else:
             input_names = [os.path.splitext(os.path.basename(input_path))[0] for input_path in input_path_list]
@@ -280,7 +285,8 @@ async def webdav_ffmpeg_merger_video_list(uws :UserWebsocket,body :dict):
             common_prefix = re.sub(r'[()_-]', '#', common_prefix)
             #去掉开头与末尾的空格
             common_prefix = common_prefix.strip()
-            output_path = os.path.join(input_dir,FFMPEG_TEMP_DIR,common_prefix) + input_ext
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+            output_path = os.path.join(input_dir,FFMPEG_TEMP_DIR,common_prefix+"_合并"+timestamp) + input_ext
     
     output_dir = os.path.dirname(output_path)
     output_name = os.path.basename(output_path)

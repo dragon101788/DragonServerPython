@@ -497,7 +497,7 @@ async def delete_user(request :Request, data: dict):
 import uuid
 
 # 配置参数
-MAX_CONNECTIONS_PER_USER = 10  # 每个用户的最大连接数
+MAX_CONNECTIONS_PER_USER = 120  # 每个用户的最大连接数
 
 class UserWebsocket():
     def __init__(self,socket: WebSocket, username: str):
