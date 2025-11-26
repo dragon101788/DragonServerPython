@@ -33,7 +33,11 @@ export class FFmpeg {
     }
     static async get_media_info(path){
         const body = await AccountManager.Fetch('ffmpeg_get_media_info', { 'path': path });
-        return body;
+        if (body.status === 'ok') {
+            return body.info;
+        } else {
+            throw `${path}获取媒体信息失败:${body.msg}`;
+        }
     }
     static async delTask(name) {
         try {

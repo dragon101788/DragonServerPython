@@ -762,7 +762,7 @@ class ffmpeg_merger_video_list(ffmpeg):
         self.input_file = video_list
         self.output_file = output_file
         
-        if method == 'concat' and all_same_resolution and all_same_codec and src_video_codec == "h264" and src_audio_codec == "aac":
+        if method == 'concat' and all_same_resolution and all_same_codec:
             # 使用concat协议（更高效，要求视频编码参数和分辨率都相同）
             # 创建临时文件列表
             temp_list_file = output_file + f'合并列表.txt'
@@ -783,6 +783,7 @@ class ffmpeg_merger_video_list(ffmpeg):
             # 保存临时文件路径以便稍后清理
             self.temp_list_file = temp_list_file
         else:
+            print(f"视频 {video_file} 使用filter_complex concat过滤器 因为 all_same_resolution={all_same_resolution} and all_same_codec={all_same_codec} ")
             # 使用filter_complex concat过滤器（更通用，可以处理不同编码参数和分辨率的视频）
             # 添加所有输入文件
             for video_file in video_list:

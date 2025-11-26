@@ -202,7 +202,7 @@ async def webdav_ffmpeg_get_media_info(uws :UserWebsocket,body :dict):
     if len(info.info) == 0:
         uws.put(json.dumps({"tag":callbackId,"body":{"status":"error","msg":info.stderr.error}}))
         return
-    uws.put(json.dumps({"tag":callbackId,"body":info.info}))
+    uws.put(json.dumps({"tag":callbackId,"body":{"status":"ok","info":info.info}}))
 
 @recv_messages("ffmpeg_cancel_task")
 async def webdav_ffmpeg_cancel_task(uws :UserWebsocket,body :dict):
