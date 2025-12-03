@@ -268,24 +268,29 @@ class DVideo extends HTMLElement {
         });
 
         // 控制按钮事件
-        this._playPauseBtn.addEventListener('click', () => {
+        this._playPauseBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._togglePlayPause();
         });
 
         // 进度条事件
         this._progressContainer.addEventListener('mousedown', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._startProgressDrag(e);
         });
 
         this._progressContainer.addEventListener('mousemove', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._onProgressDrag(e);
         });
 
-        this._progressContainer.addEventListener('mouseup', () => {
+        this._progressContainer.addEventListener('mouseup', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._stopProgressDrag();
         });
 
-        this._progressContainer.addEventListener('mouseleave', () => {
+        this._progressContainer.addEventListener('mouseleave', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._stopProgressDrag();
         });
 
@@ -312,23 +317,28 @@ class DVideo extends HTMLElement {
         });
 
         // 音量控制事件
-        this._volumeBtn.addEventListener('click', () => {
+        this._volumeBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._toggleMute();
         });
 
         this._volumeBarContainer.addEventListener('mousedown', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._startVolumeDrag(e);
         });
 
         this._volumeBarContainer.addEventListener('mousemove', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._onVolumeDrag(e);
         });
 
-        this._volumeBarContainer.addEventListener('mouseup', () => {
+        this._volumeBarContainer.addEventListener('mouseup', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._stopVolumeDrag();
         });
 
-        this._volumeBarContainer.addEventListener('mouseleave', () => {
+        this._volumeBarContainer.addEventListener('mouseleave', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._stopVolumeDrag();
         });
 
@@ -339,7 +349,8 @@ class DVideo extends HTMLElement {
         });
 
         // 全屏事件
-        this._fullscreenBtn.addEventListener('click', () => {
+        this._fullscreenBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
             this._toggleFullscreen();
         });
 
