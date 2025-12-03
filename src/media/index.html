@@ -30,40 +30,11 @@
             height: 100%;
         }
         
-        /* 加载提示样式 */
-        #loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 20px 40px;
-            border-radius: 8px;
-            font-size: 18px;
-            z-index: 1000;
-        }
-        
-        /* 错误提示样式 */
-        #error {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(255, 0, 0, 0.7);
-            padding: 20px 40px;
-            border-radius: 8px;
-            font-size: 18px;
-            z-index: 1000;
-            display: none;
-        }
+
     </style>
 </head>
 <body>
-    <!-- 加载提示 -->
-    <div id="loading">正在加载视频...</div>
-    
-    <!-- 错误提示 -->
-    <div id="error">视频加载失败，请稍后重试</div>
+
     
     <!-- 视频容器 -->
     <div id="video-container">
@@ -86,20 +57,14 @@
                 const searchParams = new URLSearchParams(window.location.search);
                 const src = searchParams.get('src');
                 
-                
-                
-                // 隐藏加载提示
-                document.getElementById('loading').style.display = 'none';
-                
                 // 初始化视频播放器
                 initVideoPlayer(await getVideoUrl(src));
                 
             } catch (error) {
                 console.error('初始化失败:', error);
                 // 显示错误提示
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('error').style.display = 'block';
-                document.getElementById('error').textContent = `错误：${error.message}`;
+                const player = document.getElementById('video-player');
+                player.showError(`错误：${error.message}`);
             }
         }
         
@@ -125,30 +90,6 @@
             player.play().catch(error => {
                 console.warn('自动播放失败，可能是由于浏览器策略限制:', error);
                 // 自动播放失败不会阻止用户手动点击播放
-            });
-            
-            // 监听错误事件
-            player.addEventListener('error', function() {
-                console.error('视频播放错误:', player.error);
-                document.getElementById('error').style.display = 'block';
-                
-                // 处理不同类型的错误
-                let errorMessage = '未知错误';
-                switch (player.error.code) {
-                    case 1:
-                        errorMessage = '用户中止了视频加载';
-                        break;
-                    case 2:
-                        errorMessage = '网络错误';
-                        break;
-                    case 3:
-                        errorMessage = '解码错误';
-                        break;
-                    case 4:
-                        errorMessage = '视频格式不支持';
-                        break;
-                }
-                document.getElementById('error').textContent = `播放错误：${errorMessage}`;
             });
             
             // 监听播放开始事件

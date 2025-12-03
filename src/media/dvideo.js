@@ -40,6 +40,35 @@ class DVideo extends HTMLElement {
                     object-fit: contain;
                     background-color: #000;
                 }
+                
+                /* 加载提示样式 */
+                .loading {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background-color: rgba(0, 0, 0, 0.7);
+                    padding: 20px 40px;
+                    border-radius: 8px;
+                    font-size: 18px;
+                    color: #fff;
+                    z-index: 1000;
+                }
+                
+                /* 错误提示样式 */
+                .error {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background-color: rgba(255, 0, 0, 0.7);
+                    padding: 20px 40px;
+                    border-radius: 8px;
+                    font-size: 18px;
+                    color: #fff;
+                    z-index: 1000;
+                    display: none;
+                }
 
                 .controls {
                     position: absolute;
@@ -178,6 +207,11 @@ class DVideo extends HTMLElement {
 
             <div class="video-container">
                 <video preload="auto"></video>
+                <!-- 加载提示 -->
+                <div class="loading">正在加载视频...</div>
+                
+                <!-- 错误提示 -->
+                <div class="error">视频加载失败，请稍后重试</div>
                 <div class="controls">
                     <div class="progress-container" id="progress-container">
                         <div class="progress-bar" id="progress-bar"></div>
@@ -243,6 +277,43 @@ class DVideo extends HTMLElement {
                     this._toggleMute();
                 },
         }
+        
+        // 监听视频错误事件
+        this._videoElement.addEventListener('error', () => {
+            console.error('视频播放错误:', this._videoElement.error);
+            this.hideLoading();
+            
+            // 处理不同类型的错误
+            let errorMessage = '未知错误';
+            if (this._videoElement.error) {
+                switch (this._videoElement.error.code) {
+                    case 1:
+                        errorMessage = '用户中止了视频加载';
+                        break;
+                    case 2:
+                        errorMessage = '网络错误';
+                        break;
+                    case 3:
+                        errorMessage = '解码错误';
+                        break;
+                    case 4:
+                        errorMessage = '视频格式不支持';
+                        break;
+                }
+            }
+            this.showError(`播放错误：${errorMessage}`);
+        });
+        
+        // 监听视频加载开始事件
+        this._videoElement.addEventListener('loadstart', () => {
+            this.showLoading();
+        });
+        
+        // 监听视频可以播放事件
+        this._videoElement.addEventListener('canplay', () => {
+            this.hideLoading();
+            this.hideError();
+        });
         // 视频事件
         this._videoElement.addEventListener('play', () => {
             this._playPauseBtn.textContent = '⏸';
@@ -542,6 +613,26 @@ class DVideo extends HTMLElement {
             this._fullscreenBtn.textContent = '⛶';
         }
     }
+    
+    // 加载相关方法
+    showLoading() {
+        this.shadowRoot.querySelector('.loading').style.display = 'block';
+    }
+    
+    hideLoading() {
+        this.shadowRoot.querySelector('.loading').style.display = 'none';
+    }
+    
+    // 错误相关方法
+    showError(message = '视频加载失败，请稍后重试') {
+        const errorEl = this.shadowRoot.querySelector('.error');
+        errorEl.textContent = message;
+        errorEl.style.display = 'block';
+    }
+    
+    hideError() {
+        this.shadowRoot.querySelector('.error').style.display = 'none';
+    }
 
     // 公开方法
     play() {
@@ -553,12 +644,15 @@ class DVideo extends HTMLElement {
     }
 
     load() {
+        this.showLoading();
         this._videoElement.load();
         this._updateVideoInfo();
     }
 
     // 属性访问器
     set src(value) {
+        this.showLoading();
+        this.hideError();
         this._videoElement.src = value;
         this._updateVideoInfo();
     }
