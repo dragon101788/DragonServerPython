@@ -39,12 +39,13 @@ export class ContextMenu {
                     background: white;
                     border: 1px solid #ddd;
                     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-                    z-index: 1000;
+                    z-index: 999999;
                     display: block;
                 }
                 .context-menu-item {
                     padding: 8px 15px;
                     cursor: pointer;
+                    color: #000000;
                 }
                 .context-menu-item:hover {
                     background: #f0f0f0;
@@ -81,8 +82,8 @@ export class ContextMenu {
             </div>
         `;
 
-        // 添加到DOM以便计算尺寸
-        document.body.appendChild(contextMenu);
+        const fsElement = document.fullscreenElement || document.body;
+        fsElement.appendChild(contextMenu);
         
         // 将新打开的菜单添加到容器中
         ContextMenu.openedMenus.push(contextMenu);

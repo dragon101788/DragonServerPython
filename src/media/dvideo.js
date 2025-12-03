@@ -1,4 +1,5 @@
 //dvide.js是一个继承了video标签的自定义video标签,拥有美化的外观,进度条,支持鼠标滑动调整音量,记录上一次音量大小,支持全屏播放
+import {ContextMenu} from '/ContextMenu.js';
 
 class DVideo extends HTMLElement {
     constructor() {
@@ -8,7 +9,11 @@ class DVideo extends HTMLElement {
         this._progressBarWidth = 0;
         this._progressBarLeft = 0;
         this._volume = parseFloat(localStorage.getItem('dvideo-volume')) || 0.7;
-        this._muted = false;
+        this._muted = localStorage.getItem('dvideo-muted') === 'true' || false;
+        // 添加控制栏自动隐藏相关属性
+        this._hideControlsTimeout = null;
+        this._controlsHidden = false;
+        this._hideControlsDelay = 3000; // 3秒无操作后隐藏控制栏
         this._init();
     }
 
@@ -45,11 +50,11 @@ class DVideo extends HTMLElement {
                     padding: 20px 10px 10px;
                     box-sizing: border-box;
                     transition: opacity 0.3s;
-                    opacity: 0;
+                    opacity: 1;
                 }
 
-                .video-container:hover .controls {
-                    opacity: 1;
+                .controls.hidden {
+                    opacity: 0;
                 }
 
                 .progress-container {
@@ -201,6 +206,7 @@ class DVideo extends HTMLElement {
         `;
 
         // 获取DOM元素
+        this._container = this.shadowRoot.querySelector('.video-container');
         this._videoElement = this.shadowRoot.querySelector('video');
         this._controls = this.shadowRoot.querySelector('.controls');
         this._progressContainer = this.shadowRoot.getElementById('progress-container');
@@ -218,20 +224,34 @@ class DVideo extends HTMLElement {
         // 绑定事件
         this._bindEvents();
 
-        // 初始化音量
+        // 初始化音量和静音状态
         this._videoElement.volume = this._volume;
+        this._videoElement.muted = this._muted;
         this._updateVolumeBar();
         this._updateVolumeIcon();
     }
 
     _bindEvents() {
+        this.contextmenu = {
+            '播放/暂停' : () => {
+                    this._togglePlayPause();
+                },
+                '全屏' : () => {
+                    this._toggleFullscreen();
+                },
+                '静音/取消静音' : () => {
+                    this._toggleMute();
+                },
+        }
         // 视频事件
         this._videoElement.addEventListener('play', () => {
             this._playPauseBtn.textContent = '⏸';
+            this._resetHideControlsTimer();
         });
 
         this._videoElement.addEventListener('pause', () => {
             this._playPauseBtn.textContent = '▶';
+            this._showControls(); // 暂停时始终显示控制栏
         });
 
         this._videoElement.addEventListener('timeupdate', () => {
@@ -244,6 +264,7 @@ class DVideo extends HTMLElement {
 
         this._videoElement.addEventListener('ended', () => {
             this._playPauseBtn.textContent = '▶';
+            this._showControls(); // 结束时显示控制栏
         });
 
         // 控制按钮事件
@@ -268,6 +289,28 @@ class DVideo extends HTMLElement {
             this._stopProgressDrag();
         });
 
+        // 用户操作检测事件（重置控制栏隐藏定时器）
+        const container = this.shadowRoot.querySelector('.video-container');
+        container.addEventListener('mousemove', () => {
+            this._resetHideControlsTimer();
+        });
+
+        container.addEventListener('click', () => {
+            this._resetHideControlsTimer();
+            // 鼠标单击暂停/播放
+            this._togglePlayPause();
+        });
+
+        container.addEventListener('dblclick', () => {
+            // 鼠标双击全屏
+            this._toggleFullscreen();
+        });
+        
+        container.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            ContextMenu.open(e.clientX, e.clientY, this.contextmenu);
+        });
+
         // 音量控制事件
         this._volumeBtn.addEventListener('click', () => {
             this._toggleMute();
@@ -287,6 +330,12 @@ class DVideo extends HTMLElement {
 
         this._volumeBarContainer.addEventListener('mouseleave', () => {
             this._stopVolumeDrag();
+        });
+
+        // 鼠标滚轮调整音量
+        this._videoElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            this._onWheelVolumeChange(e);
         });
 
         // 全屏事件
@@ -396,6 +445,41 @@ class DVideo extends HTMLElement {
         this._isVolumeDragging = false;
     }
 
+    // 重置控制栏隐藏定时器
+    _resetHideControlsTimer() {
+        // 如果控制栏已隐藏，则显示它
+        if (this._controlsHidden) {
+            this._showControls();
+        }
+        
+        // 清除现有的定时器
+        if (this._hideControlsTimeout) {
+            clearTimeout(this._hideControlsTimeout);
+        }
+        
+        // 设置新的定时器
+        this._hideControlsTimeout = setTimeout(() => {
+            // 只有在视频播放时才隐藏控制栏
+            if (!this._videoElement.paused) {
+                this._hideControls();
+            }
+        }, this._hideControlsDelay);
+    }
+
+    // 显示控制栏
+    _showControls() {
+        const controls = this.shadowRoot.querySelector('.controls');
+        controls.classList.remove('hidden');
+        this._controlsHidden = false;
+    }
+
+    // 隐藏控制栏
+    _hideControls() {
+        const controls = this.shadowRoot.querySelector('.controls');
+        controls.classList.add('hidden');
+        this._controlsHidden = true;
+    }
+
     _updateVolumeFromEvent(e) {
         const rect = this._volumeBarContainer.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
@@ -408,6 +492,25 @@ class DVideo extends HTMLElement {
         const percentage = this._volume * 100;
         this._volumeBar.style.width = `${percentage}%`;
         this._volumeHandle.style.left = `${percentage}%`;
+    }
+
+    // 鼠标滚轮调整音量
+    _onWheelVolumeChange(e) {
+        // 定义音量调整步长
+        const volumeStep = 0.05;
+        
+        // 根据滚轮方向调整音量
+        let newVolume;
+        if (e.deltaY < 0) {
+            // 向上滚动，增加音量
+            newVolume = Math.min(1, this._volume + volumeStep);
+        } else {
+            // 向下滚动，减少音量
+            newVolume = Math.max(0, this._volume - volumeStep);
+        }
+        
+        // 设置新音量
+        this.volume = newVolume;
     }
 
     _toggleFullscreen() {
@@ -482,6 +585,7 @@ class DVideo extends HTMLElement {
         this._videoElement.muted = value;
         this._muted = value;
         this._updateVolumeIcon();
+        localStorage.setItem('dvideo-muted', value.toString());
     }
 
     get muted() {
