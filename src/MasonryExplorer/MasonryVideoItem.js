@@ -1,6 +1,7 @@
 import { MasonryView } from '/MasonryExplorer/MasonryView.js';
 import { MasonryBaseModal } from '/MasonryExplorer/MasonryBaseModal.js';
 import { WebdavApi } from '/webdav/WebdavApi.js';
+import { VideoModal } from '/media/dvideo.js';
 
 export class MasonryVideoItem extends MasonryBaseModal {
     constructor() {
@@ -67,183 +68,11 @@ export class MasonryVideoItem extends MasonryBaseModal {
         }
     }
     
-    setupEventListeners(){        
-        const viewModal = document.querySelector('.view-modal');
-        const videoElement = document.querySelector('.modal-media');
-        const loadingIndicator = viewModal.querySelector('.loading-indicator');
-        const closeBtn = viewModal.querySelector('.close-btn');
-        const prevBtn = viewModal.querySelector('.prev-btn');
-        const nextBtn = viewModal.querySelector('.next-btn');
-        const modalCounter = viewModal.querySelector('#modal-counter');
-        const viewModalContent = viewModal.querySelector('.view-modal-content');
-        
-        // 点击查看器空白处关闭
-        viewModal.addEventListener('click', (e) => {
-            if (e.target === viewModal || e.target === viewModal.querySelector('.view-modal-content')) {
-                this.doClose();
-            }
-        });
-        
-        // 点击关闭按钮关闭
-        closeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.doClose();
-        });
-        
-        // 点击上一张按钮
-        prevBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.loadPrev();
-        });
-        
-        // 点击下一张按钮
-        nextBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.loadNext();
-        });
-
-        // 鼠标滚轮切换图片
-        const handleWheel = (e) => {
-            e.preventDefault(); // 阻止页面滚动
-            
-            // 根据滚轮方向切换图片
-            if (e.deltaY < 0) {
-                // 向上滚动，显示上一张
-                this.loadPrev();
-            } else {
-                // 向下滚动，显示下一张
-                this.loadNext();
-            }
-        };
-        
-        // 在查看器内容区域添加滚轮事件监听
-        viewModalContent.addEventListener('wheel', handleWheel, { passive: false });
-
-        // 阻止视频点击事件冒泡
-        videoElement.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-        
-        // 阻止视频被拖拽
-        videoElement.addEventListener('dragstart', (e) => {
-            e.preventDefault();
-        });
-        
-        // 为视频元素也添加滚轮事件监听
-        videoElement.addEventListener('wheel', handleWheel, { passive: false });
-        
-        // 按键盘箭头键和ESC键控制
-        const handleKeydown = (e) => {
-            switch (e.key) {
-                case 'Escape':
-                    this.doClose();
-                    break;
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    this.loadPrev();
-                    break;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    this.loadNext();
-                    break;
-            }
-        };
-        
-        // 添加键盘事件监听
-        document.addEventListener('keydown', handleKeydown);
-    }
+    
     doPlay(){        
-        const modal = document.createElement('div');
-        modal.id = 'view-modal';
-        modal.innerHTML = /*html*/`
-        <style>
-            ${MasonryBaseModal.css}
-            .modal-media {
-                max-width: 80%;
-                max-height: 90vh;
-                object-fit: contain;
-                cursor: default;
-            }
-            /* 错误提示样式 */
-            #error {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background-color: rgba(255, 0, 0, 0.7);
-                padding: 20px 40px;
-                border-radius: 8px;
-                font-size: 18px;
-                z-index: 1000;
-                display: none;
-            }
-        </style>
-        <div class="view-modal">
-            <div class="view-modal-content">
-                <button class="nav-btn prev-btn">&lt;</button>
-                <button class="close-btn">&times;</button>
-                <div id="error">视频加载失败，请稍后重试</div>
-                <div class="loading-indicator">加载中...</div>
-                <video class="modal-media" controls>
-                    您的浏览器不支持视频播放。
-                </video>
-                <button class="nav-btn next-btn">&gt;</button>
-                <div class="image-counter" id="modal-counter">${this.getCurrentIndex()}/${this.getCounter()}</div>
-            </div>
-        </div>
-        `
-        
-        document.body.appendChild(modal);
-        const video = modal.querySelector('video');
-        const loadingIndicator = modal.querySelector('.loading-indicator');
-        
-        
-
-        // 视频加载完成处理
-        video.onloadeddata = () => {
-            loadingIndicator.style.display = 'none';
-            video.style.display = 'block';
-            video.play().catch(err => {
-                console.warn('自动播放失败，需要用户交互:', err);
-            });
-        };
-        
-        // 监听错误事件
-        video.addEventListener('error', function() {
-            console.error('视频播放错误:', video.error);
-            document.getElementById('error').style.display = 'block';
-            
-            // 处理不同类型的错误
-            let errorMessage = '未知错误';
-            switch (video.error.code) {
-                case 1:
-                    errorMessage = '用户中止了视频加载';
-                    break;
-                case 2:
-                    errorMessage = '网络错误';
-                    break;
-                case 3:
-                    errorMessage = '解码错误';
-                    break;
-                case 4:
-                    errorMessage = '视频格式不支持';
-                    break;
-                default:
-                    errorMessage = `未知错误: ${video.error.message} , 错误码：${video.error.code}`;
-                    break;
-            }
-            document.getElementById('error').textContent = `播放错误：${errorMessage}`;
-        });
-        // 视频加载失败处理
-        video.onerror = () => {
-            loadingIndicator.textContent = '视频加载失败';
-        };
-        
-        video.src = `${MasonryView.getFileUrl(this.item.path)}`;
-        video.type = "video/mp4";
-        video.load();
-        // 设置事件监听器
-        this.setupEventListeners();
+        VideoModal.open({
+            videoUrl: `${MasonryView.getFileUrl(this.item.path)}`
+        })
     }
 }
 

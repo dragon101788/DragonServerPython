@@ -13,15 +13,8 @@
             background-color: #000;
             color: #fff;
             overflow: hidden;
-        }
-        
-        /* 视频容器样式 */
-        #video-container {
             width: 100vw;
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
         
         /* 播放器样式 */
@@ -34,12 +27,6 @@
     </style>
 </head>
 <body>
-
-    
-    <!-- 视频容器 -->
-    <div id="video-container">
-        <d-video id="video-player" preload="auto"></d-video>
-    </div>
     
     <script type="module">
         import { AccountManager } from '/AccountManager.js';
@@ -52,56 +39,16 @@
         
         // 初始化函数
         async function init() {
-            try {
-                // 检查URL参数
-                const searchParams = new URLSearchParams(window.location.search);
-                const src = searchParams.get('src');
-                
-                // 初始化视频播放器
-                initVideoPlayer(await getVideoUrl(src));
-                
-            } catch (error) {
-                console.error('初始化失败:', error);
-                // 显示错误提示
-                const player = document.getElementById('video-player');
-                player.showError(`错误：${error.message}`);
-            }
+            // 检查URL参数
+            const searchParams = new URLSearchParams(window.location.search);
+            const src = searchParams.get('src');
+            
+            document.body.innerHTML = /*html*/`
+                <d-video id="video-player" preload="auto" src="${src}" type="video/mp4"></d-video>
+            `;
         }
         
-        // 获取视频URL
-        async function getVideoUrl(path) {
-            // 创建一个带token的URL
-            // 这里我们使用WebDAV的直接访问方式，利用fetchFile方法获取视频内容
-            const encodedPath = encodeURIComponent(path);
-            // 直接返回带有token的URL，让video.js能够直接加载
-            return `/WEBDAV${encodedPath}`;
-        }
         
-        // 初始化视频播放器
-        function initVideoPlayer(videoUrl) {
-            // 获取原生video元素
-            player = document.getElementById('video-player');
-            
-            // 设置视频源
-            player.src = videoUrl;
-            player.type = 'video/mp4';
-            
-            // 尝试自动播放（处理浏览器兼容性问题）
-            player.play().catch(error => {
-                console.warn('自动播放失败，可能是由于浏览器策略限制:', error);
-                // 自动播放失败不会阻止用户手动点击播放
-            });
-            
-            // 监听播放开始事件
-            player.addEventListener('play', function() {
-                console.log('视频开始播放');
-            });
-            
-            // 监听播放结束事件
-            player.addEventListener('ended', function() {
-                console.log('视频播放结束');
-            });
-        }
         
         init();
     </script>

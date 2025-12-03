@@ -1,7 +1,7 @@
 //dvide.js是一个继承了video标签的自定义video标签,拥有美化的外观,进度条,支持鼠标滑动调整音量,记录上一次音量大小,支持全屏播放
 import {ContextMenu} from '/ContextMenu.js';
 
-class DVideo extends HTMLElement {
+export class DVideo extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
@@ -32,6 +32,9 @@ class DVideo extends HTMLElement {
                     position: relative;
                     width: 100%;
                     height: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
                 }
 
                 video {
@@ -649,6 +652,15 @@ class DVideo extends HTMLElement {
         this._updateVideoInfo();
     }
 
+    connectedCallback() {
+        this.src = this.getAttribute('src');
+        this._videoElement.type = this.getAttribute('type') || 'video/mp4';
+        const autoPlay = this.getAttribute('autoplay') !== null;
+        if (autoPlay) {
+            this._videoElement.autoplay = true;
+        }
+        console.log('视频元素已连接到 DOM',this.src);
+    }
     // 属性访问器
     set src(value) {
         this.showLoading();
@@ -711,5 +723,146 @@ if (!customElements.get('d-video')) {
     customElements.define('d-video', DVideo);
 }
 
-// 导出组件供其他模块使用
-export { DVideo };
+import {BaseModal} from '/BaseModal.js';
+
+// 视频播放模态框
+class VideoModal extends BaseModal {
+    render() {
+        super.render();
+        // 获取宽高属性，如果没有则使用默认值
+        const width = this.getAttribute('width') || (BaseModal.isMobile() ? '95%' : '80%');
+        const height = this.getAttribute('height') || '90vh';
+        const videoUrl = this.getAttribute('videoUrl') || '';
+        const videoTitle = this.getAttribute('title') || undefined;
+        const html = /*html*/`
+            <style>
+                .modal-content {
+                    padding: 0px !important;
+                    margin: 0px !important;
+                    background-color: #000 !important;
+                }
+                .close {
+                    position: absolute;
+                    top: 10px;
+                    right: 15px;
+                    color: #fff;
+                    font-size: 30px;
+                    font-weight: bold;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1001;
+                    transition: all 0.3s ease;
+                }
+                .close:hover,
+                .close:focus {
+                    color: #fff;
+                    background-color: rgba(0, 0, 0, 0.8);
+                    transform: scale(1.1);
+                    text-decoration: none;
+                    cursor: pointer;
+                }
+                .form-group {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    height: 100% !important;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .video-container {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                }
+                video {
+                    max-width: 100%;
+                    max-height: 100%;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain; 
+                }
+                .video-title {
+                    position: absolute;
+                    top: 10px;
+                    left: 15px;
+                    color: #fff;
+                    font-size: 18px;
+                    font-weight: bold;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    padding: 5px 15px;
+                    border-radius: 20px;
+                    z-index: 1001;
+                }
+            </style>
+            <div class="modal" id="modal">
+                <div class="modal-content" style="width: ${width}; height: ${height}; max-width: none; max-height: none; overflow: hidden;">
+                    ${videoTitle ? `<div class="video-title">${videoTitle}</div>` : ''}
+                    <span class="close">&times;</span>
+                    <div class="form-group">
+                        <div class="video-container">
+                            <d-video controls autoplay src="${videoUrl}">
+                                <source src="${videoUrl}" type="video/mp4">
+                                您的浏览器不支持HTML5视频播放。
+                            </d-video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        this.shadowRoot.innerHTML += html;
+    }
+
+    setupEventListeners() {
+        const closeButton = this.shadowRoot.querySelector('.close');
+        const modal = this.shadowRoot.querySelector('.modal');
+        const videoElement = this.shadowRoot.querySelector('video');
+
+        // 尝试自动播放，如果失败则在用户交互时播放
+        if (videoElement) {
+            // 确保视频加载完成后尝试播放
+            videoElement.addEventListener('loadedmetadata', () => {
+                // 尝试播放，如果失败（可能是由于浏览器策略），则不做处理
+                videoElement.play().catch(error => {
+                    console.log('自动播放失败，需要用户交互:', error);
+                });
+            });
+        }
+
+        closeButton.addEventListener('click', () => {
+            if (videoElement) {
+                videoElement.pause();
+            }
+            this.close();
+        });
+        
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                if (videoElement) {
+                    videoElement.pause();
+                }
+                this.close();
+            }
+        });
+        
+    }
+
+    show() {
+        super.show();
+        document.body.style.overflow = 'hidden'; // 防止背景滚动
+    }
+
+    close() {
+        super.close();
+        document.body.style.overflow = 'auto'; // 恢复背景滚动
+    }
+}
+
+customElements.define('video-modal', VideoModal);
+export { VideoModal };
