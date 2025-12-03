@@ -308,7 +308,7 @@ class DVideo extends HTMLElement {
         
         container.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            ContextMenu.open(e.clientX, e.clientY, this.contextmenu);
+            ContextMenu.open(e.clientX, e.clientY, this.contextmenu,container);
         });
 
         // 音量控制事件

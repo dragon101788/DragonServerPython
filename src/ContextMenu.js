@@ -24,7 +24,7 @@ export class ContextMenu {
     // 存储所有已打开的菜单
     static openedMenus = [];
 
-    static open(x, y, menuItems) {
+    static open(x, y, menuItems,element=document.body) {
         // 不再自动关闭之前的菜单，而是让它们保持打开状态
         // ContextMenu.close();
 
@@ -82,7 +82,7 @@ export class ContextMenu {
             </div>
         `;
 
-        const fsElement = document.fullscreenElement || document.body;
+        const fsElement = element;
         fsElement.appendChild(contextMenu);
         
         // 将新打开的菜单添加到容器中
