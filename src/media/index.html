@@ -67,13 +67,12 @@
     
     <!-- 视频容器 -->
     <div id="video-container">
-        <video id="video-player" controls preload="auto" controlsList="nodownload" autoplay>
-            <p>请启用JavaScript以播放视频</p>
-        </video>
+        <d-video id="video-player" preload="auto"></d-video>
     </div>
     
     <script type="module">
         import { AccountManager } from '/AccountManager.js';
+        import { DVideo } from '/media/dvideo.js';
 
         AccountManager.init();
         
