@@ -32,25 +32,20 @@
         import { AccountManager } from '/AccountManager.js';
         import { DVideo } from '/media/dvideo.js';
 
-        AccountManager.init();
+        await AccountManager.init();
         
         let player = undefined;
         let videoSource = null;
         
-        // 初始化函数
-        async function init() {
-            // 检查URL参数
-            const searchParams = new URLSearchParams(window.location.search);
-            const src = searchParams.get('src');
-            
-            document.body.innerHTML = /*html*/`
-                <d-video id="video-player" preload="auto" src="${src}" type="video/mp4"></d-video>
-            `;
-        }
         
         
         
-        init();
+        const searchParams = new URLSearchParams(window.location.search);
+        const src = searchParams.get('src');
+        
+        document.body.innerHTML = /*html*/`
+            <d-video id="video-player" preload="auto" autoplay src="${src}" type="video/mp4"></d-video>
+        `;
     </script>
 </body>
 </html>

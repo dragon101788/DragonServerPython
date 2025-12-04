@@ -1,5 +1,6 @@
 //dvide.js是一个继承了video标签的自定义video标签,拥有美化的外观,进度条,支持鼠标滑动调整音量,记录上一次音量大小,支持全屏播放
 import {ContextMenu} from '/ContextMenu.js';
+import { AccountManager } from '/AccountManager.js';
 
 export class DVideo extends HTMLElement {
     constructor() {
@@ -280,7 +281,16 @@ export class DVideo extends HTMLElement {
                     this._toggleMute();
                 },
         }
-        
+        if (AccountManager.isInitialized()) {
+            AccountManager.get_profile().then((profile) => {
+                if (profile.role.includes('Admin')) {
+                    this.contextmenu['删除'] = () => {
+                        console.log('删除');
+                    };
+                }
+                console.log(profile);
+            });
+        }
         // 监听视频错误事件
         this._videoElement.addEventListener('error', () => {
             console.error('视频播放错误:', this._videoElement.error);

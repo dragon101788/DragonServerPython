@@ -427,7 +427,7 @@ export class AccountManager {
          await this.verifyValidity();
         return this.payload.exp;
     }
-    // 获取用户资料（带缓存）
+    // 获取用户资料
     static async get_profile() {
         await this.verifyValidity();
         const username = this.payload.username;
@@ -454,14 +454,16 @@ export class AccountManager {
             throw error;
         }
     }
-
+    static isInitialized() {
+        return (this.token && this.payload && this.ws_connection);
+    }
     static async verifyValidity() {
         if (this.forbidden.includes(this.verfiy_meth)) {
             this.token = undefined;
             this.payload = undefined;
             this.ws_connection = undefined;
         }
-        if (!this.token || !this.payload||!this.ws_connection) {
+        if (!this.isInitialized()) {
             await this.init();
         }
     }
