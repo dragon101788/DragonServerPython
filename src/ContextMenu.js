@@ -249,14 +249,18 @@ export class ContextMenu extends HTMLElement {
     positionMenu(x, y) {
         if (!this.menuElement) return;
         
+
+
         const menuHeight = this.menuElement.offsetHeight;
-        const viewportHeight = window.innerHeight;
         const menuWidth = this.menuElement.offsetWidth;
+        
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
         
         // 计算左右位置，确保不超出视口
         let leftPosition = x;
-        if (leftPosition + menuWidth > window.innerWidth) {
-            leftPosition = window.innerWidth - menuWidth;
+        if (leftPosition + menuWidth > viewportWidth) {
+            leftPosition = viewportWidth - menuWidth;
         }
         
         // 计算上下位置，判断是否需要朝上打开
