@@ -394,7 +394,11 @@ export class DVideo extends HTMLElement {
         
         container.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            container.querySelector('#video-context-menu').show(e.clientX, e.clientY);
+
+            //换算成当前容器的坐标
+            const x = e.clientX - container.getBoundingClientRect().left;
+            const y = e.clientY - container.getBoundingClientRect().top;
+            container.querySelector('#video-context-menu').show(x, y);
         });
 
         // 音量控制事件
