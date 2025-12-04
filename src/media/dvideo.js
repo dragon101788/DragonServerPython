@@ -188,21 +188,7 @@ export class DVideo extends HTMLElement {
                     width: 70%;
                 }
 
-                .volume-handle {
-                    position: absolute;
-                    top: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 8px;
-                    height: 8px;
-                    background-color: #fff;
-                    border-radius: 50%;
-                    opacity: 0;
-                    transition: opacity 0.3s;
-                }
 
-                .volume-container:hover .volume-handle {
-                    opacity: 1;
-                }
 
                 .fullscreen-btn {
                     font-size: 18px;
@@ -238,7 +224,6 @@ export class DVideo extends HTMLElement {
                                 <button class="control-btn" id="volume-btn">🔊</button>
                                 <div class="volume-bar-container" id="volume-bar-container">
                                     <div class="volume-bar" id="volume-bar"></div>
-                                    <div class="volume-handle" id="volume-handle"></div>
                                 </div>
                             </div>
                             <button class="control-btn fullscreen-btn" id="fullscreen-btn">⛶</button>
@@ -261,7 +246,6 @@ export class DVideo extends HTMLElement {
         this._volumeBtn = this.shadowRoot.querySelectorAll('#volume-btn');
         this._volumeBarContainer = this.shadowRoot.getElementById('volume-bar-container');
         this._volumeBar = this.shadowRoot.getElementById('volume-bar');
-        this._volumeHandle = this.shadowRoot.getElementById('volume-handle');
         this._fullscreenBtn = this.shadowRoot.querySelectorAll('#fullscreen-btn');
 
         // 绑定事件
@@ -609,7 +593,6 @@ export class DVideo extends HTMLElement {
     _updateVolumeBar() {
         const percentage = this._volume * 100;
         this._volumeBar.style.width = `${percentage}%`;
-        this._volumeHandle.style.left = `${percentage}%`;
     }
 
     // 鼠标滚轮调整音量
