@@ -205,11 +205,12 @@ export class ContextMenu extends HTMLElement {
         // 关闭其他菜单
         // ContextMenu.close();
         
+        // 先临时显示菜单以获取正确的尺寸
+        this.menuElement.style.display = 'block';
+        
         // 设置位置
         this.positionMenu(x, y);
         
-        // 显示菜单
-        this.menuElement.style.display = 'block';
         this.isVisible = true;
         
         // 添加到已打开菜单列表
