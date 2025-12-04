@@ -210,7 +210,12 @@ export class DVideo extends HTMLElement {
             </style>
 
             <div class="video-container">
-                <video preload="auto"></video>
+                <context-menu id="video-context-menu">
+                    <div id="play-pause-btn">播放/暂停</div>
+                    <div id="volume-btn">静音/取消静音</div>
+                    <div id="fullscreen-btn">全屏/退出全屏</div>
+                </context-menu>
+                <video preload="auto" id="video-element"></video>
                 <!-- 加载提示 -->
                 <div class="loading">正在加载视频...</div>
                 
@@ -250,14 +255,14 @@ export class DVideo extends HTMLElement {
         this._progressContainer = this.shadowRoot.getElementById('progress-container');
         this._progressBar = this.shadowRoot.getElementById('progress-bar');
         this._progressHandle = this.shadowRoot.getElementById('progress-handle');
-        this._playPauseBtn = this.shadowRoot.getElementById('play-pause-btn');
+        this._playPauseBtn = this.shadowRoot.querySelectorAll('#play-pause-btn');
         this._currentTimeDisplay = this.shadowRoot.getElementById('current-time');
         this._durationDisplay = this.shadowRoot.getElementById('duration');
-        this._volumeBtn = this.shadowRoot.getElementById('volume-btn');
+        this._volumeBtn = this.shadowRoot.querySelectorAll('#volume-btn');
         this._volumeBarContainer = this.shadowRoot.getElementById('volume-bar-container');
         this._volumeBar = this.shadowRoot.getElementById('volume-bar');
         this._volumeHandle = this.shadowRoot.getElementById('volume-handle');
-        this._fullscreenBtn = this.shadowRoot.getElementById('fullscreen-btn');
+        this._fullscreenBtn = this.shadowRoot.querySelectorAll('#fullscreen-btn');
 
         // 绑定事件
         this._bindEvents();
@@ -329,12 +334,16 @@ export class DVideo extends HTMLElement {
         });
         // 视频事件
         this._videoElement.addEventListener('play', () => {
-            this._playPauseBtn.textContent = '⏸';
+            this._playPauseBtn.forEach((btn) => {
+                btn.textContent = '⏸';
+            });
             this._resetHideControlsTimer();
         });
 
         this._videoElement.addEventListener('pause', () => {
-            this._playPauseBtn.textContent = '▶';
+            this._playPauseBtn.forEach((btn) => {
+                btn.textContent = '▶';
+            });
             this._showControls(); // 暂停时始终显示控制栏
         });
 
@@ -347,14 +356,18 @@ export class DVideo extends HTMLElement {
         });
 
         this._videoElement.addEventListener('ended', () => {
-            this._playPauseBtn.textContent = '▶';
+            this._playPauseBtn.forEach((btn) => {
+                btn.textContent = '▶';
+            });
             this._showControls(); // 结束时显示控制栏
         });
 
         // 控制按钮事件
-        this._playPauseBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
-            this._togglePlayPause();
+        this._playPauseBtn.forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
+                this._togglePlayPause();
+            });
         });
 
         // 进度条事件
@@ -397,13 +410,15 @@ export class DVideo extends HTMLElement {
         
         container.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            ContextMenu.open(e.clientX, e.clientY, this.contextmenu,container);
+            container.querySelector('#video-context-menu').show(e.clientX, e.clientY);
         });
 
         // 音量控制事件
-        this._volumeBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
-            this._toggleMute();
+        this._volumeBtn.forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
+                this._toggleMute();
+            });
         });
 
         this._volumeBarContainer.addEventListener('mousedown', (e) => {
@@ -433,9 +448,11 @@ export class DVideo extends HTMLElement {
         });
 
         // 全屏事件
-        this._fullscreenBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
-            this._toggleFullscreen();
+        this._fullscreenBtn.forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
+                this._toggleFullscreen();
+            });
         });
 
         // 监听全屏变化
@@ -517,11 +534,17 @@ export class DVideo extends HTMLElement {
 
     _updateVolumeIcon() {
         if (this._videoElement.muted || this._videoElement.volume === 0) {
-            this._volumeBtn.textContent = '🔇';
+            this._volumeBtn.forEach((btn) => {
+                btn.textContent = '🔇';
+            });
         } else if (this._videoElement.volume < 0.5) {
-            this._volumeBtn.textContent = '🔉';
+            this._volumeBtn.forEach((btn) => {
+                btn.textContent = '🔉';
+            });
         } else {
-            this._volumeBtn.textContent = '🔊';
+            this._volumeBtn.forEach((btn) => {
+                btn.textContent = '🔊';
+            }); 
         }
     }
 
@@ -621,9 +644,13 @@ export class DVideo extends HTMLElement {
 
     _updateFullscreenIcon() {
         if (document.fullscreenElement) {
-            this._fullscreenBtn.textContent = '⛶';
+            this._fullscreenBtn.forEach((btn) => {
+                btn.textContent = '⛶';
+            });
         } else {
-            this._fullscreenBtn.textContent = '⛶';
+            this._fullscreenBtn.forEach((btn) => {
+                btn.textContent = '⛶';
+            });
         }
     }
     
