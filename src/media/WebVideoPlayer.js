@@ -1,7 +1,7 @@
 import { WebdavAdapter } from '/webdav/WebdavAdapter.js';
 import { WebdavApi } from '/webdav/WebdavApi.js';
 import { AccountManager } from '/AccountManager.js';
-import { CopyToClipboardDialog, ProgressModal } from '/BaseModal.js';
+import { CopyToClipboardDialog, ProgressModal,ConfirmDialog } from '/BaseModal.js';
 import { SidebarBrowers } from '/webdav/SidebarBrowers.js';
 import { FFmpeg } from '/ffmpeg/FFmpeg.js';
 
@@ -164,26 +164,19 @@ export class WebVideoPlayer extends HTMLElement {
                     if (!path) {
                         throw new Error('无法获取视频路径');
                     }
-                    this.iframe.src = "/ffmpeg/index.html";
-
-                    // 等待FFmpeg控件加载完成,并添加任务addTask(path)
-                    const handleIframeLoad = () => {
-                        try {
-                            // 向iframe发送消息，调用addTask函数
-                            this.iframe.contentWindow.postMessage({
-                                action: 'currentFile',
-                                path: path
-                            }, '*');
-                        } catch (error) {
-                            console.error('向FFmpeg控件发送消息失败:', error);
-                        } finally {
-                            // 移除事件监听器，避免重复调用
-                            this.iframe.removeEventListener('load', handleIframeLoad);
-                        }
-                    };
-                    
-                    // 添加iframe加载完成事件监听器
-                    this.iframe.addEventListener('load', handleIframeLoad);
+                    ConfirmDialog.open({
+                        title: '确认转码',
+                        message: `是否确认转码视频 ${path}？`
+                    }).addEventListener("confirm", () => {
+                        
+                        FFmpeg.transcodeFile(path);
+                        const MainDisplay = document.querySelector('.main-display-area');
+                        MainDisplay.openHTMLString(`
+                                    <div style="width: 100%; height: 100%; overflow-y: scroll;">
+                                        <ffmpeg-list></ffmpeg-list>
+                                    </div>
+                                `);
+                    });
                 });
             }
 
@@ -345,6 +338,12 @@ export class WebVideoPlayer extends HTMLElement {
         const transcodeBtn = properties_page.querySelector('.transcode-btn');
         transcodeBtn.addEventListener('click', () => {
             FFmpeg.transcodeFile(item.path);
+            const MainDisplay = document.querySelector('.main-display-area');
+            MainDisplay.openHTMLString(`
+                        <div style="width: 100%; height: 100%; overflow-y: scroll;">
+                            <ffmpeg-list></ffmpeg-list>
+                        </div>
+                    `);
         });
 
         // 为重新生成缩略图按钮添加点击事件
@@ -387,7 +386,11 @@ SidebarBrowers.registerExternalContextMenu('视频转码', (item) => {
         return () => {
             const MainDisplay = document.querySelector('.main-display-area');
             FFmpeg.transcodeFile(item.path);
-            MainDisplay.openWebSite("/ffmpeg/index.html");
+            MainDisplay.openHTMLString(`
+                        <div style="width: 100%; height: 100%; overflow-y: scroll;">
+                            <ffmpeg-list></ffmpeg-list>
+                        </div>
+                    `);
         }
     }
 });

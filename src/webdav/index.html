@@ -95,7 +95,8 @@
         import '/MasonryExplorer/WebImagePlayer.js'
         import '/MasonryExplorer/MasonryPackageItem.js'
         import '/SystemManager/Adapter.js';
-
+        import { FFmpegListComponent } from '/ffmpeg/ffmpeg_list.js';
+        
         AccountManager.forbidden = ["urlParam","cookie"];
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -248,7 +249,11 @@
         SidebarBrowers.registerExternalContextMenu('转码', (item) => {
             if (item === undefined) {
                 return () => {
-                    MainDisplay.openWebSite("/ffmpeg/index.html");
+                    MainDisplay.openHTMLString(`
+                        <div style="width: 100%; height: 100%; overflow-y: scroll;">
+                            <ffmpeg-list></ffmpeg-list>
+                        </div>
+                    `);
                 }
             }
         });
