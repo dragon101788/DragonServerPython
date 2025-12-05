@@ -1,6 +1,7 @@
 //dvide.js是一个继承了video标签的自定义video标签,拥有美化的外观,进度条,支持鼠标滑动调整音量,记录上一次音量大小,支持全屏播放
 import {ContextMenu} from '/ContextMenu.js';
 import { AccountManager } from '/AccountManager.js';
+import { WebdavApi } from '/webdav/WebdavApi.js';
 
 export class DVideo extends HTMLElement {
     constructor() {
@@ -271,8 +272,40 @@ export class DVideo extends HTMLElement {
             if (browser && AccountManager.isInitialized()) {
                 AccountManager.get_profile().then((profile) => {
                     if (profile.role.includes('Admin')) {
-                        videoContextMenu.items['删除'] = () => {
-                            console.log('删除');
+                        videoContextMenu.items['删除'] = async () => {
+                            console.log(`删除视频: ${this.getAttribute('src')}`);
+                            
+                            // 彻底关闭并释放视频资源
+                            const videoElement = this.shadowRoot.querySelector('#video-element');
+                            
+                            // 1. 暂停视频播放
+                            videoElement.pause();
+                            
+                            // 2. 清除视频源
+                            if (videoElement.srcObject) {
+                                videoElement.srcObject.getTracks().forEach(track => {
+                                    track.stop();
+                                });
+                                videoElement.srcObject = null;
+                            }
+                            
+                            // 3. 清空src属性并触发load事件以释放资源
+                            videoElement.src = '';
+                            videoElement.load();
+                            
+                            // 4. 短暂延迟确保资源释放
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            
+                            // 5. 从DOM中移除视频元素
+                            videoElement.remove();
+                            
+                            // 6. 调用WebDAV API删除文件
+                            try {
+                                await WebdavApi.deleteFile(this.getAttribute('src'));
+                                console.log('视频删除成功');
+                            } catch (error) {
+                                console.error('视频删除失败:', error);
+                            }
                         };
                     }
                     console.log(profile);

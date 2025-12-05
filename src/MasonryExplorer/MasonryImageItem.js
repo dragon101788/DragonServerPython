@@ -141,7 +141,7 @@ export class MasonryImageItem extends MasonryBaseModal {
                 <button class="nav-btn prev-btn">&lt;</button>
                 <button class="close-btn">&times;</button>
                 <div class="loading-indicator">加载中...</div>
-                <img id="modal-image" src="${MasonryView.getFileUrl(this.item.path)}" alt="查看图片">
+                <img id="modal-image" src="${this.item.path}" alt="查看图片">
                 <button class="nav-btn next-btn">&gt;</button>
                 <div class="image-counter" id="modal-counter">${this.getCurrentIndex()}/${this.getCounter()}</div>
             </div>

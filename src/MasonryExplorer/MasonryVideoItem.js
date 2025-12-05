@@ -71,7 +71,7 @@ export class MasonryVideoItem extends MasonryBaseModal {
     
     doPlay(){        
         VideoModal.open({
-            videoUrl: `${MasonryView.getFileUrl(this.item.path)}`
+            videoUrl: `${this.item.path}`
         })
     }
 }

@@ -143,9 +143,6 @@ export class MasonryView extends HTMLElement {
         }
     }
     
-    static getFileUrl(path){
-        return WebdavApi.serverUrl + encodeURIComponent(path);
-    }
     getBaseWidth(){
         const container = this.shadowRoot.getElementById('masonry-container');
         return container.clientWidth / this.columnCount;
