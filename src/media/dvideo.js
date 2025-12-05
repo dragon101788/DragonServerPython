@@ -242,7 +242,6 @@ export class DVideo extends HTMLElement {
         this._volumeBtn = this.shadowRoot.querySelectorAll('#volume-btn');
         this._volumeBarContainer = this.shadowRoot.getElementById('volume-bar-container');
         this._volumeBar = this.shadowRoot.getElementById('volume-bar');
-        this._fullscreenBtn = this.shadowRoot.querySelectorAll('#fullscreen-btn');
 
         // 绑定事件
         this._bindEvents();
@@ -257,33 +256,29 @@ export class DVideo extends HTMLElement {
     _bindEvents() {
         const videoContextMenu = this.shadowRoot.getElementById('video-context-menu');
         if (videoContextMenu) {
-            videoContextMenu.innerHTML = `
-                <div id="play-pause-btn">播放/暂停</div>
-                <div id="volume-btn">静音/取消静音</div>
-                <div id="fullscreen-btn">全屏/退出全屏</div>
-            `;
+            videoContextMenu.items = {
+                '播放/暂停' : () => {
+                    this._togglePlayPause();
+                },
+                '全屏' : () => {
+                    this._toggleFullscreen();
+                },
+                '静音/取消静音' : () => {
+                    this._toggleMute();
+                },
+            };
+            if (AccountManager.isInitialized()) {
+                AccountManager.get_profile().then((profile) => {
+                    if (profile.role.includes('Admin')) {
+                        videoContextMenu.items['删除'] = () => {
+                            console.log('删除');
+                        };
+                    }
+                    console.log(profile);
+                });
+            }
         }
-        // this.contextmenu = {
-        //     '播放/暂停' : () => {
-        //             this._togglePlayPause();
-        //         },
-        //         '全屏' : () => {
-        //             this._toggleFullscreen();
-        //         },
-        //         '静音/取消静音' : () => {
-        //             this._toggleMute();
-        //         },
-        // }
-        // if (AccountManager.isInitialized()) {
-        //     AccountManager.get_profile().then((profile) => {
-        //         if (profile.role.includes('Admin')) {
-        //             this.contextmenu['删除'] = () => {
-        //                 console.log('删除');
-        //             };
-        //         }
-        //         console.log(profile);
-        //     });
-        // }
+        
         // 监听视频错误事件
         this._videoElement.addEventListener('error', () => {
             console.error('视频播放错误:', this._videoElement.error);
@@ -439,30 +434,15 @@ export class DVideo extends HTMLElement {
             this._onWheelVolumeChange(e);
         });
 
+        const fullscreenBtns = this.shadowRoot.querySelectorAll('#fullscreen-btn');
         // 全屏事件
-        this._fullscreenBtn.forEach((btn) => {
+        fullscreenBtns.forEach((btn) => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation(); // 阻止事件冒泡到容器，避免与容器的单击事件冲突
                 this._toggleFullscreen();
             });
         });
 
-        // 监听全屏变化
-        document.addEventListener('fullscreenchange', () => {
-            this._updateFullscreenIcon();
-        });
-
-        document.addEventListener('webkitfullscreenchange', () => {
-            this._updateFullscreenIcon();
-        });
-
-        document.addEventListener('mozfullscreenchange', () => {
-            this._updateFullscreenIcon();
-        });
-
-        document.addEventListener('msfullscreenchange', () => {
-            this._updateFullscreenIcon();
-        });
     }
 
     _togglePlayPause() {
@@ -630,18 +610,6 @@ export class DVideo extends HTMLElement {
             });
         } else {
             document.exitFullscreen();
-        }
-    }
-
-    _updateFullscreenIcon() {
-        if (document.fullscreenElement) {
-            this._fullscreenBtn.forEach((btn) => {
-                btn.textContent = '⛶';
-            });
-        } else {
-            this._fullscreenBtn.forEach((btn) => {
-                btn.textContent = '⛶';
-            });
         }
     }
     

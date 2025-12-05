@@ -1,21 +1,26 @@
 /*
 使用示例1: 通过静态方法快速创建
-menuItems = {}
-menuItems['-----------------'] = null;
-menuItems['>其他'] = {
+const menuItems = {
+    '-----------------' : null, // 分隔符
     '分享链接' : () => {
         console.log('分享链接');
     },
-    '删除' : () => {
-        console.log('删除');
+    '>其他' : {
+        '删除' : () => {
+            console.log('删除');
+        },
+        '重命名' : () => {
+            console.log('重命名');
+        },
+        '-----------------' : null, // 子菜单中的分隔符
+        '属性' : () => {
+            console.log('查看属性');
+        }
     },
-    '重命名' : () => {
-        console.log('重命名');
-    },
-};
-menuItems['转码'] = () => {
-    console.log('转码');
-    MainDisplay.openWebSite("/ffmpeg/index.html");
+    '转码' : () => {
+        console.log('转码');
+        MainDisplay.openWebSite("/ffmpeg/index.html");
+    }
 };
 ContextMenu.open(100, 100, menuItems);
 
@@ -36,6 +41,40 @@ document.getElementById('myMenu').show(100, 100);
 document.getElementById('deleteItem').addEventListener('click', () => {
     console.log('执行删除操作');
 });
+
+使用示例3: 通过items属性设置菜单项
+const myMenu = document.getElementById('myMenu');
+myMenu.items = {
+    '打开' : () => {
+        console.log('打开文件');
+    },
+    '保存' : () => {
+        console.log('保存文件');
+    },
+    '>编辑' : {
+        '复制' : () => {
+            console.log('复制');
+        },
+        '粘贴' : () => {
+            console.log('粘贴');
+        }
+    }
+};
+myMenu.show(200, 200);
+
+使用示例4: 在视频播放器中使用
+// 假设已经有一个videoContextMenu对象
+videoContextMenu.items = {
+    '播放/暂停' : () => {
+        videoPlayer._togglePlayPause();
+    },
+    '全屏' : () => {
+        videoPlayer._toggleFullscreen();
+    },
+    '静音/取消静音' : () => {
+        videoPlayer._toggleMute();
+    }
+};
 */
 
 export class ContextMenu extends HTMLElement {
@@ -49,6 +88,7 @@ export class ContextMenu extends HTMLElement {
         this.isVisible = false;
         this.menuElement = null;
         this.mouseMoveListener = null;
+        this.items = {};
     }
     
     connectedCallback() {
@@ -111,8 +151,6 @@ export class ContextMenu extends HTMLElement {
             return;
         }
         
-        // 清空目标元素
-        targetElement.innerHTML = '';
         
         // 遍历源元素的子元素
         Array.from(sourceElement.children).forEach(child => {
@@ -203,8 +241,13 @@ export class ContextMenu extends HTMLElement {
         // 关闭其他菜单
         // ContextMenu.close();
         
-        // 解析子元素
+        
+        // 清空目标元素
+        this.menuElement.innerHTML = '';
+
+        // 只有在没有通过setItems设置内容时，才解析HTML子元素
         this.parseMenuItems(this, this.menuElement);
+        this.setItems(this.items)
         // 先临时显示菜单以获取正确的尺寸
         this.menuElement.style.display = 'block';
         
@@ -305,17 +348,8 @@ export class ContextMenu extends HTMLElement {
         }
     }
     
-    // 静态方法：通过JavaScript对象快速创建并打开菜单
-    static open(x, y, menuItems) {
-        // 创建临时ContextMenu元素
-        const contextMenu = document.createElement('context-menu');
-        contextMenu.classList.add('temp-context-menu'); // 添加临时标记
-        document.body.appendChild(contextMenu);
-        
-        // 创建菜单内容
-        const menuContainer = contextMenu.shadowRoot.querySelector('.context-menu');
-        menuContainer.innerHTML = '';
-        
+    
+    setItems(items) {
         // 递归创建菜单项
         function createMenuItems(items, container) {
             Object.entries(items).forEach(([label, action]) => {
@@ -374,7 +408,22 @@ export class ContextMenu extends HTMLElement {
         }
         
         // 调用递归函数创建菜单
-        createMenuItems(menuItems, menuContainer);
+        createMenuItems(items, this.menuElement);
+    }
+    // 静态方法：通过JavaScript对象快速创建并打开菜单
+    static open(x, y, menuItems) {
+        // 创建临时ContextMenu元素
+        const contextMenu = document.createElement('context-menu');
+        contextMenu.classList.add('temp-context-menu'); // 添加临时标记
+        document.body.appendChild(contextMenu);
+        
+        // 确保菜单元素已初始化
+        if (!contextMenu.menuElement) {
+            contextMenu.createMenuFromHTML();
+        }
+        
+        // 使用setItems方法创建菜单内容
+        contextMenu.items = menuItems;
         
         // 显示菜单
         contextMenu.show(x, y);
