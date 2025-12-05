@@ -473,28 +473,41 @@ export class DVideo extends HTMLElement {
 
         // 用户操作检测事件（重置控制栏隐藏定时器）
         const container = this.shadowRoot.querySelector('.video-container');
-        container.addEventListener('mousemove', () => {
-            this._resetHideControlsTimer();
+        container.addEventListener('mousemove', (e) => {
+            // 检查是否在控制区域内
+                this._resetHideControlsTimer();
         });
 
-        container.addEventListener('click', () => {
-            this._resetHideControlsTimer();
-            // 鼠标单击暂停/播放
-            this._togglePlayPause();
+        container.addEventListener('click', (e) => {
+            // 检查是否在控制区域内
+            const isControlArea = e.target.closest('.controls, .loading, .error, .pause-icon');
+            if (!isControlArea) {
+                this._resetHideControlsTimer();
+                // 鼠标单击暂停/播放
+                this._togglePlayPause();
+            }
         });
 
-        container.addEventListener('dblclick', () => {
-            // 鼠标双击全屏
-            this._toggleFullscreen();
+        container.addEventListener('dblclick', (e) => {
+            // 检查是否在控制区域内
+            const isControlArea = e.target.closest('.controls, .loading, .error, .pause-icon');
+            if (!isControlArea) {
+                // 鼠标双击全屏
+                this._toggleFullscreen();
+            }
         });
         
         container.addEventListener('contextmenu', (e) => {
             e.preventDefault();
 
-            //换算成当前容器的坐标
-            const x = e.clientX - container.getBoundingClientRect().left;
-            const y = e.clientY - container.getBoundingClientRect().top;
-            container.querySelector('#video-context-menu').show(x, y);
+            // 检查是否在控制区域内
+            const isControlArea = e.target.closest('.controls, .loading, .error, .pause-icon');
+            if (!isControlArea) {
+                //换算成当前容器的坐标
+                const x = e.clientX - container.getBoundingClientRect().left;
+                const y = e.clientY - container.getBoundingClientRect().top;
+                container.querySelector('#video-context-menu').show(x, y);
+            }
         });
 
         // 音量控制事件
