@@ -252,6 +252,12 @@ export class SidebarBrowers extends HTMLElement {
         
         // 在document上监听事件，确保与WebdavAdapter兼容
         document.addEventListener('WebdavChdir', this.chdirEventListener);
+
+        this.flushEventListener = (event) => {
+            this.loadDirectory(this.currentPath);
+        }
+        document.addEventListener('WebdavFlush', this.flushEventListener);
+
         this.shadowRoot.getElementById('directory-list').addEventListener('click', async (event) => {
             const itemElement = event.target.closest('.directory-item, .file-item');
             if (itemElement) {

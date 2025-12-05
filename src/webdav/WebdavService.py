@@ -780,7 +780,7 @@ async def do_DELETE(request: Request, path: str):
             shutil.rmtree(full_path)
         else:
             os.remove(full_path)
-        remove_cache(full_path, size)
+        remove_cache(full_path)
         
         return Response(status_code=204)
     except Exception as e:

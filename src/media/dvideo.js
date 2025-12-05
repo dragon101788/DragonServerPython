@@ -253,7 +253,31 @@ export class DVideo extends HTMLElement {
         this._updateVolumeBar();
         this._updateVolumeIcon();
     }
-
+    async _closeVideo(){
+         // 彻底关闭并释放视频资源
+        const videoElement = this.shadowRoot.querySelector('#video-element');
+        
+        // 1. 暂停视频播放
+        videoElement.pause();
+        
+        // 2. 清除视频源
+        if (videoElement.srcObject) {
+            videoElement.srcObject.getTracks().forEach(track => {
+                track.stop();
+            });
+            videoElement.srcObject = null;
+        }
+        
+        // 3. 清空src属性并触发load事件以释放资源
+        videoElement.src = '';
+        videoElement.load();
+        
+        // 4. 短暂延迟确保资源释放
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // 5. 从DOM中移除视频元素
+        videoElement.remove();
+    }
     _bindEvents() {
         const videoContextMenu = this.shadowRoot.getElementById('video-context-menu');
         if (videoContextMenu) {
@@ -275,37 +299,17 @@ export class DVideo extends HTMLElement {
                         videoContextMenu.items['删除'] = async () => {
                             console.log(`删除视频: ${this.getAttribute('src')}`);
                             
-                            // 彻底关闭并释放视频资源
-                            const videoElement = this.shadowRoot.querySelector('#video-element');
-                            
-                            // 1. 暂停视频播放
-                            videoElement.pause();
-                            
-                            // 2. 清除视频源
-                            if (videoElement.srcObject) {
-                                videoElement.srcObject.getTracks().forEach(track => {
-                                    track.stop();
-                                });
-                                videoElement.srcObject = null;
-                            }
-                            
-                            // 3. 清空src属性并触发load事件以释放资源
-                            videoElement.src = '';
-                            videoElement.load();
-                            
-                            // 4. 短暂延迟确保资源释放
-                            await new Promise(resolve => setTimeout(resolve, 100));
-                            
-                            // 5. 从DOM中移除视频元素
-                            videoElement.remove();
-                            
-                            // 6. 调用WebDAV API删除文件
+                            await this._closeVideo();
                             try {
                                 await WebdavApi.deleteFile(this.getAttribute('src'));
                                 console.log('视频删除成功');
                             } catch (error) {
                                 console.error('视频删除失败:', error);
                             }
+
+                            this.dispatchEvent(new CustomEvent('close'));
+
+                            document.dispatchEvent(new CustomEvent('WebdavFlush'));
                         };
                     }
                     console.log(profile);
@@ -837,7 +841,7 @@ class VideoModal extends BaseModal {
                     <span class="close">&times;</span>
                     <div class="form-group">
                         <div class="video-container">
-                            <d-video controls autoplay src="${videoUrl}">
+                            <d-video controls autoplay src="${videoUrl}" id="videoElement">
                                 <source src="${videoUrl}" type="video/mp4">
                                 您的浏览器不支持HTML5视频播放。
                             </d-video>
@@ -847,6 +851,11 @@ class VideoModal extends BaseModal {
             </div>
         `;
         this.shadowRoot.innerHTML += html;
+        const videoElement = this.shadowRoot.querySelector('#videoElement');
+        videoElement.addEventListener('close', () => {
+            console.log('关闭视频元素');
+            this.close();
+        });
     }
 
     setupEventListeners() {
