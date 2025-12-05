@@ -434,7 +434,9 @@ export class FFmpegListComponent extends HTMLElement {
         const confirmBtn = taskElement.querySelector('.confirm-btn');
         confirmBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // 阻止事件冒泡
-            this._playVideo(task);
+            VideoModal.open({
+                videoUrl: task.output_vir_path,
+            });
         });
         
         // 添加已确认按钮事件
@@ -536,21 +538,6 @@ export class FFmpegListComponent extends HTMLElement {
         return colorMap[status] || "#666";
     }
     
-    // 播放视频
-    _playVideo(task) {
-        const videoUrl = encodeURIComponent(task.output_vir_path);
-        const host = window.location.hostname;
-        const port = window.location.port;
-        const videoUrlWithHost = `http://${host}:${port}/${videoUrl}`;
-        
-        if (videoUrl) {
-            VideoModal.open({
-                videoUrl: videoUrlWithHost,
-            });
-        } else {
-            console.warn("无法播放视频：缺少输出路径");
-        }
-    }
 }
 
 // 定义自定义元素
