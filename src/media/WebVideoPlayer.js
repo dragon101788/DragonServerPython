@@ -42,58 +42,6 @@ export class WebVideoPlayer extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
-
-        // 使用iframe实现完整的HTML文档环境，支持脚本执行
-        this.shadowRoot.innerHTML = /*html*/`
-            <style>
-                :host {
-                    display: block;
-                    width: 100%;
-                    height: 100%;
-                    position: relative;
-                }
-                #html-frame {
-                    width: 100%;
-                    height: 100%;
-                    border: none;
-                }
-                .loading-container {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background-color: rgba(255, 255, 255, 0.8);
-                    z-index: 10;
-                }
-                .loading {
-                    color: #666;
-                    font-size: 14px;
-                }
-                .error {
-                    color: #ff0000;
-                    font-size: 14px;
-                }
-
-            </style>
-            <div class="loading-container">
-                <div class="loading">加载中...</div>
-            </div>
-
-            <iframe id="html-frame"></iframe>
-        `;
-
-        this.iframe = this.shadowRoot.getElementById('html-frame');
-        this.loadingContainer = this.shadowRoot.querySelector('.loading-container');
-        this.loadingMessage = this.shadowRoot.querySelector('.loading');
-        
-
-        this.iframe.addEventListener('error', () => {
-            this.handleVideoError();
-        });
     }
 
     
@@ -119,10 +67,22 @@ export class WebVideoPlayer extends HTMLElement {
             `;
         }
     }
+    async render(){
+        const src = this.getAttribute('src');
+        
+        // 如果没有设置path属性，将src作为path
+        if (!this.hasAttribute('path')) {
+            this.setAttribute('path', src);
+        }
 
+        this.shadowRoot.innerHTML = /*html*/`
+            <d-video id="video-player" preload="auto" autoplay src="${src}" type="video/mp4"></d-video>
+        `;
+        
+    }
     async connectedCallback() {
         
-        await this.loadHtmlContent();
+        await this.render();
         
         // 添加键盘快捷键支持
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -280,21 +240,7 @@ export class WebVideoPlayer extends HTMLElement {
         }
     }
     
-    // 导航到指定视频
-    navigateToVideo(videoPath) {
-        // 设置新的视频路径
-        this.setAttribute('src', videoPath);
-        this.setAttribute('path', videoPath);
-        
-        // 加载新视频
-        this.loadHtmlContent();
-    }
     
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (oldValue !== newValue) {
-            this.loadHtmlContent();
-        }
-    }
     static async createPropertiesPage(item){
         const info = await FFmpeg.get_media_info(item.path);
         console.log(info);
@@ -410,33 +356,6 @@ export class WebVideoPlayer extends HTMLElement {
         return properties_page;
     }
   
-    async loadHtmlContent() {
-        const src = this.getAttribute('src');
-        
-        // 如果没有设置path属性，将src作为path
-        if (!this.hasAttribute('path')) {
-            this.setAttribute('path', src);
-        }
-
-        // 显示加载状态
-        this.loadingContainer.style.display = 'flex';
-        this.loadingMessage.textContent = '加载中...';
-        this.loadingMessage.className = 'loading';
-
-        const token = await AccountManager.getToken();
-        //传递search参数
-        const searchParams = new URLSearchParams({
-            src: src,
-            token: token,
-        });
-        this.url = "/media/index.html?" + searchParams.toString();
-
-        
-        // 通过URL加载完整网页
-        this.iframe.src = this.url;
-
-        this.loadingContainer.style.display = 'none';
-    }
     
 }
 

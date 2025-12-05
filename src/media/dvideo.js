@@ -267,7 +267,8 @@ export class DVideo extends HTMLElement {
                     this._toggleMute();
                 },
             };
-            if (AccountManager.isInitialized()) {
+            const browser = document.querySelector('sidebar-browers');
+            if (browser && AccountManager.isInitialized()) {
                 AccountManager.get_profile().then((profile) => {
                     if (profile.role.includes('Admin')) {
                         videoContextMenu.items['删除'] = () => {
