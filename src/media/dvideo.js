@@ -2,6 +2,8 @@
 import {ContextMenu} from '/ContextMenu.js';
 import { AccountManager } from '/AccountManager.js';
 import { WebdavApi } from '/webdav/WebdavApi.js';
+import { WebdavAdapter } from '/webdav/WebdavAdapter.js';
+import { HTMLElementModal } from '/BaseModal.js';
 
 export class DVideo extends HTMLElement {
     constructor() {
@@ -194,6 +196,28 @@ export class DVideo extends HTMLElement {
                 .fullscreen-btn {
                     font-size: 18px;
                 }
+                
+                /* 暂停图标样式 */
+                .pause-icon {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    display: none;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    border-radius: 50%;
+                    padding: 15px;
+                    z-index: 999;
+                    pointer-events: none;
+                }
+                
+                .pause-icon svg {
+                    filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+                }
+                
+                .pause-icon.visible {
+                    display: block;
+                }
             </style>
 
             <div class="video-container">
@@ -204,6 +228,13 @@ export class DVideo extends HTMLElement {
                 
                 <!-- 错误提示 -->
                 <div class="error">视频加载失败，请稍后重试</div>
+                <!-- 暂停图标 -->
+                <div class="pause-icon" id="pause-icon">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="4" width="4" height="16"/>
+                        <rect x="14" y="4" width="4" height="16"/>
+                    </svg>
+                </div>
                 <div class="controls">
                     <div class="progress-container" id="progress-container">
                         <div class="progress-bar" id="progress-bar"></div>
@@ -311,6 +342,19 @@ export class DVideo extends HTMLElement {
 
                             document.dispatchEvent(new CustomEvent('WebdavFlush'));
                         };
+                        videoContextMenu.items['属性'] = async () => {
+                            const items = await WebdavApi.getItems(this.getAttribute('src'));
+                            if(items.length === 0){
+                                console.error('获取视频属性失败: 视频不存在');
+                                return;
+                            }
+                            const propertyElement = await WebdavAdapter.getProperty(items[0]);
+                            HTMLElementModal.open({
+                                html: propertyElement,
+                                width: '80%',
+                                height: '90vh',
+                            });
+                        };
                     }
                     console.log(profile);
                 });
@@ -358,6 +402,11 @@ export class DVideo extends HTMLElement {
             this._playPauseBtn.forEach((btn) => {
                 btn.textContent = '⏸';
             });
+            // 隐藏暂停图标
+            const pauseIcon = this.shadowRoot.getElementById('pause-icon');
+            if (pauseIcon) {
+                pauseIcon.classList.remove('visible');
+            }
             this._resetHideControlsTimer();
         });
 
@@ -365,6 +414,11 @@ export class DVideo extends HTMLElement {
             this._playPauseBtn.forEach((btn) => {
                 btn.textContent = '▶';
             });
+            // 显示暂停图标
+            const pauseIcon = this.shadowRoot.getElementById('pause-icon');
+            if (pauseIcon) {
+                pauseIcon.classList.add('visible');
+            }
             this._showControls(); // 暂停时始终显示控制栏
         });
 
@@ -380,6 +434,11 @@ export class DVideo extends HTMLElement {
             this._playPauseBtn.forEach((btn) => {
                 btn.textContent = '▶';
             });
+            // 视频结束时显示暂停图标
+            const pauseIcon = this.shadowRoot.getElementById('pause-icon');
+            if (pauseIcon) {
+                pauseIcon.classList.add('visible');
+            }
             this._showControls(); // 结束时显示控制栏
         });
 

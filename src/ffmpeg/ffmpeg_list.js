@@ -1,5 +1,6 @@
-import { VideoModal,TextAreaDialog } from "/BaseModal.js";
+import { TextAreaDialog } from "/BaseModal.js";
 import { FFmpeg } from "./FFmpeg.js";
+import { VideoModal } from "/media/dvideo.js";
 
 
 

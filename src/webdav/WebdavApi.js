@@ -30,6 +30,12 @@ export class WebdavApi {
         }
         return await WebdavApi.static_self.getDirectoryContents(path);
     }
+    static async getItems(path) {
+        if(WebdavApi.static_self === undefined){
+            await WebdavApi.init();
+        }
+        return await WebdavApi.static_self.getItems(path);
+    }
     static async Search(path,search) {
         if(WebdavApi.static_self === undefined){
             await WebdavApi.init();
@@ -127,7 +133,7 @@ export class WebdavApi {
             throw new Error('Failed to get directory contents:'+ error.message );
         }
     }
-    async getDirectoryContents(path) {
+    async getItems(path) {
         try {
 
             const encodedPath = encodeURIComponent(path);
@@ -156,6 +162,9 @@ export class WebdavApi {
             console.error('PROPFIND error:', error);
             throw new Error('Failed to get directory contents: ' + error.message );
         }
+    }
+    async getDirectoryContents(path) {
+       return await this.getItems(path);
     }
 
     async Search(path,search) {
@@ -517,7 +526,7 @@ export class WebdavApi {
             valueOf: function() { return dataUrl; }
         };
     }
-
+    
     async uploadFile(path, file, onProgress) {
         try {
             const encodedPath = encodeURIComponent(path);
