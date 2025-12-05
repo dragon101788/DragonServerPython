@@ -103,8 +103,6 @@ export class ContextMenu extends HTMLElement {
         
         this.menuElement = this.shadowRoot.querySelector('.context-menu');
         
-        // 解析子元素
-        this.parseMenuItems(this, this.menuElement);
     }
     
     parseMenuItems(sourceElement, targetElement) {
@@ -205,6 +203,8 @@ export class ContextMenu extends HTMLElement {
         // 关闭其他菜单
         // ContextMenu.close();
         
+        // 解析子元素
+        this.parseMenuItems(this, this.menuElement);
         // 先临时显示菜单以获取正确的尺寸
         this.menuElement.style.display = 'block';
         
