@@ -296,6 +296,22 @@ class SystemPanel extends HTMLElement {
                             display: true,
                             text: 'MB/s'
                         }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
                     }
                 },
                 animation: {
@@ -332,6 +348,22 @@ class SystemPanel extends HTMLElement {
                             display: true,
                             text: '百分比 (%)'
                         }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
                     }
                 },
                 animation: {
@@ -368,6 +400,22 @@ class SystemPanel extends HTMLElement {
                             display: true,
                             text: '百分比 (%)'
                         }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间'
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
                     }
                 },
                 animation: {
@@ -506,6 +554,16 @@ class SystemPanel extends HTMLElement {
                             maxRotation: 45,
                             minRotation: 45
                         }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
                     }
                 },
                 animation: {
