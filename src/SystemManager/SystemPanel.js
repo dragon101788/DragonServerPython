@@ -376,7 +376,7 @@ class SystemPanel extends HTMLElement {
             }
         });
 
-        // 24小时流量监控图表
+        // 24小时流量监控图表 - 推荐使用面积图（更适合展示时间序列趋势）
         const traffic24hCtx = this.shadowRoot.getElementById('24h-traffic-chart').getContext('2d');
         this.charts['24h-traffic'] = new Chart(traffic24hCtx, {
             type: 'line',
@@ -388,16 +388,18 @@ class SystemPanel extends HTMLElement {
                         data: [],
                         borderColor: 'rgb(54, 162, 235)',
                         backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                        tension: 0.3,
-                        fill: true
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
                     },
                     {
                         label: '上传流量',
                         data: [],
                         borderColor: 'rgb(255, 99, 132)',
                         backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                        tension: 0.3,
-                        fill: true
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
                     }
                 ]
             },
@@ -410,6 +412,16 @@ class SystemPanel extends HTMLElement {
                         title: {
                             display: true,
                             text: '流量'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                // 根据数值大小自动选择单位
+                                if (value >= 1024) {
+                                    return (value / 1024).toFixed(1) + ' GB';
+                                } else {
+                                    return value.toFixed(0) + ' MB';
+                                }
+                            }
                         }
                     },
                     x: {
@@ -423,8 +435,18 @@ class SystemPanel extends HTMLElement {
                         }
                     }
                 },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
                 animation: {
-                    duration: 500
+                    duration: 800
                 }
             }
         });
@@ -432,7 +454,7 @@ class SystemPanel extends HTMLElement {
         // 7天流量监控图表
         const traffic7dCtx = this.shadowRoot.getElementById('7d-traffic-chart').getContext('2d');
         this.charts['7d-traffic'] = new Chart(traffic7dCtx, {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: [],
                 datasets: [
@@ -440,7 +462,7 @@ class SystemPanel extends HTMLElement {
                         label: '下载流量',
                         data: [],
                         borderColor: 'rgb(54, 162, 235)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        backgroundColor: 'rgba(54, 163, 235, 0.5)',
                         tension: 0.3,
                         fill: true
                     },
@@ -448,7 +470,7 @@ class SystemPanel extends HTMLElement {
                         label: '上传流量',
                         data: [],
                         borderColor: 'rgb(255, 99, 132)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
                         tension: 0.3,
                         fill: true
                     }
@@ -463,6 +485,16 @@ class SystemPanel extends HTMLElement {
                         title: {
                             display: true,
                             text: '总流量'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                // 根据数值大小自动选择单位
+                                if (value >= 1024) {
+                                    return (value / 1024).toFixed(1) + ' GB';
+                                } else {
+                                    return value.toFixed(0) + ' MB';
+                                }
+                            }
                         }
                     },
                     x: {
