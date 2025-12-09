@@ -22,7 +22,9 @@ class SystemPanel extends HTMLElement {
 
     connectedCallback() {
         this.render();
-        this.initCharts();
+        this.initCharts().then(() => {
+            this.loadTrafficData();
+        });
 
         AccountManager.Interact("get_system_info", {}, (body) => {
             if (body.type === "system_info_list") {
@@ -35,6 +37,82 @@ class SystemPanel extends HTMLElement {
             }
         });
 
+    }
+
+    async loadTrafficData() {
+        try {
+            // 获取24小时流量数据（示例时间范围）
+            const flow_data = await AccountManager.Fetch("get_stage_flow_rate", {
+                start: "2025-12-08 15:00:00",
+                end: "2025-12-09 15:00:00"
+            });
+
+            // 处理24小时流量数据
+            this.update24hTrafficChart(flow_data);
+
+            // 获取7天流量数据（示例时间范围）
+            const week_flow_data = await AccountManager.Fetch("get_stage_flow_rate", {
+                start: "2025-12-02 00:00:00",
+                end: "2025-12-09 23:59:59"
+            });
+
+            // 处理7天流量数据（按天汇总）
+            this.update7dTrafficChart(week_flow_data);
+        } catch (error) {
+            console.error("加载流量数据失败:", error);
+        }
+    }
+
+    update24hTrafficChart(data) {
+        if (!data || !Array.isArray(data) || data.length === 0) return;
+
+        const labels = data.map(item => {
+            // 只显示小时:分钟
+            const time = new Date(item.time);
+            return `${time.getHours()}:00`;
+        });
+        const downloadData = data.map(item => item.download);
+        const uploadData = data.map(item => item.upload);
+
+        // 更新图表
+        this.charts['24h-traffic'].data.labels = labels;
+        this.charts['24h-traffic'].data.datasets[0].data = downloadData;
+        this.charts['24h-traffic'].data.datasets[1].data = uploadData;
+        this.charts['24h-traffic'].update();
+    }
+
+    update7dTrafficChart(data) {
+        if (!data || !Array.isArray(data) || data.length === 0) return;
+
+        // 按天汇总数据
+        const dailyData = {};
+        
+        data.forEach(item => {
+            // 获取日期部分（YYYY-MM-DD）
+            const date = item.time.split(' ')[0];
+            
+            if (!dailyData[date]) {
+                dailyData[date] = {
+                    download: 0,
+                    upload: 0
+                };
+            }
+            
+            dailyData[date].download += item.download;
+            dailyData[date].upload += item.upload;
+        });
+
+        // 转换为图表所需格式
+        const sortedDates = Object.keys(dailyData).sort();
+        const labels = sortedDates;
+        const downloadData = sortedDates.map(date => dailyData[date].download);
+        const uploadData = sortedDates.map(date => dailyData[date].upload);
+
+        // 更新图表
+        this.charts['7d-traffic'].data.labels = labels;
+        this.charts['7d-traffic'].data.datasets[0].data = downloadData;
+        this.charts['7d-traffic'].data.datasets[1].data = uploadData;
+        this.charts['7d-traffic'].update();
     }
     disconnectedCallback() {
     }
@@ -162,6 +240,14 @@ class SystemPanel extends HTMLElement {
                     <div class="chart-title">内存使用率监控</div>
                     <canvas id="memory-chart"></canvas>
                 </div>
+                <div class="chart-container">
+                    <div class="chart-title">24小时流量监控</div>
+                    <canvas id="24h-traffic-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">7天流量监控</div>
+                    <canvas id="7d-traffic-chart"></canvas>
+                </div>
             </div>
         </div>
         `;
@@ -286,6 +372,112 @@ class SystemPanel extends HTMLElement {
                 },
                 animation: {
                     duration: 0 // 禁用动画以提高性能
+                }
+            }
+        });
+
+        // 24小时流量监控图表
+        const traffic24hCtx = this.shadowRoot.getElementById('24h-traffic-chart').getContext('2d');
+        this.charts['24h-traffic'] = new Chart(traffic24hCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '下载流量',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '上传流量',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '流量'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '时间'
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                animation: {
+                    duration: 500
+                }
+            }
+        });
+
+        // 7天流量监控图表
+        const traffic7dCtx = this.shadowRoot.getElementById('7d-traffic-chart').getContext('2d');
+        this.charts['7d-traffic'] = new Chart(traffic7dCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '下载流量',
+                        data: [],
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: '上传流量',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '总流量'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '日期'
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                animation: {
+                    duration: 500
                 }
             }
         });

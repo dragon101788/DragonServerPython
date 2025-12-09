@@ -11,7 +11,8 @@ import timestamp
 import asyncio
 from urllib.parse import parse_qs
 import threading  # 导入 threading 模块
-from src.server_config import *    
+from src.server_config import *
+from datetime import datetime, timedelta
 
 
 
@@ -19,9 +20,11 @@ router = APIRouter()
 
 
 
-
 # 存储所有活跃的 WebSocket 连接
 active_connections: dict[WebSocket, asyncio.Queue] = {}
+
+# 流量数据存储文件路径
+TRAFFIC_DATA_FILE = "traffic_data.json"
 
 class SystemMonitor(threading.Thread):  # 继承 threading.Thread
     def get_instance():
@@ -45,7 +48,51 @@ class SystemMonitor(threading.Thread):  # 继承 threading.Thread
         self.prev_net_io = psutil.net_io_counters()
         self.prev_time = time.time()
         self.reboot = False;
+        
+        # 初始化流量数据
+        self.next_record_time = datetime.now().replace(minute=0, second=0, microsecond=0)  # 当前小时的开始时间
+        self.current_hour_download = 0
+        self.current_hour_upload = 0
     
+    def load_traffic_data(self):
+        """加载流量数据从JSON文件"""
+        try:
+            if os.path.exists(TRAFFIC_DATA_FILE):
+                with open(TRAFFIC_DATA_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            else:
+                return {}
+        except Exception as e:
+            return {}
+    
+    def save_traffic_data(self, traffic_data: dict):
+        """保存流量数据到JSON文件"""
+        try:
+            with open(TRAFFIC_DATA_FILE, "w", encoding="utf-8") as f:
+                json.dump(traffic_data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"Failed to save traffic data: {e}")
+    
+    def record_hourly_traffic(self):
+        """记录每小时流量数据"""
+        
+        
+        current_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
+        if current_hour > self.next_record_time :
+            time_str = current_hour.strftime("%Y-%m-%d %H:%M:%S")
+
+            traffic = self.load_traffic_data()
+            traffic[time_str] = {
+                "download": self.current_hour_download,
+                "upload": self.current_hour_upload
+            }
+            self.save_traffic_data(traffic)
+
+            # 重置当前小时的流量统计
+            self.current_hour_download = 0
+            self.current_hour_upload = 0
+            self.next_record_time = current_hour + timedelta(hours=1)
+
     def run(self):
         self.is_running = True
         app_start = time.time()
@@ -66,8 +113,18 @@ class SystemMonitor(threading.Thread):  # 继承 threading.Thread
             current_net_io = psutil.net_io_counters()
             current_time = time.time()
             elapsed_time = current_time - self.prev_time
-            upload_speed = round((current_net_io.bytes_sent - self.prev_net_io.bytes_sent) / elapsed_time / (1024 * 1024), 2)
-            download_speed = round((current_net_io.bytes_recv - self.prev_net_io.bytes_recv) / elapsed_time / (1024 * 1024), 2)
+            
+            # 计算当前周期的流量增量
+            download_bytes = current_net_io.bytes_recv - self.prev_net_io.bytes_recv
+            upload_bytes = current_net_io.bytes_sent - self.prev_net_io.bytes_sent
+            
+            # 添加到当前小时的总流量
+            self.current_hour_download += download_bytes
+            self.current_hour_upload += upload_bytes
+            
+            upload_speed = round(upload_bytes / elapsed_time / (1024 * 1024), 2)
+            download_speed = round(download_bytes / elapsed_time / (1024 * 1024), 2)
+            
             self.info["network_download"].append(download_speed)
             self.info["network_upload"].append(upload_speed)
             if len(self.info["network_download"]) > self.info["network_speed_sec_count"]:
@@ -76,6 +133,9 @@ class SystemMonitor(threading.Thread):  # 继承 threading.Thread
 
             self.prev_net_io = current_net_io
             self.prev_time = current_time
+
+            # 检查是否需要记录每小时流量
+            self.record_hourly_traffic()
 
             self.info_list.append(self.info)
             if len(self.info_list) > 60:
@@ -106,6 +166,70 @@ async def get_system_info_by_client(uws :UserWebsocket,body :dict):
             "type":"system_info",
             "data":system_monitor.info
         }}))
+
+@recv_messages("get_stage_flow_rate")
+async def get_stage_flow_rate(uws: UserWebsocket, body: dict):
+    """
+    获取指定时间段内的每小时流量数据
+    使用示例:
+    const flow_data =  await AccountManager.Fetch("get_stage_flow_rate", {
+        start: "2025-12-08 15:00:00",
+        end: "2025-12-09 15:00:00"
+    });
+    console.log(flow_data);`
+    返回格式如下:
+    {time: '2025-12-08 15:00:00', download: 14562, upload: 16462}
+    {time: '2025-12-08 16:00:00', download: 2170, upload: 312}
+    {time: '2025-12-08 17:00:00', download: 6435, upload: 1944}
+    {time: '2025-12-08 18:00:00', download: 10613, upload: 6486}
+    .....
+    """
+    callbackId = body.get("callbackId", "get_Stage_flow_rate")
+    start_time_str = body.get("start")
+    end_time_str = body.get("end")
+    
+    try:
+        # 解析时间字符串
+        start_time = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
+        end_time = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
+        
+        traffic_data = system_monitor.load_traffic_data()
+
+        result = []
+        
+        # 遍历流量数据，筛选出时间范围内的数据
+        for time_str, data in traffic_data.items():
+            try:
+                # 将时间字符串转换为datetime对象以便比较
+                current_time = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
+                # 检查是否在指定时间范围内
+                if start_time <= current_time <= end_time:
+                    # 格式化为指定的返回格式
+                    result.append({
+                        "time": time_str,
+                        "download": data.get("download", 0),
+                        "upload": data.get("upload", 0)
+                    })
+            except Exception as e:
+                # 跳过无效的时间格式或数据
+                continue
+        
+        # 按时间顺序排序
+        result.sort(key=lambda x: x["time"])
+        
+        # 返回结果
+        uws.put(json.dumps({
+            "tag": callbackId,
+            "body": result
+        }))
+    except Exception as e:
+        uws.put(json.dumps({
+            "tag": callbackId,
+            "body": {
+                "type": "error",
+                "message": f"Failed to get stage flow rate: {str(e)}"
+            }
+        }))
 
 @router.get("/api/get_system_info")
 async def get_system_info(request: Request):
