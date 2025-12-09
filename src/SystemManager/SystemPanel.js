@@ -233,12 +233,8 @@ class SystemPanel extends HTMLElement {
                     <canvas id="network-chart"></canvas>
                 </div>
                 <div class="chart-container">
-                    <div class="chart-title">CPU使用率监控</div>
-                    <canvas id="cpu-chart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-title">内存使用率监控</div>
-                    <canvas id="memory-chart"></canvas>
+                    <div class="chart-title">CPU & 内存使用率监控</div>
+                    <canvas id="cpu-memory-chart"></canvas>
                 </div>
                 <div class="chart-container">
                     <div class="chart-title">24小时流量监控</div>
@@ -274,6 +270,7 @@ class SystemPanel extends HTMLElement {
                         borderColor: 'rgb(54, 162, 235)',
                         backgroundColor: 'rgba(54, 162, 235, 0.1)',
                         tension: 0.1,
+                        pointRadius: 0,
                         fill: true
                     },
                     {
@@ -282,6 +279,7 @@ class SystemPanel extends HTMLElement {
                         borderColor: 'rgb(75, 192, 192)',
                         backgroundColor: 'rgba(75, 192, 192, 0.1)',
                         tension: 0.1,
+                        pointRadius: 0,
                         fill: true
                     }
                 ]
@@ -320,9 +318,9 @@ class SystemPanel extends HTMLElement {
             }
         });
 
-        // CPU使用率图表
-        const cpuCtx = this.shadowRoot.getElementById('cpu-chart').getContext('2d');
-        this.charts.cpu = new Chart(cpuCtx, {
+        // CPU和内存使用率合并图表
+        const cpuMemoryCtx = this.shadowRoot.getElementById('cpu-memory-chart').getContext('2d');
+        this.charts.cpuMemory = new Chart(cpuMemoryCtx, {
             type: 'line',
             data: {
                 labels: Array(this.maxDataPoints).fill(''),
@@ -330,62 +328,22 @@ class SystemPanel extends HTMLElement {
                     {
                         label: 'CPU使用率 (%)',
                         data: Array(this.maxDataPoints).fill(0),
-                        borderColor: 'rgb(255, 159, 64)',
-                        backgroundColor: 'rgba(255, 159, 64, 0.1)',
-                        tension: 0.1,
-                        fill: true
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: '百分比 (%)'
-                        }
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 0,
+                        yAxisID: 'y'
                     },
-                    x: {
-                        title: {
-                            display: true,
-                            text: '时间'
-                        }
-                    }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false
-                    }
-                },
-                animation: {
-                    duration: 0 // 禁用动画以提高性能
-                }
-            }
-        });
-
-        // 内存使用率图表
-        const memoryCtx = this.shadowRoot.getElementById('memory-chart').getContext('2d');
-        this.charts.memory = new Chart(memoryCtx, {
-            type: 'line',
-            data: {
-                labels: Array(this.maxDataPoints).fill(''),
-                datasets: [
                     {
                         label: '内存使用率 (%)',
                         data: Array(this.maxDataPoints).fill(0),
-                        borderColor: 'rgb(255, 99, 132)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                        tension: 0.1,
-                        fill: true
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 0,
+                        yAxisID: 'y1'
                     }
                 ]
             },
@@ -394,11 +352,31 @@ class SystemPanel extends HTMLElement {
                 maintainAspectRatio: false,
                 scales: {
                     y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
                         beginAtZero: true,
                         max: 100,
                         title: {
                             display: true,
-                            text: '百分比 (%)'
+                            text: 'CPU使用率 (%)'
+                        },
+                        grid: {
+                            drawOnChartArea: true,
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: false,
+                        position: 'left',
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: '内存使用率 (%)'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
                         }
                     },
                     x: {
@@ -629,16 +607,11 @@ class SystemPanel extends HTMLElement {
             this.charts.network.update('none');
         }
 
-        // 更新CPU使用率图表
-        if (this.charts.cpu) {
-            this.charts.cpu.data.datasets[0].data = [...this.dataHistory.cpu_usage];
-            this.charts.cpu.update('none');
-        }
-
-        // 更新内存使用率图表
-        if (this.charts.memory) {
-            this.charts.memory.data.datasets[0].data = [...this.dataHistory.memory_usage];
-            this.charts.memory.update('none');
+        // 更新CPU和内存使用率图表
+        if (this.charts.cpuMemory) {
+            this.charts.cpuMemory.data.datasets[0].data = [...this.dataHistory.cpu_usage];
+            this.charts.cpuMemory.data.datasets[1].data = [...this.dataHistory.memory_usage];
+            this.charts.cpuMemory.update('none');
         }
     }
 
