@@ -41,19 +41,39 @@ class SystemPanel extends HTMLElement {
 
     async loadTrafficData() {
         try {
-            // 获取24小时流量数据（示例时间范围）
+            // 获取当前时间
+            const now = new Date();
+            
+            // 格式化时间为YYYY-MM-DD HH:MM:SS格式
+            const formatDateTime = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            };
+            
+            // 获取24小时流量数据（当前时间的前24小时）
+            const end24h = now;
+            const start24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            
             const flow_data = await AccountManager.Fetch("get_stage_flow_rate", {
-                start: "2025-12-08 15:00:00",
-                end: "2025-12-09 15:00:00"
+                start: formatDateTime(start24h),
+                end: formatDateTime(end24h)
             });
 
             // 处理24小时流量数据
             this.update24hTrafficChart(flow_data);
 
-            // 获取7天流量数据（示例时间范围）
+            // 获取7天流量数据（当前时间的前7天）
+            const end7d = now;
+            const start7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
             const week_flow_data = await AccountManager.Fetch("get_stage_flow_rate", {
-                start: "2025-12-02 00:00:00",
-                end: "2025-12-09 23:59:59"
+                start: formatDateTime(start7d),
+                end: formatDateTime(end7d)
             });
 
             // 处理7天流量数据（按天汇总）
@@ -64,52 +84,74 @@ class SystemPanel extends HTMLElement {
     }
 
     update24hTrafficChart(data) {
-        if (!data || !Array.isArray(data) || data.length === 0) return;
-
-        const labels = data.map(item => {
-            // 只显示小时:分钟
-            const time = new Date(item.time);
-            return `${time.getHours()}:00`;
-        });
-        const downloadData = data.map(item => item.download);
-        const uploadData = data.map(item => item.upload);
+        // 创建24小时的完整时间标签（00:00到23:00）
+        const fullLabels = [];
+        for (let i = 0; i < 24; i++) {
+            fullLabels.push(`${i}:00`);
+        }
+        
+        // 将原始数据转换为小时映射
+        const dataMap = new Map();
+        if (data && Array.isArray(data)) {
+            data.forEach(item => {
+                const time = new Date(item.time);
+                const hour = time.getHours();
+                const hourLabel = `${hour}:00`;
+                dataMap.set(hourLabel, { download: item.download, upload: item.upload });
+            });
+        }
+        
+        // 填充数据，缺失的小时用0填充
+        const downloadData = fullLabels.map(label => dataMap.get(label)?.download || 0);
+        const uploadData = fullLabels.map(label => dataMap.get(label)?.upload || 0);
 
         // 更新图表
-        this.charts['24h-traffic'].data.labels = labels;
+        this.charts['24h-traffic'].data.labels = fullLabels;
         this.charts['24h-traffic'].data.datasets[0].data = downloadData;
         this.charts['24h-traffic'].data.datasets[1].data = uploadData;
         this.charts['24h-traffic'].update();
     }
 
     update7dTrafficChart(data) {
-        if (!data || !Array.isArray(data) || data.length === 0) return;
-
+        // 获取过去7天的完整日期列表
+        const fullLabels = [];
+        const today = new Date();
+        
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            fullLabels.push(`${year}-${month}-${day}`);
+        }
+        
         // 按天汇总数据
         const dailyData = {};
         
-        data.forEach(item => {
-            // 获取日期部分（YYYY-MM-DD）
-            const date = item.time.split(' ')[0];
-            
-            if (!dailyData[date]) {
-                dailyData[date] = {
-                    download: 0,
-                    upload: 0
-                };
-            }
-            
-            dailyData[date].download += item.download;
-            dailyData[date].upload += item.upload;
-        });
+        if (data && Array.isArray(data)) {
+            data.forEach(item => {
+                // 获取日期部分（YYYY-MM-DD）
+                const date = item.time.split(' ')[0];
+                
+                if (!dailyData[date]) {
+                    dailyData[date] = {
+                        download: 0,
+                        upload: 0
+                    };
+                }
+                
+                dailyData[date].download += item.download;
+                dailyData[date].upload += item.upload;
+            });
+        }
 
-        // 转换为图表所需格式
-        const sortedDates = Object.keys(dailyData).sort();
-        const labels = sortedDates;
-        const downloadData = sortedDates.map(date => dailyData[date].download);
-        const uploadData = sortedDates.map(date => dailyData[date].upload);
+        // 填充数据，缺失的日期用0填充
+        const downloadData = fullLabels.map(date => dailyData[date]?.download || 0);
+        const uploadData = fullLabels.map(date => dailyData[date]?.upload || 0);
 
         // 更新图表
-        this.charts['7d-traffic'].data.labels = labels;
+        this.charts['7d-traffic'].data.labels = fullLabels;
         this.charts['7d-traffic'].data.datasets[0].data = downloadData;
         this.charts['7d-traffic'].data.datasets[1].data = uploadData;
         this.charts['7d-traffic'].update();
