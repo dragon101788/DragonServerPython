@@ -84,29 +84,18 @@ class SystemPanel extends HTMLElement {
     }
 
     update24hTrafficChart(data) {
-        // 创建24小时的完整时间标签（00:00到23:00）
-        const fullLabels = [];
-        for (let i = 0; i < 24; i++) {
-            fullLabels.push(`${i}:00`);
-        }
-        
-        // 将原始数据转换为小时映射
-        const dataMap = new Map();
-        if (data && Array.isArray(data)) {
-            data.forEach(item => {
-                const time = new Date(item.time);
-                const hour = time.getHours();
-                const hourLabel = `${hour}:00`;
-                dataMap.set(hourLabel, { download: item.download, upload: item.upload });
-            });
-        }
-        
-        // 填充数据，缺失的小时用0填充
-        const downloadData = fullLabels.map(label => dataMap.get(label)?.download || 0);
-        const uploadData = fullLabels.map(label => dataMap.get(label)?.upload || 0);
+        if (!data || !Array.isArray(data) || data.length === 0) return;
+
+        const labels = data.map(item => {
+            // 只显示小时:分钟
+            const time = new Date(item.time);
+            return `${time.getHours()}:00`;
+        });
+        const downloadData = data.map(item => item.download);
+        const uploadData = data.map(item => item.upload);
 
         // 更新图表
-        this.charts['24h-traffic'].data.labels = fullLabels;
+        this.charts['24h-traffic'].data.labels = labels;
         this.charts['24h-traffic'].data.datasets[0].data = downloadData;
         this.charts['24h-traffic'].data.datasets[1].data = uploadData;
         this.charts['24h-traffic'].update();
