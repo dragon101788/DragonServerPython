@@ -16,8 +16,9 @@ export class FFmpeg {
         const body = await AccountManager.Fetch('ffmpeg_transcode', { 'input_file': path });
                 
         if (body.status === 'ok') {
+            console.log( `添加转码任务成功,任务名称:${path}`);
         } else {
-            alert(body.msg || '添加转码任务失败');
+            console.error(body.msg || '添加转码任务失败');
         }
     }
     static async mergerVideo(input_vir_path_list,output_vir_path){
