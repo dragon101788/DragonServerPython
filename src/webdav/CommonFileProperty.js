@@ -1,4 +1,6 @@
 import { WebdavApi } from '/webdav/WebdavApi.js';
+import { AccountManager } from '/AccountManager.js';
+import { shareItem } from '/webdav/lib/shareItem.js';
 
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
@@ -85,6 +87,18 @@ export async function commonWebdavProperty(item ) {
         });
         properties_page.querySelector('.file-details').appendChild(downloadButton);
     }
+
+    if (item.limits.includes('shared')) {
+        if (item.type == 'file') {
+            const shareButton = document.createElement('button');
+            shareButton.textContent = '共享';
+            shareButton.addEventListener('click', async () => {
+                await shareItem(item);
+            });
+            properties_page.querySelector('.file-details').appendChild(shareButton);
+        }
+    }
+
     
     const flushThumbnailBtn = properties_page.querySelector('#flush-thumbnail-btn');
     flushThumbnailBtn.addEventListener('click', async () => {

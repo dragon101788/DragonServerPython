@@ -1,4 +1,5 @@
 import { InputDialog, MessageDialog, FileSelectDialog, CopyToClipboardDialog } from '/BaseModal.js';
+import { shareItem } from '/webdav/lib/shareItem.js';
 import { ContextMenu } from '/ContextMenu.js';
 
 
@@ -95,6 +96,9 @@ export class SidebarBrowers extends HTMLElement {
             if (item.limits.includes('delete')  ) {
                 contextMenuList['重命名'] = () => { this.renameFile(item) };
                 contextMenuList['删除'] = () => { this.deleteFile(item.path) };
+                contextMenuList['共享'] = async () => { 
+                    await shareItem(item);
+                 };
             }
         }
 
@@ -107,6 +111,7 @@ export class SidebarBrowers extends HTMLElement {
                 }
             }));
         };
+
 
         // 合并外部上下文菜单项到当前菜单列表
         for (const [name, matcher] of Object.entries(SidebarBrowers.ExternalContextMenus)) {

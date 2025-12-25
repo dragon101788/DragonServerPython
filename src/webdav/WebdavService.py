@@ -469,7 +469,7 @@ class PropfindResponse:
                 prop.append(p2)
             if (len(ExternalRequest.findall(".//{DAV:}limits")) > 0):
                 p1 = ET.Element("{DAV:}limits");
-                limits = path_attribute(request, resource_path,"limits",["download", "upload", "delete"])
+                limits = path_attribute(request, resource_path,"limits",["download", "upload", "delete","shared"])
                 p1.text = json.dumps(limits)
                 prop.append(p1)
             

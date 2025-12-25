@@ -1,5 +1,5 @@
 // 基类 BaseModal
-class BaseModal extends HTMLElement {
+export class BaseModal extends HTMLElement {
     // 用于存储所有打开的模态框实例
     static openModals = [];
 
@@ -262,7 +262,6 @@ class BaseModal extends HTMLElement {
         modalsToClose.forEach(modal => modal.close());
     }
 }
-export { BaseModal };
 
 // 消息对话框
 class MessageDialog extends BaseModal {
