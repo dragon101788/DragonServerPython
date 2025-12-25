@@ -30,7 +30,7 @@ class ShareItemDialog extends BaseModal {
                     </div>
                     <div class="form-group">
                         <label for="shareExpire">分享期限 (小时):</label>
-                        <input type="number" id="shareExpire" min="1" max="87600" value="8760" style="margin-bottom: 15px;">
+                        <input type="number" id="shareExpire" min="1" max="99999999999999" value="8760" style="margin-bottom: 15px;">
                         <textarea id="copyText" readonly>${text}</textarea>
                     </div>
                     <div class="button-group">
@@ -58,13 +58,15 @@ class ShareItemDialog extends BaseModal {
             const host = window.location.host;
             const expires = parseInt(shareExpireInput.value);
             const token = await AccountManager.CreateShareToken(expires);
-            const url = protocol + "//" + host + this.item.path + "?token=" + token;
+            const itemPath = encodeURI(this.item.path);
+            const url = protocol + "//" + host + '/' + itemPath + "?token=" + token;
             textarea.value = url;
         };
         
         // 监听分享期限变化事件
         shareExpireInput.addEventListener('change', updateShareLink);
-        
+        updateShareLink();
+
         copyButton.addEventListener('click', async () => {
             try {
                 if (navigator.clipboard) {
@@ -90,19 +92,10 @@ class ShareItemDialog extends BaseModal {
 }
 
 export async function shareItem(item){
-    const protocol = window.location.protocol;
-    //获取当前域名
-    const host = window.location.host;
-    // 默认使用1年（8760小时）的分享期限
-    const expires = 999999;
-    const token = await AccountManager.CreateShareToken(expires);
-    const url = protocol + "//" + host  + item.path + "?token=" + token;
 
-    console.log("分享按钮点击",url);
     ShareItemDialog.open({
         title: `分享链接`,
         message: "",
-        text: `${url}`,
         item: item
     });
 }
