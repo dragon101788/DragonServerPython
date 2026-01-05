@@ -473,10 +473,14 @@ class SystemPanel extends HTMLElement {
                         ticks: {
                             callback: function(value) {
                                 // 根据数值大小自动选择单位
-                                if (value >= 1024) {
-                                    return (value / 1024).toFixed(1) + ' GB';
+                                if (value >= 1024 * 1024 * 1024) {
+                                    return (value / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+                                } else if (value >= 1024 * 1024) {
+                                    return (value / (1024 * 1024)).toFixed(1) + ' MB';
+                                } else if (value >= 1024) {
+                                    return (value / 1024).toFixed(1) + ' KB';
                                 } else {
-                                    return value.toFixed(0) + ' MB';
+                                    return value.toFixed(0) + ' Byte';
                                 }
                             }
                         }
@@ -546,10 +550,14 @@ class SystemPanel extends HTMLElement {
                         ticks: {
                             callback: function(value) {
                                 // 根据数值大小自动选择单位
-                                if (value >= 1024) {
-                                    return (value / 1024).toFixed(1) + ' GB';
+                                if (value >= 1024 * 1024 * 1024) {
+                                    return (value / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+                                } else if (value >= 1024 * 1024) {
+                                    return (value / (1024 * 1024)).toFixed(1) + ' MB';
+                                } else if (value >= 1024) {
+                                    return (value / 1024).toFixed(1) + ' KB';
                                 } else {
-                                    return value.toFixed(0) + ' MB';
+                                    return value.toFixed(0) + ' Byte';
                                 }
                             }
                         }
