@@ -91,7 +91,7 @@ class SystemPanel extends HTMLElement {
             const time = new Date(item.time);
             return `${time.getHours()}:00`;
         });
-        const downloadData = data.map(item => item.download);
+        const downloadData = data.map(item => item.download );
         const uploadData = data.map(item => item.upload);
 
         // 更新图表
@@ -473,12 +473,12 @@ class SystemPanel extends HTMLElement {
                         ticks: {
                             callback: function(value) {
                                 // 根据数值大小自动选择单位
-                                if (value >= 1024 * 1024 * 1024) {
-                                    return (value / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-                                } else if (value >= 1024 * 1024) {
-                                    return (value / (1024 * 1024)).toFixed(1) + ' MB';
-                                } else if (value >= 1024) {
-                                    return (value / 1024).toFixed(1) + ' KB';
+                                if (value >= 1000 * 1000 * 1000) {
+                                    return (value / (1000 * 1000 * 1000)).toFixed(1) + ' GB';
+                                } else if (value >= 1000 * 1000) {
+                                    return (value / (1000 * 1000)).toFixed(1) + ' MB';
+                                } else if (value >= 1000) {
+                                    return (value / 1000).toFixed(1) + ' KB';
                                 } else {
                                     return value.toFixed(0) + ' Byte';
                                 }
@@ -550,12 +550,12 @@ class SystemPanel extends HTMLElement {
                         ticks: {
                             callback: function(value) {
                                 // 根据数值大小自动选择单位
-                                if (value >= 1024 * 1024 * 1024) {
-                                    return (value / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-                                } else if (value >= 1024 * 1024) {
-                                    return (value / (1024 * 1024)).toFixed(1) + ' MB';
-                                } else if (value >= 1024) {
-                                    return (value / 1024).toFixed(1) + ' KB';
+                                if (value >= 1000 * 1000 * 1000) {
+                                    return (value / (1000 * 1000 * 1000)).toFixed(0) + ' GB';
+                                } else if (value >= 1000 * 1000) {
+                                    return (value / (1000 * 1000)).toFixed(0) + ' MB';
+                                } else if (value >= 1000) {
+                                    return (value / 1000).toFixed(0) + ' KB';
                                 } else {
                                     return value.toFixed(0) + ' Byte';
                                 }
