@@ -61,8 +61,10 @@ class SystemMonitor(threading.Thread):  # 继承 threading.Thread
                 with open(TRAFFIC_DATA_FILE, "r", encoding="utf-8") as f:
                     return json.load(f)
             else:
+                print("Traffic data file not found.")
                 return {}
         except Exception as e:
+            print(f"Failed to load traffic data: {e}")
             return {}
     
     def save_traffic_data(self, traffic_data: dict):
