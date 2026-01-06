@@ -328,11 +328,13 @@ def getFloderThumb(full_path, size=128):
         image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
         video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv'}
         
-        # 获取文件夹中的图片和视频文件
+        # 使用os.walk遍历文件夹及其子目录中的所有文件
         media_files = []
-        try:
-            for item in os.listdir(full_path):
-                item_path = os.path.join(full_path, item)
+        for root, dirs, files in os.walk(full_path):
+            # 对文件进行排序，确保顺序一致
+            files.sort()
+            for item in files:
+                item_path = os.path.join(root, item)
                 if os.path.isfile(item_path):
                     _, ext = os.path.splitext(item.lower())
                     if ext in image_extensions or ext in video_extensions:
@@ -340,9 +342,9 @@ def getFloderThumb(full_path, size=128):
                         # 最多取4个文件来创建缩略图网格
                         if len(media_files) >= 4:
                             break
-        except Exception:
-            # 如果无法读取文件夹内容，使用默认文件夹图标
-            pass
+            # 如果已经找到4个文件，停止遍历
+            if len(media_files) >= 4:
+                break
         
         # 创建组合缩略图
         if len(media_files) == 0:
