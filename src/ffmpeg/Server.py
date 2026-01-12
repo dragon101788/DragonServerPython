@@ -283,7 +283,12 @@ async def webdav_ffmpeg_transcode(uws :UserWebsocket,body :dict):
 
     def transcode_error_callback(self,error):
         self.status = "error"
-        self.error_message = str(error)
+        error_message = str(error)
+        #判断长度是否超过100k
+        if len(error_message) < 1024*100:
+            self.error_message = error_message
+        else:
+            self.error_message = f"error_message is too long, only keep 100k : {error_message[:1024*100]}"
         broadcast_update()
     transcode_task.error_callback = transcode_error_callback
 
@@ -369,7 +374,12 @@ async def webdav_ffmpeg_merger_video_list(uws :UserWebsocket,body :dict):
 
     def merger_error_callback(self,error):
         self.status = "error"
-        self.error_message = str(error)
+        error_message = str(error)
+        #判断长度是否超过100
+        if len(error_message) < 1024*100:
+            self.error_message = error_message
+        else:
+            self.error_message = f"error_message is too long, only keep 100k: {error_message[:1024*100]}"
         broadcast_update()
     merge_taskr.error_callback = merger_error_callback
     
