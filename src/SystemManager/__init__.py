@@ -54,24 +54,15 @@ class SystemMonitor(threading.Thread):  # 继承 threading.Thread
         self.current_hour_download = 0
         self.current_hour_upload = 0
     
-    def load_traffic_data(self):
-        """加载流量数据从JSON文件"""
-        try:
-            if os.path.exists(TRAFFIC_DATA_FILE):
-                with open(TRAFFIC_DATA_FILE, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            else:
-                print("Traffic data file not found.")
-                return {}
-        except Exception as e:
-            print(f"Failed to load traffic data: {e}")
-            return {}
     
-    def save_traffic_data(self, traffic_data: dict):
+    def save_traffic_data(self, file_path: str,traffic_data: dict):
         """保存流量数据到JSON文件"""
         try:
-            with open(TRAFFIC_DATA_FILE, "w", encoding="utf-8") as f:
-                json.dump(traffic_data, f, ensure_ascii=False, indent=2)
+            if not os.path.exists(os.path.dirname(file_path)):
+                os.makedirs(os.path.dirname(file_path))
+            if not os.path.exists(file_path):
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(traffic_data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Failed to save traffic data: {e}")
     
@@ -81,14 +72,13 @@ class SystemMonitor(threading.Thread):  # 继承 threading.Thread
         
         current_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
         if current_hour > self.next_record_time :
-            time_str = current_hour.strftime("%Y-%m-%d %H:%M:%S")
+            file_path = os.path.join("log", current_hour.strftime("traffic_%Y%m%d%H.json"))
 
-            traffic = self.load_traffic_data()
-            traffic[time_str] = {
+            traffic = {
                 "download": self.current_hour_download,
                 "upload": self.current_hour_upload
             }
-            self.save_traffic_data(traffic)
+            self.save_traffic_data(file_path,traffic)
 
             # 重置当前小时的流量统计
             self.current_hour_download = 0
@@ -195,25 +185,41 @@ async def get_stage_flow_rate(uws: UserWebsocket, body: dict):
         start_time = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
         end_time = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
         
-        traffic_data = system_monitor.load_traffic_data()
-
         result = []
         
-        # 遍历流量数据，筛选出时间范围内的数据
-        for time_str, data in traffic_data.items():
+        # 检查log目录是否存在
+        log_dir = os.path.join("log")
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        
+        # 获取log目录下所有符合traffic_*.json格式的文件
+        import glob
+        traffic_files = glob.glob(os.path.join(log_dir, "traffic_*.json"))
+        
+        # 遍历流量数据文件，筛选出时间范围内的数据
+        for file_path in traffic_files:
             try:
-                # 将时间字符串转换为datetime对象以便比较
-                current_time = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
+                # 从文件名中提取时间戳
+                filename = os.path.basename(file_path)
+                timestamp_str = filename.split("_")[1].split(".")[0]
+                
+                # 解析时间戳
+                file_time = datetime.strptime(timestamp_str, "%Y%m%d%H")
+                
                 # 检查是否在指定时间范围内
-                if start_time <= current_time <= end_time:
+                if start_time <= file_time <= end_time:
+                    # 读取文件内容
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    
                     # 格式化为指定的返回格式
                     result.append({
-                        "time": time_str,
+                        "time": file_time.strftime("%Y-%m-%d %H:%M:%S"),
                         "download": data.get("download", 0),
                         "upload": data.get("upload", 0)
                     })
             except Exception as e:
-                # 跳过无效的时间格式或数据
+                # 跳过无效的文件或数据
                 continue
         
         # 按时间顺序排序
