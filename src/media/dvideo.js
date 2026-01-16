@@ -759,19 +759,25 @@ export class DVideo extends HTMLElement {
     }
 
     connectedCallback() {
-        this.src = this.getAttribute('src');
+        this.src = this.getAttribute('src');//触发set src
         this._videoElement.type = this.getAttribute('type') || 'video/mp4';
         const autoPlay = this.getAttribute('autoplay') !== null;
         if (autoPlay) {
             this._videoElement.autoplay = true;
         }
-        console.log('视频元素已连接到 DOM',this.src);
     }
     // 属性访问器
     set src(value) {
+        console.log('设置视频源:', value);
         this.showLoading();
         this.hideError();
-        this._videoElement.src = value;
+        // 处理包含 # 符号的 URL
+        let processedValue = decodeURIComponent(value);
+        if (processedValue && processedValue.includes('#')) {
+            // 替换 # 为 %23，确保它被视为 URL 路径的一部分而不是片段标识符
+            processedValue = processedValue.replace(/#/g, '%23');
+        }
+        this._videoElement.src = processedValue;
         this._updateVideoInfo();
     }
 
