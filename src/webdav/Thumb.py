@@ -98,10 +98,13 @@ def remove_cache(full_path):
     cache_dir = os.path.join(Resource.get_executable_path(), 'cache')
     for size_dir in os.listdir(cache_dir):
         if size_dir.startswith("thumb"):
-            size = int(size_dir[5:])
-            cache_path = get_cache_path(full_path, size)
-            if os.path.exists(cache_path):
-                os.remove(cache_path)
+            try:
+                size = int(size_dir[5:])
+                cache_path = get_cache_path(full_path, size)
+                if os.path.exists(cache_path):
+                    os.remove(cache_path)
+            except Exception:
+                pass
 def getImageThumb(full_path, size=128):
     """
     生成图片文件的缩略图
