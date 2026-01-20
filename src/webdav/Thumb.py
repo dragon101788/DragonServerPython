@@ -331,8 +331,15 @@ def getFloderThumb(full_path, size=128):
         image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
         video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv'}
         
+        # 创建大的画布
+        combined_img = Image.new('RGB', (size, size), color=(240, 240, 240))
+        
+        # 用于存储成功处理的媒体文件
+        processed_files = []
+        max_files = 4
+        
         # 使用os.walk遍历文件夹及其子目录中的所有文件
-        media_files = []
+        # 持续寻找媒体文件，直到找到足够的可处理文件或遍历完所有文件
         for root, dirs, files in os.walk(full_path):
             # 对文件进行排序，确保顺序一致
             files.sort()
@@ -341,94 +348,92 @@ def getFloderThumb(full_path, size=128):
                 if os.path.isfile(item_path):
                     _, ext = os.path.splitext(item.lower())
                     if ext in image_extensions or ext in video_extensions:
-                        media_files.append((item_path, ext))
-                        # 最多取4个文件来创建缩略图网格
-                        if len(media_files) >= 4:
-                            break
-            # 如果已经找到4个文件，停止遍历
-            if len(media_files) >= 4:
+                        try:
+                            # 尝试获取缩略图 - 暂时使用size作为临时尺寸，后续会根据实际数量调整
+                            temp_size = size
+                            if ext in image_extensions:
+                                small_thumb = getImageThumb(item_path, temp_size)
+                            else:  # video
+                                small_thumb = getVideoThumb(item_path, temp_size)
+                            
+                            # 打开缩略图
+                            small_img = Image.open(small_thumb)
+                            
+                            # 添加到已处理文件列表
+                            processed_files.append((small_img, ext))
+                            
+                            # 如果已经处理了足够的文件，停止寻找
+                            if len(processed_files) >= max_files:
+                                break
+                        except Exception:
+                            # 如果无法处理当前文件，继续尝试下一个
+                            continue
+            
+            # 如果已经处理了足够的文件，停止遍历
+            if len(processed_files) >= max_files:
                 break
         
         # 创建组合缩略图
-        if len(media_files) == 0:
-            raise Exception(f"Folder don't contain any media files: {full_path}")
+        if len(processed_files) == 0:
+            raise Exception(f"Folder don't contain any media files that can be processed: {full_path}")
         else:
-            # 创建大的画布
-            combined_img = Image.new('RGB', (size, size), color=(240, 240, 240))
+            num_files = len(processed_files)
             
-            # 处理每个媒体文件并放置到网格中
-            num_files = min(4, len(media_files))
-            
-            for i, (file_path, ext) in enumerate(media_files):
-                if i >= 4:  # 最多处理4个文件
-                    break
-                
-                try:
-                    # 根据文件数量确定每个缩略图的尺寸和位置
-                    if num_files == 1:
-                        # 单个文件 - 填充整个画布
+            # 处理每个成功获取的媒体文件并放置到网格中
+            for i, (small_img, _) in enumerate(processed_files):
+                # 根据文件数量确定每个缩略图的尺寸和位置
+                if num_files == 1:
+                    # 单个文件 - 填充整个画布
+                    target_size = size
+                    x, y = 0, 0
+                elif num_files == 2:
+                    # 两个文件 - 左右排列，无白边
+                    target_size = size
+                    x = (i % 2) * size
+                    y = 0
+                elif num_files == 3:
+                    # 三个文件 - 上面一个大的，下面两个小的，无白边
+                    if i == 0:
+                        # 上面的大文件
                         target_size = size
                         x, y = 0, 0
-                    elif num_files == 2:
-                        # 两个文件 - 左右排列，无白边
-                        target_size = size
-                        x = (i % 2) * size
-                        y = 0
-                    elif num_files == 3:
-                        # 三个文件 - 上面一个大的，下面两个小的，无白边
-                        if i == 0:
-                            # 上面的大文件
-                            target_size = size
-                            x, y = 0, 0
-                        else:
-                            # 下面的小文件
-                            target_size = size // 2
-                            x = (i - 1) * target_size
-                            y = target_size
-                    else:  # num_files == 4
-                        # 四个文件 - 2x2网格，无白边
+                    else:
+                        # 下面的小文件
                         target_size = size // 2
-                        x = (i % 2) * target_size
-                        y = (i // 2) * target_size
-                    
-                    # 根据文件类型获取缩略图
-                    if ext in image_extensions:
-                        small_thumb = getImageThumb(file_path, target_size)
-                    else:  # video
-                        small_thumb = getVideoThumb(file_path, target_size)
-                    
-                    # 打开缩略图
-                    small_img = Image.open(small_thumb)
-                    
-                    # 裁剪图像以填满目标区域，保持宽高比
-                    img_width, img_height = small_img.size
-                    target_width, target_height = target_size, target_size
-                    
-                    # 计算裁剪区域以确保填充目标区域
-                    # 计算缩放比例
-                    scale = max(target_width / img_width, target_height / img_height)
-                    
-                    # 计算新的尺寸
-                    new_width = int(img_width * scale)
-                    new_height = int(img_height * scale)
-                    
-                    # 调整图像大小
-                    resized_img = small_img.resize((new_width, new_height), Image.LANCZOS)
-                    
-                    # 计算裁剪区域
-                    left = (new_width - target_width) // 2
-                    top = (new_height - target_height) // 2
-                    right = left + target_width
-                    bottom = top + target_height
-                    
-                    # 裁剪图像
-                    cropped_img = resized_img.crop((left, top, right, bottom))
-                    
-                    # 粘贴到组合图中，确保没有白边
-                    combined_img.paste(cropped_img, (x, y))
-                except Exception:
-                    # 如果无法处理某个文件，跳过
-                    pass
+                        x = (i - 1) * target_size
+                        y = target_size
+                else:  # num_files >= 4
+                    # 四个文件 - 2x2网格，无白边
+                    target_size = size // 2
+                    x = (i % 2) * target_size
+                    y = (i // 2) * target_size
+                
+                # 裁剪图像以填满目标区域，保持宽高比
+                img_width, img_height = small_img.size
+                target_width, target_height = target_size, target_size
+                
+                # 计算裁剪区域以确保填充目标区域
+                # 计算缩放比例
+                scale = max(target_width / img_width, target_height / img_height)
+                
+                # 计算新的尺寸
+                new_width = int(img_width * scale)
+                new_height = int(img_height * scale)
+                
+                # 调整图像大小
+                resized_img = small_img.resize((new_width, new_height), Image.LANCZOS)
+                
+                # 计算裁剪区域
+                left = (new_width - target_width) // 2
+                top = (new_height - target_height) // 2
+                right = left + target_width
+                bottom = top + target_height
+                
+                # 裁剪图像
+                cropped_img = resized_img.crop((left, top, right, bottom))
+                
+                # 粘贴到组合图中，确保没有白边
+                combined_img.paste(cropped_img, (x, y))
             
             # 保存组合图
             img_byte_arr = io.BytesIO()
