@@ -159,7 +159,7 @@ export class MasonryView extends HTMLElement {
         const floatingGoBackBtn = this.shadowRoot.getElementById('floating-goback');
         const container = this.shadowRoot.getElementById('masonry-container');
         const columnCount = this.columnCount || this.calculateColumnCount();
-        
+        const sidebarBrowers = document.querySelector('sidebar-browers');
         
         this.loadedItems = [];
         this.currentPage = 0;
@@ -201,6 +201,10 @@ export class MasonryView extends HTMLElement {
                     return;
                 }
                 if (item.path === path ) {
+                    if(sidebarBrowers!=null){
+                        //dragon:如果有边侧栏,不在view中显示back按钮
+                        return;
+                    }
                     item.path = getParentDir(path);
                     item.name = "返回上级目录";
                     item.contentType = 'directory';
