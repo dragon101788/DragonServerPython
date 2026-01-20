@@ -152,6 +152,7 @@ export class MasonryView extends HTMLElement {
         // 重置状态
         const contents =  await WebdavApi.getDirectoryContents(path);
 
+
         const container = this.shadowRoot.getElementById('masonry-container');
         const columnCount = this.columnCount || this.calculateColumnCount();
         
@@ -192,6 +193,9 @@ export class MasonryView extends HTMLElement {
                 if (item.path === path ) {
                     item.currentPath = path;
                     item.type = 'goback'
+                }
+                if (item.path === '/'){
+                    return;
                 }
                 const itemInstance = MasonryView.matchType(item);
                 if(itemInstance){
