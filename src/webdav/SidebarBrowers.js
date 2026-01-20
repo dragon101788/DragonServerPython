@@ -1,6 +1,8 @@
 import { InputDialog, MessageDialog, FileSelectDialog, CopyToClipboardDialog } from '/BaseModal.js';
 import { shareItem } from '/webdav/lib/shareItem.js';
 import { ContextMenu } from '/ContextMenu.js';
+import { searchFileDialog } from '/webdav/lib/searchFileDialog.js';
+
 
 
 //防止重复加载 /lib/video-js.min.css, 避免重复加载
@@ -182,7 +184,14 @@ export class SidebarBrowers extends HTMLElement {
         const item = this.items[path];
         
         
-        contextMenuList['搜索'] = () => { this.searchFile(this.currentPath) };
+        contextMenuList['搜索'] = async () => { 
+            const contents = await searchFileDialog(this.currentPath);
+            this.items = {};
+            for (const item of contents) {
+                this.items[item.path] = item;
+            }
+            this.flush();
+        };
 
         // 添加属性查看功能
         contextMenuList['属性'] = () => {
@@ -696,28 +705,6 @@ export class SidebarBrowers extends HTMLElement {
         }
     }
 
-    async searchFile(path) {
-        try {
-            InputDialog.open({
-                title: "搜索文件",
-                message: `模糊搜索文件名称`,
-                defaultValue: ""
-            }).addEventListener('confirm', async (e) => {
-                const name = e.detail.value;
-                const contents = await this.webdavApi.Search(path, `${name}`);
-                this.items = {};
-                for (const item of contents) {
-                    this.items[item.path] = item;
-                }
-                this.flush();
-            })
-
-            
-        } catch (error) {
-            console.error('Search file error:', error);
-            alert('Failed to search file: ' + error.message);
-        }
-    }
 
     createFileItem(item) {
         const icon = item.type === 'directory' ? '📁' : '📄';
