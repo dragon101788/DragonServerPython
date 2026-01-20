@@ -31,7 +31,6 @@
 
     const param = new URLSearchParams(window.location.search);
     const src = param.get('src');
-    const columnCount = param.get('columnCount');
     
     const mainWindow = new WebdavAdapter();
     document.body.appendChild(mainWindow);
@@ -39,6 +38,5 @@
     MasonryView.offset = src;
     const masonryView = new MasonryView();
     masonryView.setAttribute('path', src);
-    masonryView.setAttribute('column-count', columnCount);
     mainWindow.shadowRoot.replaceChildren(masonryView);
 </script>

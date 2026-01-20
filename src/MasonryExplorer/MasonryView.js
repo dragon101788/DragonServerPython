@@ -84,7 +84,6 @@ export class MasonryView extends HTMLElement {
                             const searchParams = new URLSearchParams({
                                 src: src,
                                 token: token,
-                                columnCount: this.columnCount || 3,
                             });
                             const url = protocol + "//" + host + "/MasonryExplorer/index.html?" + searchParams.toString();
 
@@ -147,15 +146,7 @@ export class MasonryView extends HTMLElement {
         const containerWidth = container.clientWidth || window.innerWidth;
         
         // 根据宽度设置不同的列数
-        if (containerWidth < 768) {
-            return 2; // 移动端
-        } else if (containerWidth < 1024) {
-            return 3; // 平板
-        } else if (containerWidth < 1440) {
-            return 4; // 桌面
-        } else {
-            return 5; // 大屏幕
-        }
+        return Math.floor(containerWidth / 512);
     }
     async loadWebdavDir(path){
         // 重置状态
