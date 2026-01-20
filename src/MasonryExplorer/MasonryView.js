@@ -64,9 +64,7 @@ export class MasonryView extends HTMLElement {
                         margin-right: 10px;
                     }
                 </style>
-                    <input type="number" id="column-count" value="3" min="1" max="10" step="1">
-                    <span>列</span>
-                <button id="share-button" class="align-left">分享</button>
+                    <button id="share-button" class="align-left">分享</button>
             `;
             topStatusBar.appendChild(topStatusBarSelf);
                 
@@ -86,7 +84,7 @@ export class MasonryView extends HTMLElement {
                             const searchParams = new URLSearchParams({
                                 src: src,
                                 token: token,
-                                columnCount: this.columnCount,
+                                columnCount: this.columnCount || 3,
                             });
                             const url = protocol + "//" + host + "/MasonryExplorer/index.html?" + searchParams.toString();
 
@@ -102,32 +100,12 @@ export class MasonryView extends HTMLElement {
                     });
                 }
                 
-                // 列数控制
-                const columnCountInput = topStatusBarSelf.querySelector('#column-count');
-
-                if (columnCountInput) {
-                    const updateLayout = async () => {
-                        // 更新UI控件的值
-                        const columnCountInput = document.querySelector('.top-status-bar-self #column-count');
-                        // 更新属性，这样会触发attributeChangedCallback
-                        this.setAttribute('column-count', columnCountInput.value);
-                        // 更新CSS变量
-                        this.shadowRoot.host.style.setProperty('--column-count', columnCountInput.value);
-                        // 重新渲染以应用新的布局
-                        await this.render();
-                        await this.flush();
-                    };
-
-                    // 初始设置 - 先检查是否有属性设置，如果没有则使用默认值
-                    const initialColumnCount = this.getAttribute('column-count') || columnCountInput.value;
-                    columnCountInput.value = initialColumnCount;
-                    this.setAttribute('column-count', initialColumnCount);
-                    
-                    // 监听输入变化
-                    columnCountInput.addEventListener('change', updateLayout);
-                }
         }
         this.setupEventListeners();
+        
+        // 添加窗口大小变化监听
+        this.handleResize = this.handleResize.bind(this);
+        window.addEventListener('resize', this.handleResize);
     }
     
     async disconnectedCallback() {
@@ -141,6 +119,9 @@ export class MasonryView extends HTMLElement {
             this.observer.disconnect();
             this.observer = null;
         }
+        
+        // 移除窗口大小变化监听
+        window.removeEventListener('resize', this.handleResize);
     }
     
     getBaseWidth(){
@@ -160,12 +141,28 @@ export class MasonryView extends HTMLElement {
         }
         return size;
     }
+    // 根据容器宽度自动计算列数
+    calculateColumnCount() {
+        const container = this.shadowRoot.getElementById('masonry-container') || this;
+        const containerWidth = container.clientWidth || window.innerWidth;
+        
+        // 根据宽度设置不同的列数
+        if (containerWidth < 768) {
+            return 2; // 移动端
+        } else if (containerWidth < 1024) {
+            return 3; // 平板
+        } else if (containerWidth < 1440) {
+            return 4; // 桌面
+        } else {
+            return 5; // 大屏幕
+        }
+    }
     async loadWebdavDir(path){
         // 重置状态
         const contents =  await WebdavApi.getDirectoryContents(path);
 
         const container = this.shadowRoot.getElementById('masonry-container');
-        const columnCount = parseInt(this.shadowRoot.host.style.getPropertyValue('--column-count')) || 3;
+        const columnCount = this.columnCount || this.calculateColumnCount();
         
         this.loadedItems = [];
         this.currentPage = 0;
@@ -238,7 +235,7 @@ export class MasonryView extends HTMLElement {
     }
     render() {
         
-        this.columnCount = this.getAttribute('column-count') || 3;
+        this.columnCount = this.calculateColumnCount();
 
         // 先渲染基本框架
         this.shadowRoot.innerHTML = `
@@ -402,6 +399,16 @@ export class MasonryView extends HTMLElement {
   
     
 
+    // 处理窗口大小变化
+    handleResize() {
+        const newColumnCount = this.calculateColumnCount();
+        if (newColumnCount !== this.columnCount) {
+            this.columnCount = newColumnCount;
+            this.shadowRoot.host.style.setProperty('--column-count', this.columnCount);
+            this.render();
+            this.flush();
+        }
+    }
     // 获取当前项目在数组中的索引
     getCurrentIndex() {
         const paths = Object.keys(this.allItems);
