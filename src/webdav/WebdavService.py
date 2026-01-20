@@ -758,8 +758,7 @@ async def do_DELETE(request: Request, path: str):
                 return True
         return False
     
-    if check_is_virtual_path(path,request.username):
-        raise HTTPException(status_code=405, detail="Method Not Allowed")
+    
 
     full_path = get_full_path(request, path)
     readonly = path_is_readonly(request, path)
@@ -769,6 +768,9 @@ async def do_DELETE(request: Request, path: str):
         remove_cache(full_path)
         return Response(status_code=204)
 
+    if check_is_virtual_path(path,request.username):
+        raise HTTPException(status_code=405, detail="Method Not Allowed")
+        
     # 检查是否为只读模式
     if readonly:
         raise HTTPException(status_code=405, detail="Method Not Allowed")
