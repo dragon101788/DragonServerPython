@@ -4,6 +4,7 @@ import { WebdavApi } from '/webdav/WebdavApi.js';
 import { CopyToClipboardDialog } from '/BaseModal.js';
 import { cacheManager } from '/CacheManager.js';
 import { getParentDir } from '/webdav/WebdavApi.js';
+import { searchFileDialog } from '/webdav/lib/searchFileDialog.js';
 
 
 export class MasonryView extends HTMLElement {
@@ -66,12 +67,20 @@ export class MasonryView extends HTMLElement {
                         margin-right: 10px;
                     }
                 </style>
+                    <button id="search-button" class="align-left">搜索</button>
                     <button id="share-button" class="align-left">分享</button>
             `;
             topStatusBar.appendChild(topStatusBarSelf);
                 
                 
 
+                const searchBtn = topStatusBarSelf.querySelector('#search-button');
+                if (searchBtn) {
+                    searchBtn.addEventListener('click', async () => {
+                        this.openSearchDialog();
+                    });
+                }
+                
                 const shareBtn = topStatusBarSelf.querySelector('#share-button');
                 if (shareBtn) {
                     shareBtn.addEventListener('click', async () => {
@@ -123,6 +132,18 @@ export class MasonryView extends HTMLElement {
         
         // 移除窗口大小变化监听
         window.removeEventListener('resize', this.handleResize);
+        
+        // 移除键盘事件监听
+        if (this.handleKeyDown) {
+            document.removeEventListener('keydown', this.handleKeyDown);
+        }
+    }
+    
+    handleKeyDown(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            this.openSearchDialog();
+        }
     }
     
     getBaseWidth(){
@@ -545,12 +566,90 @@ export class MasonryView extends HTMLElement {
             }
         });
 
+        // 监听Ctrl+F快捷键
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        document.addEventListener('keydown', this.handleKeyDown);
+
         this.flush();
     }
     async flush(){
         const path = this.getAttribute('path');
         if (path) {
             await this.loadWebdavDir(path);
+        }
+    }
+    
+    async openSearchDialog() {
+        const path = this.getAttribute('path');
+        if (!path) return;
+        
+        try {
+            const results = await searchFileDialog(path);
+            if (results && results.length > 0) {
+                this.loadSearchResults(results);
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+        }
+    }
+    
+    async loadSearchResults(results) {
+        const container = this.shadowRoot.getElementById('masonry-container');
+        if (!container) return;
+        
+        // 重置状态
+        this.loadedItems = [];
+        this.currentPage = 0;
+        this.loading = false;
+        this.columns = [];
+        this.columnHeights = [];
+        this.allItems = {};
+        this.totalItems = results.length;
+        
+        // 清空容器
+        container.innerHTML = '';
+        
+        // 创建列容器
+        const columnCount = this.columnCount || this.calculateColumnCount();
+        this.columns = [];
+        for (let i = 0; i < columnCount; i++) {
+            const column = document.createElement('div');
+            column.className = 'masonry-column';
+            container.appendChild(column);
+            this.columns.push(column);
+        }
+        
+        // 初始化列高度
+        this.columnHeights = new Array(columnCount).fill(0);
+        
+        // 处理搜索结果
+        results.forEach(item => {
+            const itemInstance = MasonryView.matchType(item);
+            if(itemInstance) {
+                itemInstance.item = item;
+                itemInstance.father = this;
+                this.allItems[itemInstance.item.path] = itemInstance;
+            }
+        });
+        
+        // 渲染搜索结果
+        for (let [path, itemInstance] of Object.entries(this.allItems)) {
+            try {
+                await itemInstance.ViewHTML().then(itemHTML => {
+                    if(itemHTML) {
+                        let minHeightValue = Math.min(...this.columnHeights);
+                        let columnIndex = this.columnHeights.indexOf(minHeightValue);
+                        
+                        this.columns[columnIndex].appendChild(itemHTML);
+                        // 更新列高度
+                        this.columnHeights[columnIndex] += itemHTML.itemHeight + 10; // 加上间距
+                        this.loadedItems = [...this.loadedItems, itemInstance];
+                        this.updateImageCounter();
+                    }
+                });
+            } catch (error) {
+                console.error(`Error loading search result ${path}:`, error);
+            }
         }
     }
 }
