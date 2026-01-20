@@ -3,7 +3,7 @@ import { AccountManager } from '/AccountManager.js';
 import { WebdavApi } from '/webdav/WebdavApi.js';
 import { CopyToClipboardDialog } from '/BaseModal.js';
 import { cacheManager } from '/CacheManager.js';
-
+import { getParentDir } from '/webdav/WebdavApi.js';
 
 
 export class MasonryView extends HTMLElement {
@@ -44,6 +44,8 @@ export class MasonryView extends HTMLElement {
     async connectedCallback() {
 
         this.render();
+        
+        
         const topStatusBarSelf = document.querySelector('.top-status-bar-self');
         if (topStatusBarSelf) {
             topStatusBarSelf.remove();
@@ -152,9 +154,12 @@ export class MasonryView extends HTMLElement {
         // 重置状态
         const contents =  await WebdavApi.getDirectoryContents(path);
 
-
+        
+        // 显示或隐藏悬浮返回按钮
+        const floatingGoBackBtn = this.shadowRoot.getElementById('floating-goback');
         const container = this.shadowRoot.getElementById('masonry-container');
         const columnCount = this.columnCount || this.calculateColumnCount();
+        
         
         this.loadedItems = [];
         this.currentPage = 0;
@@ -187,14 +192,28 @@ export class MasonryView extends HTMLElement {
         console.log(`container-width:${container.clientWidth}`);
         // 初始化列高度
         this.columnHeights = new Array(columnCount).fill(0);
-
+        const normalizePath = (p) => p.replace(/^\/+|\/+$/g, '');
+        floatingGoBackBtn.style.display = 'none';
         if (contents) {
+            
             contents.forEach(item => {
-                if (item.path === path ) {
-                    item.currentPath = path;
-                    item.type = 'goback'
+                if (normalizePath(item.path) === normalizePath(MasonryView.offset)) {
+                    return;
                 }
-                if (item.path === '/'){
+                if (item.path === path ) {
+                    item.path = getParentDir(path);
+                    item.name = "返回上级目录";
+                    item.contentType = 'directory';
+                    item.type = 'directory';
+                    floatingGoBackBtn.style.display = 'flex';
+                    floatingGoBackBtn.addEventListener('click', () => {
+                        document.dispatchEvent(new CustomEvent('WebdavChdir', {
+                            detail: {
+                                item: item,
+                                path: item.path,
+                            }
+                        }));
+                    });
                     return;
                 }
                 const itemInstance = MasonryView.matchType(item);
@@ -204,6 +223,7 @@ export class MasonryView extends HTMLElement {
                     this.allItems[itemInstance.item.path] = itemInstance;
                 }
             });
+            
             
             for (let [path, itemInstance] of Object.entries(this.allItems)) {
                 console.log(`Adding ${Object.keys(this.allItems).length} items to layout`);
@@ -255,6 +275,40 @@ export class MasonryView extends HTMLElement {
                     height: 100%;
                     overflow-y: auto;
                     padding: 0px;
+                }
+                
+                /* 悬浮返回按钮样式 */
+                .floating-goback-btn {
+                    position: absolute;
+                    top: 20px;
+                    left: 20px;
+                    width: 60px;
+                    height: 60px;
+                    background-color: rgba(255, 255, 255, 0.1);
+                    border-radius: 50%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    z-index: 1000;
+                    transition: all 0.3s ease;
+                }
+                
+                .floating-goback-btn:hover {
+                    background-color: white;
+                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+                    transform: scale(1.1);
+                }
+                
+                .floating-goback-btn svg {
+                    width: 32px;
+                    height: 32px;
+                    fill: none;
+                    stroke: #4a5568;
+                    stroke-width: 2;
+                    stroke-linecap: round;
+                    stroke-linejoin: round;
                 }
 
                 .masonry-column {
@@ -371,6 +425,13 @@ export class MasonryView extends HTMLElement {
                 
             </style>
             <div class="Masonry-wall">
+                <!-- 悬浮返回按钮 -->
+                <div id="floating-goback" class="floating-goback-btn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 12H5"/>
+                        <path d="M12 19l-7-7 7-7"/>
+                    </svg>
+                </div>
                 <div class="masonry-container" id="masonry-container">
                     ${this.allItems.size === 0 ? '<div class="empty-state">没有找到文件</div>' : ''}
                 </div>
