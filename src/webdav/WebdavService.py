@@ -591,6 +591,12 @@ async def do_PROPFIND(request: Request, path: str):
 
 
     Search = request.headers.get("Search", None)
+    if Search:
+        Search = unquote(Search)
+        # 如果搜索关键词不包含通配符，则自动在前后添加 *
+        if "*" not in Search and "?" not in Search:
+            Search = f"*{Search}*"
+    
     
     
     user_config = get_user_config(request.username)

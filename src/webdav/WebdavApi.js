@@ -171,13 +171,15 @@ export class WebdavApi {
         try {
 
             const encodedPath = encodeURIComponent(path);
+            // 对搜索关键词进行URL编码，确保符合HTTP头部ISO-8859-1编码要求
+            const encodedSearch = encodeURIComponent(search);
             const response = await fetch(this.serverUrl + encodedPath, {
                 method: 'PROPFIND',
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/xml',
                     'Depth': 'infinity',
-                    'Search': search,
+                    'Search': encodedSearch,
                     'Authorization': this.Authorization
                 },
                 body: `<?xml version="1.0" encoding="utf-8" ?>
