@@ -632,21 +632,26 @@ async def do_PROPFIND(request: Request, path: str):
     async def search_directory(path, full_path, current_depth):
         if depth == "0" or current_depth > 0 and depth == "1":
             return
-        if os.path.isdir(full_path):
-            for name in os.listdir(full_path):
-                sub_path = os.path.join(full_path, name)
-                # 检查目录名是否在需要跳过的列表中
-                if name in SKIP_DIRS:
-                    continue
-                sub_webpath = os.path.join(path, name)
-                
-                if fnmatch(name, Search):
-                    node = await PropfindResponse.build_resource_info(sub_webpath, sub_path, request)
-                    print(f"add {sub_webpath}({sub_path})")
-                    response.add_resource_info(node) 
+        
+        try:
+            if os.path.isdir(full_path):
+                for name in os.listdir(full_path):
+                    sub_path = os.path.join(full_path, name)
+                    # 检查目录名是否在需要跳过的列表中
+                    if name in SKIP_DIRS:
+                        continue
+                    sub_webpath = os.path.join(path, name)
+                    
+                    if fnmatch(name, Search):
+                        node = await PropfindResponse.build_resource_info(sub_webpath, sub_path, request)
+                        print(f"add {sub_webpath}({sub_path})")
+                        response.add_resource_info(node) 
 
-                if depth == "infinity" and os.path.isdir(sub_path):
-                    await search_directory(sub_webpath, sub_path, current_depth + 1)
+                    if depth == "infinity" and os.path.isdir(sub_path):
+                        await search_directory(sub_webpath, sub_path, current_depth + 1)
+        except Exception as e:
+            print(f"search_directory {path}({full_path}) error: {e}")
+            return None
 
         if path == "" and "virtual_paths" in user_config:
             for virtual_path, config in user_config["virtual_paths"].items():
