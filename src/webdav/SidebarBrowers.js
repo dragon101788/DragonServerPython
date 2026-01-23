@@ -2,6 +2,7 @@ import { InputDialog, MessageDialog, FileSelectDialog, CopyToClipboardDialog } f
 import { shareItem } from '/webdav/lib/shareItem.js';
 import { ContextMenu } from '/ContextMenu.js';
 import { searchFileDialog } from '/webdav/lib/searchFileDialog.js';
+import { SelectFileDialog } from '/webdav/lib/SelectFileDialog.js';
 
 
 
@@ -100,6 +101,27 @@ export class SidebarBrowers extends HTMLElement {
                 contextMenuList['删除'] = () => { this.deleteFile(item.path) };
                 contextMenuList['共享'] = async () => { 
                     await shareItem(item);
+                 };
+                contextMenuList['移动'] = () => { 
+                    SelectFileDialog.open({
+                        title: `${item.path} 移动到`,
+                        mode: 'directory',
+                        initialPath: this.currentPath,
+                    }).addEventListener('confirm', async (e) => {
+                        try {
+                            if (e.detail.path == this.currentPath) {
+                                alert('源目标目录与当前目录相同,不能移动到当前目录');
+                                return;
+                            }
+                            const destPath = `${e.detail.path}/${item.name}`;
+                            console.log(`Move ${item.path} to ${destPath}`);
+                            await this.webdavApi.moveFile(item.path, destPath);
+                            this.loadDirectory(this.currentPath);
+                        } catch (error) {
+                            console.error('Move file error:', error);
+                            alert('Failed to move file: ' + error.message);
+                        }
+                    })
                  };
             }
         }
