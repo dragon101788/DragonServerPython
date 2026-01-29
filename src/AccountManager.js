@@ -245,33 +245,57 @@ export class AccountManager {
         }
     }
 
-    static onclose(event) {
-        console.log('WebSocket connection closed:', event);
-        this.ws_connection = undefined; // 重置 WebSocket 连接
-        // 可以在这里添加重连逻辑，例如 setTimeout 后重新连接
-    }
-
-    static onerror(error) {
-        console.error('WebSocket connection error:', error);
-        this.ws_connection = undefined; // 重置 WebSocket 连接
-    }
-
-    static onopen(event) {
-        console.log('WebSocket connection opened:', event);
-    }
 
     static async connectWebsocket(){
-        if (!this.ws_connection){
-            this.ws_connection = new WebSocket(`/api/account_websocket`);
-            this.ws_connection.onmessage = this.onmessage.bind(this);
-            this.ws_connection.onclose = this.onclose.bind(this);
-            this.ws_connection.onerror = this.onerror.bind(this);
-            this.ws_connection.onopen = this.onopen.bind(this);
-        }
-        //等待连接成功
-        while (this.ws_connection.readyState !== WebSocket.OPEN) {
-            await new Promise(resolve => setTimeout(resolve, 100)); // 等待 100 毫秒
-        }
+        return new Promise((resolve, reject) => {
+            let retryCount = 0;
+            const maxRetries = 5;
+            const retryDelay = 1000;
+            
+            const attemptConnection = () => {
+                if (retryCount >= maxRetries) {
+                    reject(new Error('WebSocket connection failed after multiple attempts'));
+                    return;
+                }
+                
+                if (this.ws_connection && this.ws_connection.readyState === WebSocket.OPEN) {
+                    console.log('WebSocket connection is already open.');
+                    resolve(this.ws_connection);
+                }
+                if (this.ws_connection && this.ws_connection.readyState === WebSocket.CONNECTING ) {
+                    console.log('WebSocket connection is connecting.');
+                    // 连接中，等待 100ms,并返回
+                    setTimeout(() => {
+                        attemptConnection();
+                    }, 100);
+                    return;
+                }
+                
+                this.ws_connection = new WebSocket(`/api/account_websocket`);
+                
+                this.ws_connection.onmessage =(event) => {
+                    this.onmessage(event);
+                }
+                
+                this.ws_connection.onclose = (event) =>{
+                    console.log('WebSocket connection closed:', event.code, event.reason);
+                }
+                
+                this.ws_connection.onerror = (event) => {
+                    console.error('WebSocket error:', event);
+                    retryCount++;
+                    console.log(`WebSocket retry attempt ${retryCount}/${maxRetries}`);
+                    setTimeout(attemptConnection, retryDelay);
+                }
+                
+                this.ws_connection.onopen = (event) => {
+                    console.log('WebSocket connection established');
+                    resolve(this.ws_connection);
+                }
+            };
+            
+            attemptConnection();
+        });
     }
     static register_ws_recv_callback(tag, callback) {
         if (tag === "*"){
