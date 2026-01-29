@@ -224,46 +224,49 @@ export class AccountManager {
         await this.connectWebsocket();
         return this.token;
     }
+    static async onmessage(event) {
+        try{
+            const jsonData = JSON.parse(event.data);
+            if (jsonData.tag!== undefined && this.ws_recv_callback[jsonData.tag] !== undefined && jsonData.body!== undefined) {
+                try{
+                    await this.ws_recv_callback[jsonData.tag](jsonData.body);
+                }catch(e){
+                    console.warn(`执行 ${jsonData.tag} 异常${e}`);
+                    this.ws_recv_callback[jsonData.tag] = undefined;
+                }
+            }
+        }catch(e){
+            if (e instanceof SyntaxError) {
+            }else{
+            }
+        }
+        for (const callback of this.ws_recv_callback_all) {
+            callback(event.data);
+        }
+    }
+
+    static onclose(event) {
+        console.log('WebSocket connection closed:', event);
+        this.ws_connection = undefined; // 重置 WebSocket 连接
+        // 可以在这里添加重连逻辑，例如 setTimeout 后重新连接
+    }
+
+    static onerror(error) {
+        console.error('WebSocket connection error:', error);
+        this.ws_connection = undefined; // 重置 WebSocket 连接
+    }
+
+    static onopen(event) {
+        console.log('WebSocket connection opened:', event);
+    }
+
     static async connectWebsocket(){
         if (!this.ws_connection){
             this.ws_connection = new WebSocket(`/api/account_websocket`);
-            this.ws_connection.onmessage = async (event) => {
-                try{
-                    const jsonData = JSON.parse(event.data);
-                    if (jsonData.tag!== undefined &&this.ws_recv_callback[jsonData.tag] !== undefined && jsonData.body!== undefined) {
-                        try{
-                            await this.ws_recv_callback[jsonData.tag](jsonData.body);
-                        }catch(e){
-                            console.warn(`执行 ${jsonData.tag} 异常${e}`);
-                            this.ws_recv_callback[jsonData.tag] = undefined;
-                        }
-                    }
-                }catch(e){
-                    if (e instanceof SyntaxError) {
-                    }else{
-                    }
-                }
-                for (const callback of this.ws_recv_callback_all) {
-                    callback(event.data);
-                }
-                
-            };
-            // 监听 WebSocket 连接关闭事件
-            this.ws_connection.onclose = (event) => {
-                console.log('WebSocket connection closed:', event);
-                this.ws_connection = undefined; // 重置 WebSocket 连接
-                // 可以在这里添加重连逻辑，例如 setTimeout 后重新连接
-            };
-            // 监听 WebSocket 连接错误事件
-            this.ws_connection.onerror = (error) => {
-                console.error('WebSocket connection error:', error);
-                this.ws_connection = undefined; // 重置 WebSocket 连接
-            };
-            // 监听 WebSocket 连接打开事件
-            this.ws_connection.onopen = (event) => {
-                console.log('WebSocket connection opened:', event);
-            };
-            
+            this.ws_connection.onmessage = this.onmessage.bind(this);
+            this.ws_connection.onclose = this.onclose.bind(this);
+            this.ws_connection.onerror = this.onerror.bind(this);
+            this.ws_connection.onopen = this.onopen.bind(this);
         }
         //等待连接成功
         while (this.ws_connection.readyState !== WebSocket.OPEN) {
