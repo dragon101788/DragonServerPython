@@ -370,6 +370,13 @@ export class SidebarBrowers extends HTMLElement {
             
          };
         
+         contextMenuList['全选'] = () => {
+             this.selectAll();
+         };
+
+         contextMenuList['取消选择'] = () => {
+             this.deselectAll();
+         };
          
          // 合并外部上下文菜单项到当前菜单列表
          for (const [name, matcher] of Object.entries(SidebarBrowers.ExternalContextMenus)) {
@@ -379,13 +386,7 @@ export class SidebarBrowers extends HTMLElement {
             }
          }
 
-         contextMenuList['全选'] = () => {
-             this.selectAll();
-         };
-
-         contextMenuList['取消选择'] = () => {
-             this.deselectAll();
-         };
+         
          
         ContextMenu.open(x, y, contextMenuList);
     }
