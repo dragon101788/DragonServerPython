@@ -17,10 +17,12 @@ if (document.querySelector('link[href="/lib/font-awesome/6.4.0/css/all.min.css"]
 export class SidebarBrowers extends HTMLElement {
     constructor() {
         super();
-        this.sortOption = 'modified'; // 默认按名称排序
+        this.sortOption = 'modified';
         this.currentPath = '/';
         this.attachShadow({ mode: 'open' });
         this.chdirEventListener = null;
+        this.selectedItems = new Set();
+        this.lastSelectedItem = null;
     }
     static {
         SidebarBrowers.ExternalContextMenus = {};
@@ -36,6 +38,59 @@ export class SidebarBrowers extends HTMLElement {
 
     getCurrentPath() {
         return this.currentPath;
+    }
+
+    toggleItemSelection(path) {
+        if (this.selectedItems.has(path)) {
+            this.selectedItems.delete(path);
+        } else {
+            this.selectedItems.add(path);
+        }
+        this.lastSelectedItem = path;
+        this.updateSelectionUI();
+    }
+
+    selectAll() {
+        for (const [path, item] of Object.entries(this.items)) {
+            if (path !== this.currentPath) {
+                this.selectedItems.add(path);
+            }
+        }
+        this.updateSelectionUI();
+    }
+
+    deselectAll() {
+        this.selectedItems.clear();
+        this.lastSelectedItem = null;
+        this.updateSelectionUI();
+    }
+
+    getSelectedItems() {
+        return Array.from(this.selectedItems).map(path => this.items[path]);
+    }
+
+    isItemSelected(path) {
+        return this.selectedItems.has(path);
+    }
+
+
+    updateSelectionUI() {
+        const directoryList = this.shadowRoot.getElementById('directory-list');
+        if (!directoryList) return;
+
+        const items = directoryList.querySelectorAll('.directory-item, .file-item');
+        items.forEach(item => {
+            const path = item.dataset.path;
+            const checkbox = item.querySelector('.item-checkbox');
+            if (checkbox) {
+                checkbox.checked = this.selectedItems.has(path);
+            }
+            if (this.selectedItems.has(path)) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
     }
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === 'auth' && oldValue !== newValue) {
@@ -146,6 +201,63 @@ export class SidebarBrowers extends HTMLElement {
         }
 
         ContextMenu.open(x, y, contextMenuList)
+    }
+
+    openBatchContextMenu(x, y) {
+        const selectedItems = this.getSelectedItems();
+        const contextMenuList = {};
+
+        const canDelete = selectedItems.some(item => !item.readonly && item.limits.includes('delete'));
+
+        if (canDelete) {
+            contextMenuList['批量删除'] = async () => {
+                if (confirm(`确定要删除选中的 ${selectedItems.length} 个项目吗？`)) {
+                    for (const item of selectedItems) {
+                        if (!item.readonly && item.limits.includes('delete')) {
+                            await this.deleteFile(item.path);
+                        }
+                    }
+                }
+            };
+
+            contextMenuList['批量移动'] = () => {
+                SelectFileDialog.open({
+                    title: `移动 ${selectedItems.length} 个项目到`,
+                    mode: 'directory',
+                    initialPath: this.currentPath,
+                }).addEventListener('confirm', async (e) => {
+                    try {
+                        if (e.detail.path == this.currentPath) {
+                            alert('源目标目录与当前目录相同,不能移动到当前目录');
+                            return;
+                        }
+
+                        for (const item of selectedItems) {
+                            if (!item.readonly && item.limits.includes('delete')) {
+                                const destPath = `${e.detail.path}/${item.name}`;
+                                console.log(`Move ${item.path} to ${destPath}`);
+                                await this.webdavApi.moveFile(item.path, destPath);
+                            }
+                        }
+                        this.deselectAll();
+                        this.loadDirectory(this.currentPath);
+                    } catch (error) {
+                        console.error('Move files error:', error);
+                        alert('Failed to move files: ' + error.message);
+                    }
+                });
+            };
+        }
+
+        contextMenuList['全选'] = () => {
+            this.selectAll();
+        };
+
+        contextMenuList['取消选择'] = () => {
+            this.deselectAll();
+        };
+
+        ContextMenu.open(x, y, contextMenuList);
     }
 
     getPathItem(path) {
@@ -266,6 +378,14 @@ export class SidebarBrowers extends HTMLElement {
                 contextMenuList[name] = ret;
             }
          }
+
+         contextMenuList['全选'] = () => {
+             this.selectAll();
+         };
+
+         contextMenuList['取消选择'] = () => {
+             this.deselectAll();
+         };
          
         ContextMenu.open(x, y, contextMenuList);
     }
@@ -295,16 +415,27 @@ export class SidebarBrowers extends HTMLElement {
         document.addEventListener('WebdavFlush', this.flushEventListener);
 
         this.shadowRoot.getElementById('directory-list').addEventListener('click', async (event) => {
+            const checkbox = event.target.closest('.item-checkbox');
             const itemElement = event.target.closest('.directory-item, .file-item');
-            if (itemElement) {
-                const path = itemElement.dataset.path
-                if (this.items[path].type === 'directory') {
-                    await this.loadDirectory(path);
-                }
-                else {
-                    this.openFile(path);
-                }
+            if (!itemElement) return;
 
+            const path = itemElement.dataset.path;
+            const item = this.items[path];
+
+            if (checkbox) {
+                event.stopPropagation();
+                this.toggleItemSelection(path);
+                return;
+            }
+
+            if (this.selectedItems.size > 0) {
+                this.deselectAll();
+            }
+
+            if (item.type === 'directory') {
+                await this.loadDirectory(path);
+            } else {
+                this.openFile(path);
             }
         });
 
@@ -313,8 +444,15 @@ export class SidebarBrowers extends HTMLElement {
             if (itemElement) {
                 event.preventDefault();
 
-                const path = itemElement.dataset.path
-                this.openContextMenu(path, event.clientX, event.clientY);
+                const path = itemElement.dataset.path;
+
+                if (this.selectedItems.size > 1 && !this.selectedItems.has(path)) {
+                    this.openBatchContextMenu(event.clientX, event.clientY);
+                } else if (this.selectedItems.size > 1) {
+                    this.openBatchContextMenu(event.clientX, event.clientY);
+                } else {
+                    this.openContextMenu(path, event.clientX, event.clientY);
+                }
 
             }
         });
@@ -544,6 +682,17 @@ export class SidebarBrowers extends HTMLElement {
             .directory-item:hover, .file-item:hover {
                 background: #f8f9fa;
             }
+            .directory-item.selected, .file-item.selected {
+                background: #e3f2fd;
+                border-left: 3px solid #2196f3;
+            }
+            .directory-item.selected:hover, .file-item.selected:hover {
+                background: #bbdefb;
+            }
+            .item-checkbox {
+                margin-right: 8px;
+                cursor: pointer;
+            }
             .item-icon {
                 margin-right: 10px;
             }
@@ -711,6 +860,7 @@ export class SidebarBrowers extends HTMLElement {
 
             this.currentPath = path;
 
+            this.deselectAll();
 
             this.items = {};
             for (const item of contents) {
@@ -730,8 +880,10 @@ export class SidebarBrowers extends HTMLElement {
 
     createFileItem(item) {
         const icon = item.type === 'directory' ? '📁' : '📄';
+        const isSelected = this.selectedItems.has(item.path);
         const html = `
-            <div class="${item.type === 'directory' ? 'directory-item' : 'file-item'}" data-path="${item.path}">
+            <div class="${item.type === 'directory' ? 'directory-item' : 'file-item'} ${isSelected ? 'selected' : ''}" data-path="${item.path}">
+                <input type="checkbox" class="item-checkbox" ${isSelected ? 'checked' : ''}>
                 <span class="item-icon">${icon}</span>
                 <span class="item-name">${item.name}</span>
             </div>
