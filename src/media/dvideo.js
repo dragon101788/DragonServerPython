@@ -203,7 +203,6 @@ export class DVideo extends HTMLElement {
                     color: #fff;
                     font-size: 12px;
                     font-family: Arial, sans-serif;
-                    max-width: 300px;
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
@@ -303,6 +302,14 @@ export class DVideo extends HTMLElement {
         this._videoElement.muted = this._muted;
         this._updateVolumeBar();
         this._updateVolumeIcon();
+        
+        // 初始化文件名区域宽度
+        this._updateFileNameWidth();
+        
+        // 监听窗口大小变化，重新计算文件名区域宽度
+        window.addEventListener('resize', () => {
+            this._updateFileNameWidth();
+        });
     }
     async _closeVideo(){
          // 彻底关闭并释放视频资源
@@ -647,6 +654,28 @@ export class DVideo extends HTMLElement {
             this._volumeBtn.forEach((btn) => {
                 btn.textContent = '🔊';
             }); 
+        }
+    }
+    
+    _updateFileNameWidth() {
+        if (!this._fileNameDisplay) return;
+        
+        const controlsRow = this.shadowRoot.querySelector('.controls-row');
+        const controlsLeft = this.shadowRoot.querySelector('.controls-left');
+        const controlsRight = this.shadowRoot.querySelector('.controls-right');
+        
+        if (controlsRow && controlsLeft && controlsRight) {
+            const rowWidth = controlsRow.offsetWidth;
+            const leftWidth = controlsLeft.offsetWidth;
+            const rightWidth = controlsRight.offsetWidth;
+            
+            // 计算中间文件名区域的可用宽度，减去一些边距
+            const availableWidth = rowWidth - leftWidth - rightWidth - 100;
+            
+            // 设置文件名区域的最大宽度
+            if (availableWidth > 0) {
+                this._fileNameDisplay.style.maxWidth = `${availableWidth}px`;
+            }
         }
     }
 
