@@ -141,6 +141,14 @@ export class DVideo extends HTMLElement {
                     gap: 15px;
                 }
 
+                .controls-center {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 20px;
+                }
+
                 .controls-right {
                     display: flex;
                     align-items: center;
@@ -191,7 +199,15 @@ export class DVideo extends HTMLElement {
                     width: 70%;
                 }
 
-
+                .file-name {
+                    color: #fff;
+                    font-size: 12px;
+                    font-family: Arial, sans-serif;
+                    max-width: 300px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
 
                 .fullscreen-btn {
                     font-size: 18px;
@@ -247,6 +263,9 @@ export class DVideo extends HTMLElement {
                             <span class="time-display">/</span>
                             <span class="time-display" id="duration">00:00</span>
                         </div>
+                        <div class="controls-center">
+                            <span class="file-name" id="file-name"></span>
+                        </div>
                         <div class="controls-right">
                             <div class="volume-container">
                                 <button class="control-btn" id="volume-btn">🔊</button>
@@ -271,6 +290,7 @@ export class DVideo extends HTMLElement {
         this._playPauseBtn = this.shadowRoot.querySelectorAll('#play-pause-btn');
         this._currentTimeDisplay = this.shadowRoot.getElementById('current-time');
         this._durationDisplay = this.shadowRoot.getElementById('duration');
+        this._fileNameDisplay = this.shadowRoot.getElementById('file-name');
         this._volumeBtn = this.shadowRoot.querySelectorAll('#volume-btn');
         this._volumeBarContainer = this.shadowRoot.getElementById('volume-bar-container');
         this._volumeBar = this.shadowRoot.getElementById('volume-bar');
@@ -779,6 +799,28 @@ export class DVideo extends HTMLElement {
         }
         this._videoElement.src = processedValue;
         this._updateVideoInfo();
+        this._updateFileName(value);
+    }
+
+    _updateFileName(url) {
+        if (!url) {
+            this._fileNameDisplay.textContent = '';
+            return;
+        }
+        
+        // 从URL中提取文件名
+        try {
+            // 解码URL
+            const decodedUrl = decodeURIComponent(url);
+            // 提取文件名
+            const fileName = decodedUrl.split('/').pop();
+            // 移除可能的查询参数
+            const cleanFileName = fileName.split('?')[0].split('#')[0];
+            this._fileNameDisplay.textContent = cleanFileName;
+        } catch (error) {
+            console.error('提取文件名失败:', error);
+            this._fileNameDisplay.textContent = '';
+        }
     }
 
     get src() {
