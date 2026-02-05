@@ -26,9 +26,13 @@ export class SidebarBrowers extends HTMLElement {
     }
     static {
         SidebarBrowers.ExternalContextMenus = {};
+        SidebarBrowers.ExternalBatchContextMenus = {};
     }
     static registerExternalContextMenu(name, matcher) {
         SidebarBrowers.ExternalContextMenus[name] = matcher;
+    }
+    static registerExternalBatchContextMenu(name, matcher) {
+        SidebarBrowers.ExternalBatchContextMenus[name] = matcher;
     }
 
     // 监控属性变化
@@ -257,6 +261,14 @@ export class SidebarBrowers extends HTMLElement {
             this.deselectAll();
         };
 
+        // 合并外部批量上下文菜单项到当前菜单列表
+        for (const [name, matcher] of Object.entries(SidebarBrowers.ExternalBatchContextMenus)) {
+            const ret = matcher(selectedItems)
+            if (typeof ret === 'function') {
+                contextMenuList[name] = ret;
+            }
+        }
+
         ContextMenu.open(x, y, contextMenuList);
     }
 
@@ -377,7 +389,7 @@ export class SidebarBrowers extends HTMLElement {
          contextMenuList['取消选择'] = () => {
              this.deselectAll();
          };
-         
+
          // 合并外部上下文菜单项到当前菜单列表
          for (const [name, matcher] of Object.entries(SidebarBrowers.ExternalContextMenus)) {
             const ret = matcher(undefined)
