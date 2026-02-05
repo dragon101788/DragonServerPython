@@ -814,8 +814,8 @@ export class DVideo extends HTMLElement {
             const decodedUrl = decodeURIComponent(url);
             // 提取文件名
             const fileName = decodedUrl.split('/').pop();
-            // 移除可能的查询参数
-            const cleanFileName = fileName.split('?')[0].split('#')[0];
+            // 只移除查询参数，保留文件名中的#符号
+            const cleanFileName = fileName.split('?')[0];
             this._fileNameDisplay.textContent = cleanFileName;
         } catch (error) {
             console.error('提取文件名失败:', error);
