@@ -14,6 +14,7 @@ from src.server_config import *
 import timestamp   
 from src.AI.Server import router as chat_router
 import mimetypes    
+import aiofiles
 
 from src.account import account_router
 import  src.SystemManager  as SystemManager
@@ -54,37 +55,94 @@ async def get_version():
     return JSONResponse({"version": timestamp.SERVER_START_TIME});
 
 
-def responseFile(file_path: str):
+def responseFile(request: Request, file_path: str):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     # 获取文件大小
     file_size = os.path.getsize(file_path)
     
+    # 获取文件的MIME类型
+    content_type, _ = mimetypes.guess_type(file_path)
+    content_type = content_type or "application/octet-stream"
+    
+    # 解析Range头
+    range_header = request.headers.get('Range')
+    CHUNK_SIZE = 1024*1024*2  # 2MB chunks
+    
+    if range_header:
+        try:
+            start, end = range_header.replace('bytes=', '').split('-')
+            start = int(start)
+            end = int(end) if end else file_size - 1
+            # 验证范围是否有效
+            if start < 0 or end >= file_size or start > end:
+                raise HTTPException(status_code=416, detail="Range Not Satisfiable")
+            length = end - start + 1
+
+            async def file_generator():
+                try:
+                    async with aiofiles.open(file_path, 'rb') as f:
+                        await f.seek(start)
+                        remaining = length
+                        while remaining > 0:
+                            chunk_size = min(remaining, CHUNK_SIZE)
+                            chunk = await f.read(chunk_size)
+                            if not chunk:
+                                break
+                            try:
+                                yield chunk
+                            except GeneratorExit:
+                                break
+                            remaining -= chunk_size
+                except Exception:
+                    pass
+
+            import urllib.parse
+            filename = os.path.basename(file_path)
+            encoded_filename = urllib.parse.quote(filename)
+            headers = {
+                'Content-Range': f'bytes {start}-{end}/{file_size}',
+                'Accept-Ranges': 'bytes',
+                'Content-Length': str(length),
+                'Content-Type': content_type,
+                'Connection': 'keep-alive',
+                "Content-Disposition": f"inline; filename={encoded_filename}; filename*=UTF-8''{encoded_filename}"
+            }
+            return StreamingResponse(file_generator(), status_code=206, headers=headers)
+        except Exception:
+            # 处理解析Range头或其他错误，返回完整文件
+            pass
+    
     # 对于大文件（>10MB）使用流式响应
     if file_size > 10 * 1024 * 1024:
         # 定义流式读取生成器函数
-        async def file_streamer(file_path, chunk_size=8192):
-            with open(file_path, "rb") as file:
-                while chunk := file.read(chunk_size):
-                    yield chunk
-                    # 可以选择在每个chunk之间添加短暂的延迟
-                    # await asyncio.sleep(0.001)
-        
-        # 获取文件的MIME类型
-        import mimetypes
-        content_type, _ = mimetypes.guess_type(file_path)
-        content_type = content_type or "application/octet-stream"
+        async def file_generator():
+            try:
+                async with aiofiles.open(file_path, 'rb') as f:
+                    while True:
+                        chunk = await f.read(CHUNK_SIZE)
+                        if not chunk:
+                            break
+                        try:
+                            yield chunk
+                        except GeneratorExit:
+                            break
+            except Exception:
+                pass
         
         import urllib.parse
         filename = os.path.basename(file_path)
         encoded_filename = urllib.parse.quote(filename)
+        headers = {
+            "Content-Disposition": f"inline; filename={encoded_filename}; filename*=UTF-8''{encoded_filename}",
+            "Content-Length": str(file_size),
+            "Content-Type": content_type,
+            'Connection': 'keep-alive'
+        }
         return StreamingResponse(
-            file_streamer(file_path),
+            file_generator(),
             media_type=content_type,
-            headers={
-                "Content-Disposition": f"inline; filename={encoded_filename}; filename*=UTF-8''{encoded_filename}",
-                "Content-Length": str(file_size)
-            }
+            headers=headers
         )
     else:
         # 小文件仍然使用普通的FileResponse
@@ -160,13 +218,13 @@ async def AccessFiles(request: Request, path: str = ""):
         except HTTPException as e:
             for extra_static in server_config["extra_static"]:
                 if os.path.exists(os.path.join(extra_static, path)):
-                    return responseFile(os.path.join(extra_static, path))
+                    return responseFile(request, os.path.join(extra_static, path))
             if os.path.exists(os.path.join(Resource.path.executable, path)):
-                return responseFile(os.path.join(Resource.path.executable, path))
+                return responseFile(request, os.path.join(Resource.path.executable, path))
             elif os.path.exists(os.path.join(Resource.path.src, path)):
                 if path.endswith(".py"):
                     raise Exception("禁止访问.py文件")
-                return responseFile(os.path.join(Resource.path.src, path))
+                return responseFile(request, os.path.join(Resource.path.src, path))
             elif os.path.exists(os.path.join(Resource.path.templates, path)):
                 return templates.TemplateResponse(path, {"request": request})
             
