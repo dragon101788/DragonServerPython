@@ -501,8 +501,10 @@
                     <p class="title">你好！我是胡鑫培，一名充满激情的全栈开发工程师。我专注于AI开发和嵌入式工程，同时也是一名健身爱好者。 </p>
                     <p class="title-small">个人关键词:嵌入式工程师 / AI工程师 / 硬件工程师</p>
                     <div class="social-links">
-                        <div class="menu-item">
-                            <a href="https://github.com/dragon101788" class="social-link" target="_blank">GitHub</a>
+                        <div class="menu-item dropdown up" id="myworks-dropdown">
+                            <a class="social-link">个人作品集</a>
+                            <div class="dropdown-content" id="myworks-list">
+                            </div>
                         </div>
                     
                         <div class="menu-item">
@@ -629,6 +631,35 @@
                     `;
                 }
             }
+
+            async function loadMyWorks() {
+                try {
+                    const response = await fetch('/api/list_files/' + encodeURIComponent("/Myworks"));
+                    const files = await response.json();
+                    const myworksList = document.getElementById('myworks-list');
+                    if (!myworksList) return;
+                    
+                    const mp4Files = files.filter(file => !file.is_dir && file.path.toLowerCase().endsWith('.mp4'));
+                    
+                    if (mp4Files.length === 0) {
+                        myworksList.innerHTML = '<a class="dropdown-item" href="https://github.com/dragon101788" target="_blank">暂无作品，请访问GitHub</a>';
+                        return;
+                    }
+                    
+                    myworksList.innerHTML = mp4Files.map(file => {
+                        const fileName = file.path.split('/').pop().replace('.mp4', '');
+                        return `<a class="dropdown-item" onclick="VideoModal.open({videoUrl: '${file.path}'})">${fileName}</a>`;
+                    }).join('');
+                } catch (error) {
+                    console.error('加载作品集失败:', error);
+                    const myworksList = document.getElementById('myworks-list');
+                    if (myworksList) {
+                        myworksList.innerHTML = '<a class="dropdown-item" href="https://github.com/dragon101788" target="_blank">加载失败，请访问GitHub</a>';
+                    }
+                }
+            }
+            
+            loadMyWorks();
         })
 
 

@@ -75,11 +75,14 @@ def responseFile(file_path: str):
         content_type, _ = mimetypes.guess_type(file_path)
         content_type = content_type or "application/octet-stream"
         
+        import urllib.parse
+        filename = os.path.basename(file_path)
+        encoded_filename = urllib.parse.quote(filename)
         return StreamingResponse(
             file_streamer(file_path),
             media_type=content_type,
             headers={
-                "Content-Disposition": f"inline; filename={os.path.basename(file_path)}",
+                "Content-Disposition": f"inline; filename={encoded_filename}; filename*=UTF-8''{encoded_filename}",
                 "Content-Length": str(file_size)
             }
         )
