@@ -25,7 +25,31 @@ export class AlbumModal extends BaseModal {
                 
 
                 
-
+                .close {
+                    position: absolute;
+                    top: 10px;
+                    right: 15px;
+                    color: #fff;
+                    font-size: 30px;
+                    font-weight: bold;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1001;
+                    transition: all 0.3s ease;
+                }
+                .close:hover,
+                .close:focus {
+                    color: #fff;
+                    background-color: rgba(0, 0, 0, 0.8);
+                    transform: scale(1.1);
+                    text-decoration: none;
+                    cursor: pointer;
+                }
                 
                 .album-grid {
                     flex: 1;
@@ -99,6 +123,7 @@ export class AlbumModal extends BaseModal {
             </style>
             <div class="modal">
                 <div class="modal-content">
+                    <span class="close">&times;</span>
                     <div class="form-group">
                         <div id="album-grid" class="album-grid">
                             <div class="loading">加载中...</div>
