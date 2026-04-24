@@ -602,19 +602,44 @@
                 
                 let html = '';
                 try {
+                    
+
                     const response = await fetch('/api/list_files/' + encodeURIComponent(dir));
                     const files = await response.json();
                     
                     let dropUpDown = "dropdown down";
                     for(const file of files) {
                         const fileName = file.path.split('/').pop().replace(/\.[^/.]+$/, '');
+                        const fileDesc = file.path.replace(/\.[^/.]+$/, '.desc');
+                        let desc = '';
+                        try {
+                            const descResponse = await fetch(fileDesc);
+                            if(descResponse.status === 200)
+                            {
+                                desc = await descResponse.text();
+                                desc = desc.split('\n').map(line => `<p>${line}</p>`).join('');
+                            }
+                        } catch (error) {
+                            console.error('Error fetching file description:', error);
+                        }
                         if(file.is_dir)
                         {
                             const subMenu = await CreateElementByFloder(file.path);
                             if(subMenu) {
+                                const dirDescResponse = await fetch(`${file.path}/desc.txt`);
+                                let dirDesc = '';
+                                if(dirDescResponse.status === 200)
+                                {
+                                    dirDesc = await dirDescResponse.text();
+                                    dirDesc = dirDesc.split('\n').map(line => `<p>${line}</p>`).join('');
+                                }
+
                                 html += `
                                 <div class="menu-item ${dropUpDown}">
-                                    <a class="social-link">${fileName}</a>
+                                    <a class="social-link">
+                                        <h3 class="skill-title">${fileName}</h3>
+                                        ${dirDesc}
+                                    </a>
                                     <div class="dropdown-content">
                                         ${subMenu}
                                     </div>
@@ -623,13 +648,25 @@
                             }
                         }else if(file.contentType?.startsWith('video/') || /\.(mp4|webm|ogg|mov|mkv|avi|flv|wmv)$/i.test(file.path))
                         {
-                            html += `<a class="dropdown-item" onclick="VideoModal.open({videoUrl: '${file.path}'})"><i class="fas fa-video"></i> ${fileName}</a>`;
+                            html += `
+                            <a class="dropdown-item" onclick="VideoModal.open({videoUrl: '${file.path}'})">
+                                <h3 class="skill-title">${fileName}</h3>
+                                ${desc}
+                            </a>`;
                         }else if(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'].some(ext => file.path.toLowerCase().endsWith(ext)))
                         {
-                            html += `<a class="dropdown-item" onclick="ImageModal.open({url: '${file.path}'})"><i class="fas fa-image"></i> ${fileName}</a>`;
-                        }else if(['.html', '.htm', '.txt', '.pdf'].some(ext => file.path.toLowerCase().endsWith(ext)))
+                            html += `
+                            <a class="dropdown-item" onclick="ImageModal.open({url: '${file.path}'})">
+                                <h3 class="skill-title">${fileName}</h3>
+                                ${desc}
+                            </a>`;
+                        }else if(['.html', '.htm', '.pdf'].some(ext => file.path.toLowerCase().endsWith(ext)) )
                         {
-                            html += `<a class="menu-item dropdown-item" onclick="UrlModal.open({url: '${file.path}'})"><i class="fas fa-file"></i> ${fileName}</a>`
+                            html += `
+                            <a class="menu-item dropdown-item" onclick="UrlModal.open({url: '${file.path}'})">
+                                <h3 class="skill-title">${fileName}</h3>
+                                ${desc}
+                            </a>`
                         }
 
                     }
