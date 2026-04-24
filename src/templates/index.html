@@ -132,9 +132,6 @@
             }
             
             
-            .skill-card {
-                margin-bottom: 15px;
-            }
             
             .bottom-links {
                 position: relative;
@@ -160,30 +157,6 @@
             }
         }
 
-        .skills {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            opacity: 0;
-            animation: fadeIn 1s ease 0.5s forwards;
-        }
-
-        .skill-card {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            transition: transform 0.3s ease;
-        }
-
-        .skill-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .skill-title {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-        }
 
         .bottom-links {
             position: fixed;
@@ -495,33 +468,13 @@
         </div>
 
         <div class="content">
+            
             <section class="left-section">
-                <header class="header">
-                    <h1 class="name">胡鑫培</h1>
-                    <div class="WorkLinks" id="WorkLinks">
-                    </div>
-                </header>
+                <div class="WorkLinks" id="leftDescLinks"></div>
             </section>
-
+                <h1 class="name">胡鑫培：追心而行，热爱不止</h1>
             <section class="right-section">
-                <div class="skills">
-                    <div class="skill-card">
-                        <h3 class="skill-title">软件开发</h3>
-                        <p>精通多种编程语言和框架，专注嵌入式，于高性能、可扩展的系统开发。</p>
-                    </div>
-                    <div class="skill-card">
-                        <h3 class="skill-title">硬件工程</h3>
-                        <p>丰富的硬件设计经验，擅长高速电路设计与系统集成。</p>
-                    </div>
-                    <div class="skill-card">
-                        <h3 class="skill-title">人工智能</h3>
-                        <p>机器视觉与LLM大语言架构的升入理解与应用</p>
-                    </div>
-                    <div class="skill-card">
-                        <h3 class="skill-title">热爱健身</h3>
-                        <p>自律，在空闲时间，我喜欢健身来保持身心健康</p>
-                    </div>
-                </div>
+                <div class="WorkLinks" id="rightDescLinks"></div>
             </section>
         </div>
 
@@ -540,30 +493,6 @@
         window.UrlModal = UrlModal;
         window.VideoModal = VideoModal;
         window.ImageModal = ImageModal;
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const cards = document.querySelectorAll('.skill-card');
-
-            cards.forEach(card => {
-                card.addEventListener('mousemove', (e) => {
-                    const rect = card.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-
-                    const angleX = (y - centerY) / 20;
-                    const angleY = (centerX - x) / 20;
-
-                    card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) translateY(-5px)`;
-                });
-
-                card.addEventListener('mouseleave', () => {
-                    card.style.transform = 'translateY(0)';
-                });
-            });
-        });
 
 
 
@@ -637,7 +566,7 @@
                                 html += `
                                 <div class="menu-item ${dropUpDown}">
                                     <a class="social-link">
-                                        <h3 class="skill-title">${fileName}</h3>
+                                        <h3 >${fileName}</h3>
                                         ${dirDesc}
                                     </a>
                                     <div class="dropdown-content">
@@ -650,21 +579,21 @@
                         {
                             html += `
                             <a class="dropdown-item" onclick="VideoModal.open({videoUrl: '${file.path}'})">
-                                <h3 class="skill-title">${fileName}</h3>
+                                <h3 >${fileName}</h3>
                                 ${desc}
                             </a>`;
                         }else if(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'].some(ext => file.path.toLowerCase().endsWith(ext)))
                         {
                             html += `
                             <a class="dropdown-item" onclick="ImageModal.open({url: '${file.path}'})">
-                                <h3 class="skill-title">${fileName}</h3>
+                                <h3 >${fileName}</h3>
                                 ${desc}
                             </a>`;
                         }else if(['.html', '.htm', '.pdf'].some(ext => file.path.toLowerCase().endsWith(ext)) )
                         {
                             html += `
                             <a class="menu-item dropdown-item" onclick="UrlModal.open({url: '${file.path}'})">
-                                <h3 class="skill-title">${fileName}</h3>
+                                <h3 >${fileName}</h3>
                                 ${desc}
                             </a>`
                         }
@@ -676,8 +605,11 @@
                 }
             }
             
-            const leftLinks = document.getElementById('WorkLinks');
-            leftLinks.innerHTML = await CreateElementByFloder("/Myworks");
+            const leftLinks = document.getElementById('leftDescLinks');
+            leftLinks.innerHTML = await CreateElementByFloder("/leftDesc");
+
+            const rightLinks = document.getElementById('rightDescLinks');
+            rightLinks.innerHTML = await CreateElementByFloder("/rightDesc");
         })
 
 
