@@ -526,7 +526,25 @@
                     `;
                 }
             }
-
+            async function getDirectDesc(dir)
+            {
+                let desc = '';
+                try {
+                    const response = await fetch('/api/list_files/' + encodeURIComponent(dir));
+                    const files = await response.json();
+                    if(files.some(item => item.path === dir + '/desc.txt')){
+                        const descResponse = await fetch(`${dir}/desc.txt`);
+                        if(descResponse.status === 200)
+                        {
+                            desc = await descResponse.text();
+                            desc = desc.split('\n').map(line => `<p>${line}</p>`).join('');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching directory description:', error);
+                }
+                return desc;
+            }
             async function CreateElementByFloder(dir) {
                 
                 let html = '';
@@ -571,17 +589,11 @@
                                     </div>
                                 `
                             }
-                            const dirDescResponse = await fetch(`${file.path}/desc.txt`);
-                            if(dirDescResponse.status === 200)
-                            {
-                                dirDesc = await dirDescResponse.text();
-                                dirDesc = dirDesc.split('\n').map(line => `<p>${line}</p>`).join('');
-                            }
                             html += `
                             <div class="menu-item ${dropUpDown}">
                                 <a class="social-link">
                                     <h3 >${fileName}</h3>
-                                    ${dirDesc}
+                                    ${await getDirectDesc(file.path)}
                                 </a>
                                 ${subMenu}
                             </div>`;
