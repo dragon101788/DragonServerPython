@@ -150,10 +150,10 @@ export class AlbumModal extends BaseModal {
                 const fileName = image.path.split('/').pop();
                 const imageItem = document.createElement('div');
                 imageItem.className = 'image-item';
-                imageItem.onclick = () => viewImage(image.path);
+                imageItem.onclick = () => this.viewImage(image.path);
                 
                 const img = document.createElement('img');
-                img.src = image.path + '?thumb=256';
+                img.src = image.path + '?thumb=512';
                 img.alt = fileName;
                 
                 const caption = document.createElement('div');
@@ -178,6 +178,46 @@ export class AlbumModal extends BaseModal {
             console.error('Error loading album:', error);
             grid.innerHTML = '<div class="error">加载相册失败</div>';
         }
+    }
+
+    viewImage(imagePath) {
+        // 创建图片查看器模态框
+        const viewerModal = document.createElement('div');
+        viewerModal.className = 'image-viewer-modal';
+        viewerModal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            cursor: pointer;
+        `;
+        
+        const img = document.createElement('img');
+        img.src = imagePath;
+        img.style.cssText = `
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        `;
+        
+        // 点击关闭查看器
+        viewerModal.addEventListener('click', () => {
+            document.body.removeChild(viewerModal);
+        });
+        
+        // 防止点击图片时关闭
+        img.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
+        viewerModal.appendChild(img);
+        document.body.appendChild(viewerModal);
     }
 
 }
