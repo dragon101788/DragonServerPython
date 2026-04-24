@@ -60,6 +60,25 @@ export class AlbumModal extends BaseModal {
                     overflow-y: auto;
                     padding: 0;
                     margin-top: 0;
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+                }
+
+                .album-grid::-webkit-scrollbar {
+                    width: 6px;
+                }
+
+                .album-grid::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+
+                .album-grid::-webkit-scrollbar-thumb {
+                    background-color: rgba(255, 255, 255, 0.2);
+                    border-radius: 3px;
+                }
+
+                .album-grid::-webkit-scrollbar-thumb:hover {
+                    background-color: rgba(255, 255, 255, 0.4);
                 }
                 
                 .image-item {
