@@ -493,7 +493,8 @@
         window.UrlModal = UrlModal;
         window.VideoModal = VideoModal;
         window.ImageModal = ImageModal;
-
+        const listDirCache = {
+        };
 
 
         document.addEventListener('DOMContentLoaded', async (event) => {
@@ -526,12 +527,22 @@
                     `;
                 }
             }
+            async function listDir(dir){
+                if(dir in listDirCache)
+                {
+                    return listDirCache[dir];
+                }
+                const response = await fetch('/api/list_files/' + encodeURIComponent(dir));
+                const files = await response.json();
+                listDirCache[dir] = files;
+                return files;
+            }
+
             async function getDirectDesc(dir)
             {
                 let desc = '';
                 try {
-                    const response = await fetch('/api/list_files/' + encodeURIComponent(dir),{cache:'force-cache'});
-                    const files = await response.json();
+                    const files = await listDir(dir);
                     if(files.some(item => item.path === dir + '/desc.txt')){
                         const descResponse = await fetch(`${dir}/desc.txt`);
                         if(descResponse.status === 200)
@@ -545,14 +556,14 @@
                 }
                 return desc;
             }
+            
             async function CreateElementByFloder(dir) {
                 
                 let html = '';
                 try {
                     
 
-                    const response = await fetch('/api/list_files/' + encodeURIComponent(dir),{cache:'force-cache'});
-                    const files = await response.json();
+                    const files = await listDir(dir);
                     
                     let dropUpDown = "dropdown down";
                     for(const file of files) {
@@ -561,10 +572,7 @@
                         let desc = '';
                         
                         const fileDesc = file.path + '.desc';
-                        //判断fileDesc文件是否存在files item path中,再执行fetch请求
-                        const descFileExists = files.some(item => item.path === fileDesc);
-                        
-                        if (descFileExists) {
+                        if (files.some(item => item.path === fileDesc)) {
                             try {
                                 const descResponse = await fetch(fileDesc);
                                 if(descResponse.status === 200)
