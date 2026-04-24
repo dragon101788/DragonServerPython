@@ -1,4 +1,5 @@
 import { BaseModal } from './BaseModal.js';
+import { VideoModal  } from '/media/dvideo.js';
 
 export class AlbumModal extends BaseModal {
     constructor() {
@@ -199,14 +200,14 @@ export class AlbumModal extends BaseModal {
             // 创建图片项并设置动态高度
             const fragment = document.createDocumentFragment();
             
-            for (const image of this.files) {
-                const fileName = image.path.split('/').pop();
+            for (const file of this.files) {
+                const fileName = file.path.split('/').pop();
                 const imageItem = document.createElement('div');
                 imageItem.className = 'image-item';
-                imageItem.onclick = () => this.viewImage(image.path);
+                imageItem.onclick = () => this.onOpen(file);
                 
                 const img = document.createElement('img');
-                img.src = image.path + '?thumb=512';
+                img.src = file.path + '?thumb=512';
                 img.alt = fileName;
                 
                 const caption = document.createElement('div');
@@ -233,7 +234,23 @@ export class AlbumModal extends BaseModal {
         }
     }
 
-    viewImage(imagePath) {
+     onOpen(file) {
+        if(file.contentType?.startsWith('video/'))
+        {
+            this.openVideoViewer(file);
+        }
+        else
+        {
+            // 图片文件
+            this.openImageViewer(file);
+        }
+    }
+
+    openVideoViewer(file){
+        VideoModal.open({videoUrl: file.path});
+    }
+
+    openImageViewer(file) {
         // 创建图片查看器模态框
         const viewerModal = document.createElement('div');
         viewerModal.className = 'image-viewer-modal';
@@ -252,7 +269,7 @@ export class AlbumModal extends BaseModal {
         `;
         
         const img = document.createElement('img');
-        img.src = imagePath;
+        img.src = file.path;
         img.style.cssText = `
             max-width: 90%;
             max-height: 90%;
