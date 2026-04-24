@@ -3,7 +3,7 @@ import { BaseModal } from './BaseModal.js';
 export class AlbumModal extends BaseModal {
     constructor() {
         super();
-        this.images = [];
+        this.files = [];
     }
 
     render() {
@@ -184,11 +184,14 @@ export class AlbumModal extends BaseModal {
             }
             const files = await response.json();
 
-            // 过滤出图片文件
-            this.images = files.filter(file => file.contentType?.startsWith('image/'));
+            // 过滤出图片和视频文件
+            this.files = files.filter(file => 
+                file.contentType?.startsWith('image/') || 
+                file.contentType?.startsWith('video/')
+            );
 
             // 渲染图片网格
-            if (this.images.length === 0) {
+            if (this.files.length === 0) {
                 grid.innerHTML = '<div class="error">该目录中没有图片</div>';
                 return;
             }
@@ -196,7 +199,7 @@ export class AlbumModal extends BaseModal {
             // 创建图片项并设置动态高度
             const fragment = document.createDocumentFragment();
             
-            for (const image of this.images) {
+            for (const image of this.files) {
                 const fileName = image.path.split('/').pop();
                 const imageItem = document.createElement('div');
                 imageItem.className = 'image-item';

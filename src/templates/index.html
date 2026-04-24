@@ -591,9 +591,13 @@
                             let subMenu = '';
                             let dirDesc = '';
                             const file_list = await listDir(file.path);
-                            //检查file_list里面是否全部都是图片,除了desc.txt文件
-                            const isAllImages = file_list.every(item => item.path.endsWith('desc.txt') || item.contentType?.startsWith('image/'));
-                            if(isAllImages)
+                            //检查file_list里面是否全部都是图片和视频文件,除了desc.txt文件
+                            const isAllVisable = file_list.every(item => 
+                                item.path.endsWith('desc.txt') ||
+                                item.contentType?.startsWith('image/') || 
+                                item.contentType?.startsWith('video/')
+                            );
+                            if(isAllVisable)
                             {
                                 html += `
                                 <a class="menu-item dropdown-item" onclick="AlbumModal.open({dir: '${file.path}'})">
