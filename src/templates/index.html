@@ -597,7 +597,7 @@
                             }
                             else if(file.contentType?.startsWith('video/') || /\.(mp4|webm|ogg|mov|mkv|avi|flv|wmv)$/i.test(file.path))
                             {
-                                html += `/*html*/
+                                html += `
                                 <a class="dropdown-item" onclick="VideoModal.open({videoUrl: '${file.path}'})">
                                     <h3 >${fileName}</h3>
                                     ${desc}
