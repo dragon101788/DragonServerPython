@@ -551,7 +551,7 @@
                 try {
                     
 
-                    const response = await fetch('/api/list_files/' + encodeURIComponent(dir));
+                    const response = await fetch('/api/list_files/' + encodeURIComponent(dir),{cache:'force-cache'});
                     const files = await response.json();
                     
                     let dropUpDown = "dropdown down";
