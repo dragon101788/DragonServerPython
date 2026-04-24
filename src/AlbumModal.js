@@ -143,6 +143,12 @@ export class AlbumModal extends BaseModal {
                 this.close();
             }
         });
+        // 点击关闭按钮关闭
+        const close = this.shadowRoot.querySelector('.close');
+        close.addEventListener('click', () => {
+            console.log('关闭相册模态框');
+            this.close();
+        });
 
         // 加载相册内容
         await this.loadAlbumContent();
