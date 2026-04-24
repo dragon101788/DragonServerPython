@@ -17,49 +17,72 @@ export class AlbumModal extends BaseModal {
                     overflow: hidden;
                     display: flex;
                     flex-direction: column;
+                    border: none !important;
+                    border-radius: 0 !important;
+                    box-shadow: none !important;
+                    background: transparent !important;
                 }
                 
                 .album-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 20px;
-                    padding-bottom: 10px;
-                    border-bottom: 1px solid #ddd;
+                    margin-bottom: 0;
+                    padding: 10px;
+                    background: rgba(0, 0, 0, 0.5);
+                    color: white;
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    z-index: 10;
                 }
                 
                 .album-title {
                     margin: 0;
                     font-size: 1.5rem;
-                    color: var(--text-primary, #2e3338);
+                    color: white;
+                }
+                
+                .close {
+                    color: white;
+                    font-size: 28px;
+                    font-weight: bold;
+                    cursor: pointer;
+                }
+                
+                .close:hover {
+                    color: #f0f0f0;
                 }
                 
                 .album-grid {
                     flex: 1;
                     display: grid;
                     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                    gap: 15px;
+                    grid-auto-rows: 10px;
+                    gap: 0;
                     overflow-y: auto;
-                    padding: 10px;
+                    padding: 0;
+                    margin-top: 60px;
                 }
                 
                 .image-item {
                     position: relative;
-                    aspect-ratio: 1;
                     overflow: hidden;
-                    border-radius: 8px;
                     cursor: pointer;
                     transition: transform 0.3s ease;
                 }
                 
                 .image-item:hover {
-                    transform: scale(1.05);
+                    transform: scale(1.02);
+                    z-index: 5;
                 }
                 
                 .image-item img {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
+                    display: block;
                 }
                 
                 .image-caption {
@@ -74,6 +97,12 @@ export class AlbumModal extends BaseModal {
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .image-item:hover .image-caption {
+                    opacity: 1;
                 }
                 
                 .loading {
@@ -82,7 +111,8 @@ export class AlbumModal extends BaseModal {
                     align-items: center;
                     height: 200px;
                     font-size: 1.2rem;
-                    color: var(--text-primary, #2e3338);
+                    color: white;
+                    background: rgba(0, 0, 0, 0.3);
                 }
                 
                 .error {
@@ -91,7 +121,8 @@ export class AlbumModal extends BaseModal {
                     align-items: center;
                     height: 200px;
                     font-size: 1.2rem;
-                    color: #da373c;
+                    color: #ff6b6b;
+                    background: rgba(0, 0, 0, 0.3);
                 }
             </style>
             <div class="modal">
@@ -139,15 +170,37 @@ export class AlbumModal extends BaseModal {
                 return;
             }
 
-            grid.innerHTML = this.images.map(image => {
+            // 创建图片项并设置动态高度
+            const fragment = document.createDocumentFragment();
+            
+            for (const image of this.images) {
                 const fileName = image.path.split('/').pop();
-                return /*html*/`
-                    <div class="image-item" onclick="viewImage('${image.path}')">
-                        <img src="${image.path}" alt="${fileName}">
-                        <div class="image-caption">${fileName}</div>
-                    </div>
-                `;
-            }).join('');
+                const imageItem = document.createElement('div');
+                imageItem.className = 'image-item';
+                imageItem.onclick = () => viewImage(image.path);
+                
+                const img = document.createElement('img');
+                img.src = image.path;
+                img.alt = fileName;
+                
+                const caption = document.createElement('div');
+                caption.className = 'image-caption';
+                caption.textContent = fileName;
+                
+                imageItem.appendChild(img);
+                imageItem.appendChild(caption);
+                fragment.appendChild(imageItem);
+                
+                // 加载图片后计算高度
+                img.onload = function() {
+                    const aspectRatio = this.naturalWidth / this.naturalHeight;
+                    const rowSpan = Math.ceil(aspectRatio * 20); // 调整系数以获得合适的高度
+                    imageItem.style.gridRowEnd = `span ${rowSpan}`;
+                };
+            }
+            
+            grid.innerHTML = '';
+            grid.appendChild(fragment);
         } catch (error) {
             console.error('Error loading album:', error);
             grid.innerHTML = '<div class="error">加载相册失败</div>';
