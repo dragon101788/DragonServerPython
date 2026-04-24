@@ -166,7 +166,7 @@ export class AlbumModal extends BaseModal {
                 
                 // 加载图片后计算高度
                 img.onload = function() {
-                    const aspectRatio = this.naturalWidth / this.naturalHeight;
+                    const aspectRatio =   this.naturalHeight / this.naturalWidth;
                     const rowSpan = Math.ceil(aspectRatio * 20); // 调整系数以获得合适的高度
                     imageItem.style.gridRowEnd = `span ${rowSpan}`;
                 };
