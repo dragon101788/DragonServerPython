@@ -15,6 +15,7 @@ import timestamp
 from src.AI.Server import router as chat_router
 import mimetypes    
 import aiofiles
+from src.webdav.Thumb import ResponseThumb ,remove_cache
 
 from src.account import account_router
 import  src.SystemManager  as SystemManager
@@ -61,10 +62,16 @@ def responseFile(request: Request, file_path: str):
     # 获取文件大小
     file_size = os.path.getsize(file_path)
     
+
     # 获取文件的MIME类型
     content_type, _ = mimetypes.guess_type(file_path)
     content_type = content_type or "application/octet-stream"
     
+    
+    thumb = request.query_params.get("thumb",None)
+    if thumb is not None:
+        return ResponseThumb(file_path,size = int(thumb),mimetype=content_type)
+        
     # 解析Range头
     range_header = request.headers.get('Range')
     CHUNK_SIZE = 1024*1024*2  # 2MB chunks

@@ -153,7 +153,7 @@ export class AlbumModal extends BaseModal {
                 imageItem.onclick = () => viewImage(image.path);
                 
                 const img = document.createElement('img');
-                img.src = image.path;
+                img.src = image.path + '?thumb=256';
                 img.alt = fileName;
                 
                 const caption = document.createElement('div');
