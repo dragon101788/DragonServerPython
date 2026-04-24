@@ -55,7 +55,7 @@ export class AlbumModal extends BaseModal {
                 .album-grid {
                     flex: 1;
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                    grid-template-columns: repeat(auto-fill, 1fr);
                     grid-auto-rows: 10px;
                     gap: 0;
                     overflow-y: auto;
@@ -197,6 +197,16 @@ export class AlbumModal extends BaseModal {
                 return;
             }
 
+            // 根据文件数量调整网格布局
+            let columns = 4; // 默认4列
+            if (this.files.length < 10) {
+                columns = 2; // 小于10个文件使用2列
+            } else if (this.files.length < 30) {
+                columns = 3; // 小于30个文件使用3列
+            }
+            // 设置网格列数
+            grid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
             // 创建图片项并设置动态高度
             const fragment = document.createDocumentFragment();
             
@@ -218,10 +228,13 @@ export class AlbumModal extends BaseModal {
                 imageItem.appendChild(caption);
                 fragment.appendChild(imageItem);
                 
-                // 加载图片后计算高度
+                // 加载图片后计算高度，根据列数调整系数
                 img.onload = function() {
-                    const aspectRatio =   this.naturalHeight / this.naturalWidth;
-                    const rowSpan = Math.ceil(aspectRatio * 20); // 调整系数以获得合适的高度
+                    const aspectRatio = this.naturalHeight / this.naturalWidth;
+                    // 根据列数调整系数，确保不同列数下图片高度比例一致
+                    const baseFactor = 30;
+                    const factor = baseFactor * (4 / columns);
+                    const rowSpan = Math.ceil(aspectRatio * factor);
                     imageItem.style.gridRowEnd = `span ${rowSpan}`;
                 };
             }
