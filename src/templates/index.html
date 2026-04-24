@@ -530,7 +530,7 @@
             {
                 let desc = '';
                 try {
-                    const response = await fetch('/api/list_files/' + encodeURIComponent(dir));
+                    const response = await fetch('/api/list_files/' + encodeURIComponent(dir),{cache:'force-cache'});
                     const files = await response.json();
                     if(files.some(item => item.path === dir + '/desc.txt')){
                         const descResponse = await fetch(`${dir}/desc.txt`);
