@@ -489,12 +489,13 @@
 
     <script type="module">
         import { UrlModal ,ImageModal} from '/BaseModal.js';
+        import { AlbumModal } from '/AlbumModal.js';
         import { VideoModal  } from '/media/dvideo.js';
         window.UrlModal = UrlModal;
         window.VideoModal = VideoModal;
         window.ImageModal = ImageModal;
-        const listDirCache = {
-        };
+        window.AlbumModal = AlbumModal;
+        const listDirCache = {};
 
 
         document.addEventListener('DOMContentLoaded', async (event) => {
@@ -589,23 +590,36 @@
                         {
                             let subMenu = '';
                             let dirDesc = '';
-                            subMenu = await CreateElementByFloder(file.path);
-                            if(subMenu!==''){
-                                subMenu = `
-                                    <div class="dropdown-content">
-                                        ${subMenu}
-                                    </div>
-                                `
-                            }
-                            html += `
-                            <div class="menu-item ${dropUpDown}">
-                                <a class="social-link">
+                            const file_list = await listDir(file.path);
+                            //检查file_list里面是否全部都是图片,除了desc.txt文件
+                            const isAllImages = file_list.every(item => item.path.endsWith('desc.txt') || item.contentType?.startsWith('image/'));
+                            if(isAllImages)
+                            {
+                                html += `
+                                <a class="menu-item dropdown-item" onclick="AlbumModal.open({dir: '${file.path}'})">
                                     <h3 >${fileName}</h3>
                                     ${await getDirectDesc(file.path)}
-                                </a>
-                                ${subMenu}
-                            </div>`;
-                            dropUpDown = "dropdown up";
+                                </a>`;
+                            }else{
+                                subMenu = await CreateElementByFloder(file.path);
+                                if(subMenu!==''){
+                                    subMenu = `
+                                        <div class="dropdown-content">
+                                            ${subMenu}
+                                        </div>
+                                    `
+                                }
+                                html += `
+                                <div class="menu-item ${dropUpDown}">
+                                    <a class="social-link">
+                                        <h3 >${fileName}</h3>
+                                        ${await getDirectDesc(file.path)}
+                                    </a>
+                                    ${subMenu}
+                                </div>`;
+                                dropUpDown = "dropdown up";
+                            }
+                            
                         }else {
                             if(file.path == 'desc.txt')
                             {
