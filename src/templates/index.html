@@ -539,17 +539,25 @@
                     let dropUpDown = "dropdown down";
                     for(const file of files) {
                         const fileName = file.path.split('/').pop().replace(/\.[^/.]+$/, '');
-                        const fileDesc = file.path.replace(/\.[^/.]+$/, '.desc');
+                        
                         let desc = '';
-                        try {
-                            const descResponse = await fetch(fileDesc);
-                            if(descResponse.status === 200)
-                            {
-                                desc = await descResponse.text();
-                                desc = desc.split('\n').map(line => `<p>${line}</p>`).join('');
+                        
+                        const fileDesc = file.path + '.desc';
+                        //判断fileDesc文件是否存在files item path中,再执行fetch请求
+                        const descFileExists = files.some(item => item.path === fileDesc);
+                        
+                        if (descFileExists) {
+                            try {
+                                const descResponse = await fetch(fileDesc);
+                                if(descResponse.status === 200)
+                                {
+                                    desc = await descResponse.text();
+                                    desc = desc.split('\n').map(line => `<p>${line}</p>`).join('');
+                                }
+                                    
+                            } catch (error) {
+                                console.error('Error fetching file description:', error);
                             }
-                        } catch (error) {
-                            console.error('Error fetching file description:', error);
                         }
                         if(file.is_dir)
                         {
