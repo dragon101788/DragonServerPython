@@ -553,28 +553,31 @@
                         }
                         if(file.is_dir)
                         {
-                            const subMenu = await CreateElementByFloder(file.path);
-                            if(subMenu) {
-                                const dirDescResponse = await fetch(`${file.path}/desc.txt`);
-                                let dirDesc = '';
-                                if(dirDescResponse.status === 200)
-                                {
-                                    dirDesc = await dirDescResponse.text();
-                                    dirDesc = dirDesc.split('\n').map(line => `<p>${line}</p>`).join('');
-                                }
-
-                                html += `
-                                <div class="menu-item ${dropUpDown}">
-                                    <a class="social-link">
-                                        <h3 >${fileName}</h3>
-                                        ${dirDesc}
-                                    </a>
+                            let subMenu = '';
+                            let dirDesc = '';
+                            subMenu = await CreateElementByFloder(file.path);
+                            if(subMenu!==''){
+                                subMenu = `
                                     <div class="dropdown-content">
                                         ${subMenu}
                                     </div>
-                                </div>`;
-                                dropUpDown = "dropdown up";
+                                `
                             }
+                            const dirDescResponse = await fetch(`${file.path}/desc.txt`);
+                            if(dirDescResponse.status === 200)
+                            {
+                                dirDesc = await dirDescResponse.text();
+                                dirDesc = dirDesc.split('\n').map(line => `<p>${line}</p>`).join('');
+                            }
+                            html += `
+                            <div class="menu-item ${dropUpDown}">
+                                <a class="social-link">
+                                    <h3 >${fileName}</h3>
+                                    ${dirDesc}
+                                </a>
+                                ${subMenu}
+                            </div>`;
+                            dropUpDown = "dropdown up";
                         }else if(file.contentType?.startsWith('video/') || /\.(mp4|webm|ogg|mov|mkv|avi|flv|wmv)$/i.test(file.path))
                         {
                             html += `

@@ -29,4 +29,6 @@ output.mp4
 .vscode/
 done_task.json
 traffic_data.json
-Myworks/*
+src/templates/index.html
+leftDesc/*
+rightDesc/*
