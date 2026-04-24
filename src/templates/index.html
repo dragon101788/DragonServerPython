@@ -586,27 +586,37 @@
                                 ${subMenu}
                             </div>`;
                             dropUpDown = "dropdown up";
-                        }else if(file.contentType?.startsWith('video/') || /\.(mp4|webm|ogg|mov|mkv|avi|flv|wmv)$/i.test(file.path))
-                        {
-                            html += `
-                            <a class="dropdown-item" onclick="VideoModal.open({videoUrl: '${file.path}'})">
-                                <h3 >${fileName}</h3>
-                                ${desc}
-                            </a>`;
-                        }else if(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'].some(ext => file.path.toLowerCase().endsWith(ext)))
-                        {
-                            html += `
-                            <a class="dropdown-item" onclick="ImageModal.open({url: '${file.path}'})">
-                                <h3 >${fileName}</h3>
-                                ${desc}
-                            </a>`;
-                        }else if(['.html', '.htm', '.pdf'].some(ext => file.path.toLowerCase().endsWith(ext)) )
-                        {
-                            html += `
-                            <a class="menu-item dropdown-item" onclick="UrlModal.open({url: '${file.path}'})">
-                                <h3 >${fileName}</h3>
-                                ${desc}
-                            </a>`
+                        }else {
+                            if(file.path == 'desc.txt')
+                            {
+                                continue;
+                            }
+                            else if(file.path.toLowerCase().endsWith('.desc'))
+                            {
+                                continue;
+                            }
+                            else if(file.contentType?.startsWith('video/') || /\.(mp4|webm|ogg|mov|mkv|avi|flv|wmv)$/i.test(file.path))
+                            {
+                                html += `/*html*/
+                                <a class="dropdown-item" onclick="VideoModal.open({videoUrl: '${file.path}'})">
+                                    <h3 >${fileName}</h3>
+                                    ${desc}
+                                </a>`;
+                            }else if(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'].some(ext => file.path.toLowerCase().endsWith(ext)))
+                            {
+                                html += `
+                                <a class="dropdown-item" onclick="ImageModal.open({url: '${file.path}'})">
+                                    <h3 >${fileName}</h3>
+                                    ${desc}
+                                </a>`;
+                            }else if(['.html', '.htm', '.pdf'].some(ext => file.path.toLowerCase().endsWith(ext)) )
+                            {
+                                html += `
+                                <a class="menu-item dropdown-item" onclick="UrlModal.open({url: '${file.path}'})">
+                                    <h3 >${fileName}</h3>
+                                    ${desc}
+                                </a>`
+                            }
                         }
 
                     }
