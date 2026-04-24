@@ -23,37 +23,9 @@ export class AlbumModal extends BaseModal {
                     background: transparent !important;
                 }
                 
-                .album-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 0;
-                    padding: 10px;
-                    background: rgba(0, 0, 0, 0.5);
-                    color: white;
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    z-index: 10;
-                }
+
                 
-                .album-title {
-                    margin: 0;
-                    font-size: 1.5rem;
-                    color: white;
-                }
-                
-                .close {
-                    color: white;
-                    font-size: 28px;
-                    font-weight: bold;
-                    cursor: pointer;
-                }
-                
-                .close:hover {
-                    color: #f0f0f0;
-                }
+
                 
                 .album-grid {
                     flex: 1;
@@ -63,7 +35,7 @@ export class AlbumModal extends BaseModal {
                     gap: 0;
                     overflow-y: auto;
                     padding: 0;
-                    margin-top: 60px;
+                    margin-top: 0;
                 }
                 
                 .image-item {
@@ -127,10 +99,6 @@ export class AlbumModal extends BaseModal {
             </style>
             <div class="modal">
                 <div class="modal-content">
-                    <div class="album-header">
-                        <h2 class="album-title">相册浏览</h2>
-                        <span class="close">&times;</span>
-                    </div>
                     <div class="form-group">
                         <div id="album-grid" class="album-grid">
                             <div class="loading">加载中...</div>
@@ -143,8 +111,13 @@ export class AlbumModal extends BaseModal {
     }
 
     async setupEventListeners() {
-        const closeButton = this.shadowRoot.querySelector('.close');
-        closeButton.addEventListener('click', () => this.close());
+        // 点击模态框背景关闭
+        const modal = this.shadowRoot.querySelector('.modal');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.close();
+            }
+        });
 
         // 加载相册内容
         await this.loadAlbumContent();
