@@ -1,8 +1,8 @@
 {
-    "source_path": "D:/IMPORTANT/python/DragonServer",
+    "source_path": "E:/IMPORTANT/python/DragonServer",
     "main_file": "main.py",
     "output_name": "DragonServer",
-    "icon_path": "D:/IMPORTANT/python/DragonServer/icon.ico",
+    "icon_path": "E:/IMPORTANT/python/DragonServer/icon.ico",
     "onefile": true,
     "windowed": true,
     "uac_admin": true,
