@@ -181,9 +181,6 @@ def verfiy_by_userpassword(username :str ,password :str):
    
     
 async def verfiy_by_request(request):
-
-    
-
     auth_header = request.headers.get("Authorization")
     
     if auth_header == "guest":
@@ -231,11 +228,13 @@ async def verfiy_by_request(request):
         return request
 
     cookie = request.headers.get("cookie", None)
-    cookie_token = cookie.split("token=")[1].split(";")[0] if cookie else None
-    if cookie_token is not None:
+    if cookie and "token=" in cookie:
+        cookie_token = cookie.split("token=")[1].split(";")[0]
         payload = await verfiy_by_token(cookie_token)
         request.username = payload.get("username")
         return request
+    else:
+        cookie_token = None
 
     url_token = request.query_params.get("token",None)
     if url_token is not None:
