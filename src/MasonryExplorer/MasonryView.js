@@ -168,8 +168,8 @@ export class MasonryView extends HTMLElement {
         const container = this.shadowRoot.getElementById('masonry-container') || this;
         const containerWidth = container.clientWidth || window.innerWidth;
         
-        // 根据宽度设置不同的列数
-        return Math.floor(containerWidth / 512);
+        // 根据宽度设置不同的列数，至少1列
+        return Math.max(1, Math.floor(containerWidth / 512));
     }
     async loadWebdavDir(path){
         // 重置状态
