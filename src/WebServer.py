@@ -233,13 +233,13 @@ async def AccessFiles(request: Request, path: str = ""):
                     raise Exception("禁止访问.py文件")
                 return responseFile(request, os.path.join(Resource.path.src, path))
             elif os.path.exists(os.path.join(Resource.path.templates, path)):
-                return templates.TemplateResponse(path, {"request": request})
+                return templates.TemplateResponse(request, path)
             
             raise e
     except HTTPException as e:
         user_agent = request.headers.get("User-Agent","")
         if "Mozilla" in user_agent:
-            return templates.TemplateResponse("error.html", {"request": request ,"reason" : e.__str__() ,"status_code" : str(e.status_code)}, status_code=e.status_code)
+            return templates.TemplateResponse(request, "error.html", {"reason": str(e.detail) if hasattr(e, 'detail') else str(e), "status_code": str(e.status_code)}, status_code=e.status_code)
         else:
             raise e
 

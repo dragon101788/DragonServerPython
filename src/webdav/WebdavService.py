@@ -574,9 +574,10 @@ class PropfindResponse:
 
             status = ET.SubElement(propstat, "{DAV:}status")
             status.text = "HTTP/1.1 200 OK"
-        except PermissionError as e:
-            # 捕获权限错误，不做处理，跳过该资源信息的添加
-            #print(f"访问{webpath} {resource_path}权限错误，不做处理，跳过该资源信息的添加 PermissionError: {e}")
+        except OSError:
+            # 捕获文件系统错误 (权限错误、文件被并发删除等)，静默跳过该资源
+            # 常见场景: PROPFIND 遍历时文件被其他进程删除 (竞态条件)
+            # OSError 涵盖: PermissionError, FileNotFoundError, Invalid argument 等
             return None
         
         return response

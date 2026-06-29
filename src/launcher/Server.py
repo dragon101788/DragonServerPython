@@ -338,14 +338,14 @@ class LauncherServer:
                 elif os.path.exists(os.path.join(Resource.path.src, path)):
                     return responseFile(os.path.join(Resource.path.src, path))
                 elif os.path.exists(os.path.join(Resource.path.templates, path)):
-                    return templates.TemplateResponse(path, {"request": request})
+                    return templates.TemplateResponse(request, path)
                     
                 
                 raise Exception("文件%s不存在"%path)
             except Exception as e:
                 
                 return {"status": "error", "message": f"文件访问失败: {str(e)}"}
-                return templates.TemplateResponse("error.html", {"request": request ,"reason" : e.__str__() ,"status_code" : "404"}, status_code=404)
+                return templates.TemplateResponse(request, "error.html", {"reason" : str(e), "status_code" : "404"}, status_code=404)
 
 
     def run_fastapi_server(self):
