@@ -250,10 +250,12 @@ async def do_GET(request: Request, path: str):
                 'Connection': 'keep-alive'  # 保持连接活跃
             }
             return StreamingResponse(file_generator(), status_code=206, headers=headers)
+        except HTTPException:
+            # HTTPException (如 416 Range Not Satisfiable) 应直接传给客户端
+            raise
         except Exception as e:
-            # 处理解析Range头或其他错误
+            # Range 解析失败等非预期错误，回退返回完整文件
             log(2, f"Error processing range header for {path}: {str(e)}")
-            # 出错时返回完整文件而不是失败
             pass
     
     # 无论是否有Range请求或处理Range请求失败，都能返回文件
