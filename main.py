@@ -18,7 +18,7 @@ from datetime import datetime
 
 class UvicornServer:
     def __init__(self):
-        self.config = uvicorn.Config(WebServer.app, host="0.0.0.0", port=8800, log_level="info")
+        self.config = uvicorn.Config(WebServer.app, host="0.0.0.0", port=8800, log_level="error")
         
         self.log_file = None
         self.config_by_args()
@@ -42,7 +42,7 @@ class UvicornServer:
 
         # 添加参数
         parser.add_argument('--port', type=int, default=8800, help='服务器端口')
-        parser.add_argument('--log_level', type=str, default='info', help='日志级别')
+        parser.add_argument('--log_level', type=str, default='error', help='日志级别')
         parser.add_argument('--ssl', action='store_true', help='启用SSL')
         parser.add_argument('--certfile', type=str, help='SSL证书文件路径')
         parser.add_argument('--keyfile', type=str, help='SSL密钥文件路径')
