@@ -215,9 +215,11 @@ async def do_GET(request: Request, path: str):
             start, end = range_header.replace('bytes=', '').split('-')
             start = int(start)
             end = int(end) if end else file_size - 1
-            # 验证范围是否有效
-            if start < 0 or end >= file_size or start > end:
+            # 验证范围是否有效: start 超出则 416，end 超出则截断到文件末尾
+            if start < 0 or start >= file_size or start > end:
                 raise HTTPException(status_code=416, detail="Range Not Satisfiable")
+            if end >= file_size:
+                end = file_size - 1  # 截断到有效范围，不返回 416
             length = end - start + 1
 
             async def file_generator():
